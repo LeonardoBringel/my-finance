@@ -29,7 +29,6 @@ def fmt(v):
 
 
 def fmt_date(d: str) -> str:
-    """YYYY-MM-DD → DD/MM/YYYY"""
     try:
         return datetime.strptime(d, "%Y-%m-%d").strftime("%d/%m/%Y")
     except Exception:
@@ -62,6 +61,7 @@ with st.expander("🔍 Filtros", expanded=True):
         f_month_name = st.selectbox("Mês", ["Todos"] + month_names)
         f_month = month_names.index(f_month_name) + 1 if f_month_name != "Todos" else None
     with col3:
+        # Filter by category type (entrada/saida) derived from categories table
         f_type = st.selectbox(
             "Tipo", ["Todos", "entrada", "saida"],
             format_func=lambda x: "Todos" if x == "Todos" else ("💰 Entrada" if x == "entrada" else "💸 Saída")
@@ -85,22 +85,23 @@ def new_transaction_dialog():
     all_cats = db.get_all_categories()
     reset_key = st.session_state.get("form_txn_reset", 0)
 
-    tipo = st.selectbox("Tipo *", ["saida", "entrada"],
-                        format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada")
-
     col1, col2 = st.columns(2)
     with col1:
-        data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
+        tipo = st.selectbox(
+            "Tipo *", ["saida", "entrada"],
+            format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada",
+            key=f"txn_tipo_{reset_key}"
+        )
     with col2:
-        valor_str = st.text_input("Valor Total (R$) *", value="",
-                                  key=f"txn_valor_{reset_key}", placeholder="ex: 1.250,00")
+        data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
 
-    cats_filtered = [c["name"] for c in all_cats if c["type"] in (tipo, "ambos")]
-    used_cats = db.get_autocomplete_values("category")
-    cat_options = sorted(set(cats_filtered + used_cats))
-    categoria = st.selectbox("Categoria *", [""] + cat_options, key=f"txn_cat_{reset_key}")
+    valor_str = st.text_input("Valor Total (R$) *", value="",
+                              key=f"txn_valor_{reset_key}", placeholder="ex: 1.250,00")
 
-    # ── Campo único de descrição com autocomplete ──────────────────────────────
+    # Filter categories by selected type
+    cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
+    categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()), key=f"txn_cat_{reset_key}")
+
     desc_options = db.get_autocomplete_values("description")
     descricao_final = st.selectbox(
         "Descrição",
@@ -125,13 +126,18 @@ def new_transaction_dialog():
     c1, c2 = st.columns(2)
     with c1:
         if st.button("💾 Salvar", type="primary", use_container_width=True):
-            if not categoria:
+            if not categoria_nome:
                 st.error("Selecione uma categoria.")
             elif not valor_parsed or valor_parsed <= 0:
                 st.error("Informe um valor válido (ex: 1.250,00).")
             else:
-                db.add_transaction(tipo, data.strftime("%Y-%m-%d"), categoria,
-                                   descricao_final, valor_parsed, int(parcelas))
+                db.add_transaction(
+                    category_id=cats_filtered[categoria_nome],
+                    date_=data.strftime("%Y-%m-%d"),
+                    description=descricao_final,
+                    value=valor_parsed,
+                    installments=int(parcelas),
+                )
                 st.success("✅ Salvo! Preencha o próximo ou feche.")
                 st.session_state["form_txn_reset"] = reset_key + 1
                 st.rerun()
@@ -150,13 +156,24 @@ if st.session_state.get("show_form_txn"):
 @st.dialog("✏️ Editar Lançamento")
 def edit_transaction_dialog(txn):
     all_cats = db.get_all_categories()
-    tipo = st.selectbox("Tipo *", ["saida", "entrada"],
-                        index=0 if txn["type"] == "saida" else 1,
-                        format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada")
+
+    # Tipo field — pre-select based on current transaction type
+    current_type = txn.get("type", "saida")
+    tipo_idx = 0 if current_type == "saida" else 1
     col1, col2 = st.columns(2)
     with col1:
+        tipo = st.selectbox(
+            "Tipo *", ["saida", "entrada"],
+            format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada",
+            index=tipo_idx,
+            key="edit_tipo"
+        )
+    with col2:
         data = st.date_input("Data *", value=date.fromisoformat(txn["date"]),
                              format="DD/MM/YYYY")
+
+    # Filter categories by selected type
+    cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
     with col2:
         valor_str = st.text_input(
             "Valor (R$) *",
@@ -164,16 +181,15 @@ def edit_transaction_dialog(txn):
             placeholder="ex: 1.250,00"
         )
 
-    cats_filtered = [c["name"] for c in all_cats if c["type"] in (tipo, "ambos")]
-    used_cats = db.get_autocomplete_values("category")
-    cat_options = sorted(set(cats_filtered + used_cats))
-    cat_idx = cat_options.index(txn["category"]) if txn["category"] in cat_options else 0
-    categoria = st.selectbox("Categoria *", cat_options, index=cat_idx)
+    # Pre-select current category
+    current_cat = txn.get("category", "")
+    cat_names_f = list(cats_filtered.keys())
+    cat_idx = cat_names_f.index(current_cat) if current_cat in cat_names_f else 0
+    categoria_nome = st.selectbox("Categoria *", cat_names_f, index=cat_idx)
 
-    # ── Campo único de descrição com autocomplete ──────────────────────────────
+    # Description with autocomplete
     desc_options = db.get_autocomplete_values("description")
-    current_desc = txn["description"] or ""
-    # Pre-select existing value if it's in options, otherwise it appears as typed value
+    current_desc = txn.get("description") or ""
     desc_index = desc_options.index(current_desc) if current_desc in desc_options else None
     descricao = st.selectbox(
         "Descrição",
@@ -195,8 +211,13 @@ def edit_transaction_dialog(txn):
             if not valor_parsed or valor_parsed <= 0:
                 st.error("Informe um valor válido.")
             else:
-                db.update_transaction(txn["id"], tipo, data.strftime("%Y-%m-%d"),
-                                      categoria, descricao, valor_parsed)
+                db.update_transaction(
+                    id_=txn["id"],
+                    category_id=cats_filtered[categoria_nome],
+                    date_=data.strftime("%Y-%m-%d"),
+                    description=descricao,
+                    value=valor_parsed,
+                )
                 st.success("✅ Atualizado!")
                 st.session_state.pop("edit_txn", None)
                 st.rerun()
@@ -218,8 +239,8 @@ if f_cat:
     transactions = [t for t in transactions if f_cat.lower() in t["category"].lower()]
 
 # ── Summary Metrics ────────────────────────────────────────────────────────────
-total_in = sum(t["value"] for t in transactions if t["type"] == "entrada")
-total_out = sum(t["value"] for t in transactions if t["type"] == "saida")
+total_in  = sum(t["value"] for t in transactions if t["type"] == "entrada")
+total_out = sum(t["value"] for t in transactions if t["type"] in ("saida", "ambos"))
 
 col1, col2, col3 = st.columns(3)
 col1.metric("💰 Total Entradas", fmt(total_in))
@@ -241,15 +262,16 @@ else:
 
     for txn in transactions:
         cols = st.columns([1.2, 1.5, 1.8, 2.5, 1.5, 1.2, 0.8, 0.8])
-        tipo_icon = "💰" if txn["type"] == "entrada" else "💸"
-        tipo_label = "Entrada" if txn["type"] == "entrada" else "Saída"
+        tipo = txn["type"]
+        tipo_icon  = "💰" if tipo == "entrada" else "💸"
+        tipo_label = "Entrada" if tipo == "entrada" else "Saída"
 
         cols[0].markdown(f"{tipo_icon} {tipo_label}")
         cols[1].markdown(fmt_date(txn["date"]))
         cols[2].markdown(txn["category"])
         cols[3].markdown(txn["description"] or "—")
 
-        val_color = "green" if txn["type"] == "entrada" else "red"
+        val_color = "green" if tipo == "entrada" else "red"
         cols[4].markdown(f":{val_color}[{fmt(txn['value'])}]")
 
         if txn.get("installment_total"):
@@ -262,15 +284,18 @@ else:
             st.rerun()
 
         if cols[7].button("🗑️", key=f"del_{txn['id']}"):
-            st.session_state[f"confirm_del_{txn['id']}"] = True
+            st.session_state["confirm_del_id"] = txn["id"]
+            st.session_state["confirm_del_label"] = f"{txn['category']} — {fmt(txn['value'])}"
 
-        if st.session_state.get(f"confirm_del_{txn['id']}"):
-            st.warning(f"⚠️ Confirmar exclusão de **{txn['category']}** — {fmt(txn['value'])}?")
+        if st.session_state.get("confirm_del_id") == txn["id"]:
+            st.warning(f"⚠️ Confirmar exclusão de **{st.session_state['confirm_del_label']}**?")
             c1, c2, _ = st.columns([1, 1, 4])
             if c1.button("✅ Confirmar", key=f"conf_{txn['id']}", type="primary"):
                 db.delete_transaction(txn["id"])
-                st.session_state.pop(f"confirm_del_{txn['id']}", None)
+                st.session_state.pop("confirm_del_id", None)
+                st.session_state.pop("confirm_del_label", None)
                 st.rerun()
             if c2.button("❌ Cancelar", key=f"canc_{txn['id']}"):
-                st.session_state.pop(f"confirm_del_{txn['id']}", None)
+                st.session_state.pop("confirm_del_id", None)
+                st.session_state.pop("confirm_del_label", None)
                 st.rerun()

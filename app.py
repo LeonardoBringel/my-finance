@@ -10,7 +10,6 @@ from components.charts import (
     donut_chart, bar_chart_expenses, line_chart_trend, saldo_gauge
 )
 
-# ── Page config ────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Gestão Financeira",
     page_icon="💰",
@@ -20,7 +19,6 @@ st.set_page_config(
 
 # db.init_db()
 
-# ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
     [data-testid="metric-container"] {
@@ -46,12 +44,10 @@ st.markdown("""
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 def fmt(v):
-    """R$ 1.234,56"""
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def parse_valor(s):
-    """Accept '1.234,56' or '1234.56'"""
     s = s.strip().replace(" ", "")
     if "," in s:
         s = s.replace(".", "").replace(",", ".")
@@ -78,14 +74,14 @@ with st.sidebar:
 
     st.divider()
 
-    if st.button("➕ Novo Registro", type="primary", width="stretch"):
+    if st.button("➕ Novo Registro", type="primary", use_container_width=True):
         st.session_state["show_form"] = True
         st.session_state.setdefault("form_reset_counter", 0)
 
-    if st.button("📋 Ver Lançamentos", width="stretch"):
+    if st.button("📋 Ver Lançamentos", use_container_width=True):
         st.switch_page("pages/transactions.py")
 
-    if st.button("🏷️ Categorias", width="stretch"):
+    if st.button("🏷️ Categorias", use_container_width=True):
         st.switch_page("pages/categories.py")
 
 
@@ -95,34 +91,31 @@ def new_transaction_dialog():
     all_cats = db.get_all_categories()
     reset_key = st.session_state.get("form_reset_counter", 0)
 
-    tipo = st.selectbox(
-        "Tipo *", ["saida", "entrada"],
-        format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada"
-    )
-
     col1, col2 = st.columns(2)
     with col1:
-        data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
-    with col2:
-        valor_str = st.text_input(
-            "Valor Total (R$) *",
-            value="",
-            key=f"valor_{reset_key}",
-            placeholder="ex: 1.250,00"
+        tipo = st.selectbox(
+            "Tipo *", ["saida", "entrada"],
+            format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada",
+            key=f"tipo_{reset_key}"
         )
+    with col2:
+        data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
 
-    cats_filtered = [c["name"] for c in all_cats if c["type"] in (tipo, "ambos")]
-    used_cats = db.get_autocomplete_values("category")
-    cat_options = sorted(set(cats_filtered + used_cats))
-    categoria = st.selectbox("Categoria *", [""] + cat_options, key=f"cat_{reset_key}")
+    valor_str = st.text_input(
+        "Valor Total (R$) *", value="",
+        key=f"valor_{reset_key}", placeholder="ex: 1.250,00"
+    )
 
-    # ── Campo único de descrição com autocomplete ──────────────────────────────
+    # Filter categories by selected type
+    cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
+    categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()), key=f"cat_{reset_key}")
+
     desc_options = db.get_autocomplete_values("description")
     descricao_final = st.selectbox(
         "Descrição",
         options=desc_options,
         index=None,
-        accept_new_values=True,
+        accept_new_options=True,
         placeholder="Digite ou selecione uma descrição...",
         key=f"desc_{reset_key}"
     ) or ""
@@ -140,16 +133,15 @@ def new_transaction_dialog():
     st.divider()
     col_save, col_cancel = st.columns(2)
     with col_save:
-        if st.button("💾 Salvar", type="primary", width="stretch"):
-            if not categoria:
+        if st.button("💾 Salvar", type="primary", use_container_width=True):
+            if not categoria_nome:
                 st.error("Selecione uma categoria.")
             elif not valor_parsed or valor_parsed <= 0:
                 st.error("Informe um valor válido (ex: 1.250,00).")
             else:
                 db.add_transaction(
-                    type_=tipo,
+                    category_id=cats_filtered[categoria_nome],
                     date_=data.strftime("%Y-%m-%d"),
-                    category=categoria,
                     description=descricao_final,
                     value=valor_parsed,
                     installments=int(parcelas),
@@ -158,7 +150,7 @@ def new_transaction_dialog():
                 st.session_state["form_reset_counter"] = reset_key + 1
                 st.rerun()
     with col_cancel:
-        if st.button("Fechar", width="stretch"):
+        if st.button("Fechar", use_container_width=True):
             st.session_state.pop("show_form", None)
             st.session_state.pop("form_reset_counter", None)
             st.rerun()
@@ -195,28 +187,27 @@ with col4:
 
 st.divider()
 
-# ── Charts Row 1 ──────────────────────────────────────────────────────────────
+# ── Charts ─────────────────────────────────────────────────────────────────────
 col_left, col_right = st.columns(2)
 with col_left:
     labels = [r["category"] for r in expenses_by_cat]
     values = [r["total"] for r in expenses_by_cat]
     st.plotly_chart(donut_chart(labels, values, "🔴 Despesas por Categoria"),
-                    width="stretch", key="donut_exp")
+                    width='stretch', key="donut_exp")
 with col_right:
     labels_in = [r["category"] for r in income_by_cat]
     values_in = [r["total"] for r in income_by_cat]
     green_colors = ["#4CAF50", "#66BB6A", "#81C784", "#A5D6A7", "#C8E6C9"]
     st.plotly_chart(donut_chart(labels_in, values_in, "🟢 Entradas por Categoria",
                                 colors=green_colors),
-                    width="stretch", key="donut_inc")
+                    width='stretch', key="donut_inc")
 
-# ── Charts Row 2 ──────────────────────────────────────────────────────────────
 col_bar, col_line = st.columns(2)
 with col_bar:
     cats = [r["category"] for r in expenses_by_cat]
     vals = [r["total"] for r in expenses_by_cat]
     st.plotly_chart(bar_chart_expenses(cats, vals, vals, "📊 Detalhamento Despesas"),
-                    width="stretch", key="bar_exp")
+                    width='stretch', key="bar_exp")
 with col_line:
     st.plotly_chart(line_chart_trend(trend, "📈 Entradas x Saídas (ano)"),
-                    width="stretch", key="line_trend")
+                    width='stretch', key="line_trend")
