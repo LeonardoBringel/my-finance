@@ -95,8 +95,10 @@ def new_transaction_dialog():
     all_cats = db.get_all_categories()
     reset_key = st.session_state.get("form_reset_counter", 0)
 
-    tipo = st.selectbox("Tipo *", ["saida", "entrada"],
-                        format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada")
+    tipo = st.selectbox(
+        "Tipo *", ["saida", "entrada"],
+        format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada"
+    )
 
     col1, col2 = st.columns(2)
     with col1:
@@ -114,12 +116,16 @@ def new_transaction_dialog():
     cat_options = sorted(set(cats_filtered + used_cats))
     categoria = st.selectbox("Categoria *", [""] + cat_options, key=f"cat_{reset_key}")
 
+    # ── Campo único de descrição com autocomplete ──────────────────────────────
     desc_options = db.get_autocomplete_values("description")
-    descricao = st.selectbox("Descrição", [""] + desc_options, key=f"desc_sel_{reset_key}")
-    descricao_custom = st.text_input("Ou digite uma nova descrição",
-                                     placeholder="Descrição personalizada...",
-                                     key=f"desc_custom_{reset_key}")
-    descricao_final = descricao_custom if descricao_custom else descricao
+    descricao_final = st.selectbox(
+        "Descrição",
+        options=desc_options,
+        index=None,
+        accept_new_values=True,
+        placeholder="Digite ou selecione uma descrição...",
+        key=f"desc_{reset_key}"
+    ) or ""
 
     parcelado = st.checkbox("Parcelado?", key=f"parcelado_{reset_key}")
     parcelas = 1

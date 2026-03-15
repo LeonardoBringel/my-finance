@@ -100,10 +100,16 @@ def new_transaction_dialog():
     cat_options = sorted(set(cats_filtered + used_cats))
     categoria = st.selectbox("Categoria *", [""] + cat_options, key=f"txn_cat_{reset_key}")
 
+    # ── Campo único de descrição com autocomplete ──────────────────────────────
     desc_options = db.get_autocomplete_values("description")
-    descricao = st.selectbox("Descrição", [""] + desc_options, key=f"txn_desc_sel_{reset_key}")
-    descricao_custom = st.text_input("Ou digite uma nova descrição", key=f"txn_desc_c_{reset_key}")
-    descricao_final = descricao_custom if descricao_custom else descricao
+    descricao_final = st.selectbox(
+        "Descrição",
+        options=desc_options,
+        index=None,
+        accept_new_options=True,
+        placeholder="Digite ou selecione uma descrição...",
+        key=f"txn_desc_{reset_key}"
+    ) or ""
 
     parcelado = st.checkbox("Parcelado?", key=f"txn_parc_{reset_key}")
     parcelas = 1
@@ -152,9 +158,11 @@ def edit_transaction_dialog(txn):
         data = st.date_input("Data *", value=date.fromisoformat(txn["date"]),
                              format="DD/MM/YYYY")
     with col2:
-        valor_str = st.text_input("Valor (R$) *",
-                                  value=f"{txn['value']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-                                  placeholder="ex: 1.250,00")
+        valor_str = st.text_input(
+            "Valor (R$) *",
+            value=f"{txn['value']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+            placeholder="ex: 1.250,00"
+        )
 
     cats_filtered = [c["name"] for c in all_cats if c["type"] in (tipo, "ambos")]
     used_cats = db.get_autocomplete_values("category")
@@ -162,7 +170,19 @@ def edit_transaction_dialog(txn):
     cat_idx = cat_options.index(txn["category"]) if txn["category"] in cat_options else 0
     categoria = st.selectbox("Categoria *", cat_options, index=cat_idx)
 
-    descricao = st.text_input("Descrição", value=txn["description"] or "")
+    # ── Campo único de descrição com autocomplete ──────────────────────────────
+    desc_options = db.get_autocomplete_values("description")
+    current_desc = txn["description"] or ""
+    # Pre-select existing value if it's in options, otherwise it appears as typed value
+    desc_index = desc_options.index(current_desc) if current_desc in desc_options else None
+    descricao = st.selectbox(
+        "Descrição",
+        options=desc_options,
+        index=desc_index,
+        accept_new_options=True,
+        placeholder="Digite ou selecione uma descrição...",
+        key="edit_desc"
+    ) or ""
 
     if txn.get("installment_total"):
         st.info(f"⚠️ Parcela {txn['installment_number']}/{txn['installment_total']} — editar só esta parcela")
@@ -225,12 +245,12 @@ else:
         tipo_label = "Entrada" if txn["type"] == "entrada" else "Saída"
 
         cols[0].markdown(f"{tipo_icon} {tipo_label}")
-        cols[1].markdown(fmt_date(txn["date"]))          # DD/MM/YYYY
+        cols[1].markdown(fmt_date(txn["date"]))
         cols[2].markdown(txn["category"])
         cols[3].markdown(txn["description"] or "—")
 
         val_color = "green" if txn["type"] == "entrada" else "red"
-        cols[4].markdown(f":{val_color}[{fmt(txn['value'])}]")  # R$ 1.234,56
+        cols[4].markdown(f":{val_color}[{fmt(txn['value'])}]")
 
         if txn.get("installment_total"):
             cols[5].markdown(f"{txn['installment_number']}/{txn['installment_total']}")
