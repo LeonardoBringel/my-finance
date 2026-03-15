@@ -191,19 +191,20 @@ st.divider()
 # ── Charts ─────────────────────────────────────────────────────────────────────
 col_left, col_right = st.columns(2)
 with col_left:
-    labels = [r["category"] for r in expenses_by_cat]
-    values = [r["total"] for r in expenses_by_cat]
-    st.plotly_chart(donut_chart(labels, values, "🔴 Despesas por Categoria"),
-                    width='stretch', key="donut_exp")
-with col_right:
     labels_in = [r["category"] for r in income_by_cat]
     values_in = [r["total"] for r in income_by_cat]
     green_colors = ["#4CAF50", "#66BB6A", "#81C784", "#A5D6A7", "#C8E6C9"]
-    st.plotly_chart(donut_chart(labels_in, values_in, "🟢 Entradas por Categoria",
+    st.plotly_chart(donut_chart(labels_in, values_in, "📊 Entradas por Categoria",
                                 colors=green_colors),
                     width='stretch', key="donut_inc")
 
-col_bar, col_line = st.columns(2)
+with col_right:
+    labels = [r["category"] for r in expenses_by_cat]
+    values = [r["total"] for r in expenses_by_cat]
+    st.plotly_chart(donut_chart(labels, values, "📊 Despesas por Categoria"),
+                    width='stretch', key="donut_exp")
+
+col_line, col_bar = st.columns(2)
 with col_bar:
     cats = [r["category"] for r in expenses_by_cat]
     vals = [r["total"] for r in expenses_by_cat]
