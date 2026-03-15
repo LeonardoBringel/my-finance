@@ -179,11 +179,11 @@ with col2:
     st.metric("💸 Despesas do Mês", fmt(summary["saidas"]))
 with col3:
     saldo = summary["saldo"]
-    st.metric("📈 Saldo do Mês", fmt(saldo), delta=fmt(saldo),
+    st.metric("📈 Saldo do Mês", "", delta=fmt(saldo),
               delta_color="normal" if saldo >= 0 else "inverse")
 with col4:
     sacc = summary["saldo_acumulado"]
-    st.metric("🏦 Saldo Acumulado", fmt(sacc), delta=fmt(sacc),
+    st.metric("🏦 Saldo Acumulado", "", delta=fmt(sacc),
               delta_color="normal" if sacc >= 0 else "inverse")
 
 st.divider()
