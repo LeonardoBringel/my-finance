@@ -1,0 +1,11 @@
+[project]
+name = "finance-app"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "plotly>=6.6.0",
+    "python-dateutil>=2.9.0.post0",
+    "streamlit>=1.55.0",
+]
