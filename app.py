@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# db.init_db()
+db.init_db()
 
 st.markdown("""
 <style>
@@ -110,7 +110,8 @@ def new_transaction_dialog():
     cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
     categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()), key=f"cat_{reset_key}")
 
-    desc_options = db.get_autocomplete_values("description")
+    selected_cat_id = cats_filtered.get(categoria_nome)
+    desc_options = db.get_descriptions_by_category(selected_cat_id)
     descricao_final = st.selectbox(
         "Descrição",
         options=desc_options,

@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import database as db
 
 st.set_page_config(page_title="Lançamentos", page_icon="📋", layout="wide")
-# db.init_db()
+db.init_db()
 
 st.markdown("""
 <style>
@@ -102,7 +102,8 @@ def new_transaction_dialog():
     cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
     categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()), key=f"txn_cat_{reset_key}")
 
-    desc_options = db.get_autocomplete_values("description")
+    selected_cat_id = cats_filtered.get(categoria_nome)
+    desc_options = db.get_descriptions_by_category(selected_cat_id)
     descricao_final = st.selectbox(
         "Descrição",
         options=desc_options,
@@ -188,7 +189,8 @@ def edit_transaction_dialog(txn):
     categoria_nome = st.selectbox("Categoria *", cat_names_f, index=cat_idx)
 
     # Description with autocomplete
-    desc_options = db.get_autocomplete_values("description")
+    selected_cat_id = cats_filtered.get(categoria_nome)
+    desc_options = db.get_descriptions_by_category(selected_cat_id)
     current_desc = txn.get("description") or ""
     desc_index = desc_options.index(current_desc) if current_desc in desc_options else None
     descricao = st.selectbox(

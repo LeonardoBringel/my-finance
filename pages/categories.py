@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import database as db
 
 st.set_page_config(page_title="Categorias", page_icon="🏷️", layout="wide")
-# db.init_db()
+db.init_db()
 
 st.markdown("""
 <style>

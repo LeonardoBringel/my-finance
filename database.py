@@ -290,15 +290,21 @@ def delete_transaction(id_: int):
     conn.close()
 
 
-def get_autocomplete_values(field: str):
-    """Return distinct non-empty description values for autocomplete."""
-    if field != "description":
-        return []
+def get_descriptions_by_category(category_id: int = None):
+    """Return distinct non-empty descriptions, optionally filtered by category_id."""
     conn = get_connection()
-    rows = conn.execute(
-        "SELECT DISTINCT description FROM transactions "
-        "WHERE description IS NOT NULL AND description != '' ORDER BY description"
-    ).fetchall()
+    if category_id:
+        rows = conn.execute(
+            "SELECT DISTINCT description FROM transactions "
+            "WHERE description IS NOT NULL AND description != '' "
+            "AND category_id = ? ORDER BY description",
+            (category_id,)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT DISTINCT description FROM transactions "
+            "WHERE description IS NOT NULL AND description != '' ORDER BY description"
+        ).fetchall()
     conn.close()
     return [r[0] for r in rows]
 
