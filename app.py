@@ -18,7 +18,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-db.init_db()
+# db.init_db()
 
 # ── Custom CSS ─────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -78,14 +78,14 @@ with st.sidebar:
 
     st.divider()
 
-    if st.button("➕ Novo Registro", type="primary", use_container_width=True):
+    if st.button("➕ Novo Registro", type="primary", width="stretch"):
         st.session_state["show_form"] = True
         st.session_state.setdefault("form_reset_counter", 0)
 
-    if st.button("📋 Ver Lançamentos", use_container_width=True):
+    if st.button("📋 Ver Lançamentos", width="stretch"):
         st.switch_page("pages/transactions.py")
 
-    if st.button("🏷️ Categorias", use_container_width=True):
+    if st.button("🏷️ Categorias", width="stretch"):
         st.switch_page("pages/categories.py")
 
 
@@ -140,7 +140,7 @@ def new_transaction_dialog():
     st.divider()
     col_save, col_cancel = st.columns(2)
     with col_save:
-        if st.button("💾 Salvar", type="primary", use_container_width=True):
+        if st.button("💾 Salvar", type="primary", width="stretch"):
             if not categoria:
                 st.error("Selecione uma categoria.")
             elif not valor_parsed or valor_parsed <= 0:
@@ -158,7 +158,7 @@ def new_transaction_dialog():
                 st.session_state["form_reset_counter"] = reset_key + 1
                 st.rerun()
     with col_cancel:
-        if st.button("Fechar", use_container_width=True):
+        if st.button("Fechar", width="stretch"):
             st.session_state.pop("show_form", None)
             st.session_state.pop("form_reset_counter", None)
             st.rerun()
@@ -201,14 +201,14 @@ with col_left:
     labels = [r["category"] for r in expenses_by_cat]
     values = [r["total"] for r in expenses_by_cat]
     st.plotly_chart(donut_chart(labels, values, "🔴 Despesas por Categoria"),
-                    use_container_width=True, key="donut_exp")
+                    width="stretch", key="donut_exp")
 with col_right:
     labels_in = [r["category"] for r in income_by_cat]
     values_in = [r["total"] for r in income_by_cat]
     green_colors = ["#4CAF50", "#66BB6A", "#81C784", "#A5D6A7", "#C8E6C9"]
     st.plotly_chart(donut_chart(labels_in, values_in, "🟢 Entradas por Categoria",
                                 colors=green_colors),
-                    use_container_width=True, key="donut_inc")
+                    width="stretch", key="donut_inc")
 
 # ── Charts Row 2 ──────────────────────────────────────────────────────────────
 col_bar, col_line = st.columns(2)
@@ -216,7 +216,7 @@ with col_bar:
     cats = [r["category"] for r in expenses_by_cat]
     vals = [r["total"] for r in expenses_by_cat]
     st.plotly_chart(bar_chart_expenses(cats, vals, vals, "📊 Detalhamento Despesas"),
-                    use_container_width=True, key="bar_exp")
+                    width="stretch", key="bar_exp")
 with col_line:
     st.plotly_chart(line_chart_trend(trend, "📈 Entradas x Saídas (ano)"),
-                    use_container_width=True, key="line_trend")
+                    width="stretch", key="line_trend")

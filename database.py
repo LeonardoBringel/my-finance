@@ -143,7 +143,7 @@ def get_transactions(year: int = None, month: int = None):
     if month:
         query += " AND strftime('%m', date) = ?"
         params.append(f"{month:02d}")
-    query += " ORDER BY date DESC"
+    query += " ORDER BY date DESC, id"
     rows = conn.execute(query, params).fetchall()
     conn.close()
     return [dict(r) for r in rows]
