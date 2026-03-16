@@ -1,424 +1,276 @@
-import sqlite3
 import os
+from contextlib import contextmanager
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "finance.db")
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, Session
+from dotenv import load_dotenv
+
+from models import Base, Category, Transaction
+from crypto import encrypt, decrypt, decrypt_float
+
+load_dotenv()
+
+# ── Engine ─────────────────────────────────────────────────────────────────────
+
+_engine = None
+_SessionLocal = None
 
 
-def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+def _build_url() -> str:
+    return (
+        f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
+        f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', 5432)}/{os.getenv('DB_NAME')}"
+    )
+
+
+def get_engine():
+    global _engine
+    if _engine is None:
+        _engine = create_engine(_build_url(), pool_pre_ping=True)
+    return _engine
+
+
+def get_session_factory():
+    global _SessionLocal
+    if _SessionLocal is None:
+        _SessionLocal = sessionmaker(bind=get_engine(), expire_on_commit=False)
+    return _SessionLocal
+
+
+@contextmanager
+def get_session() -> Session:
+    factory = get_session_factory()
+    session = factory()
+    try:
+        yield session
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()
 
 
 def init_db():
-    conn = get_connection()
-    c = conn.cursor()
-
-    # ── Categories table ───────────────────────────────────────────────────────
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS categories (
-            id   INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT    NOT NULL UNIQUE,
-            type TEXT    NOT NULL CHECK(type IN ('entrada', 'saida', 'ambos'))
-        )
-    """)
-
-    default_categories = [
-        ("Casa", "saida"), ("Carro", "saida"), ("Estudo", "saida"),
-        ("Outros", "ambos"), ("Recorrente", "saida"), ("Gatos", "saida"),
-        ("Alimentação", "saida"), ("Mercado", "saida"), ("Farmácia", "saida"),
-        ("Salário", "entrada"),
-    ]
-    c.executemany(
-        "INSERT OR IGNORE INTO categories (name, type) VALUES (?, ?)",
-        default_categories
-    )
-
-    # ── Transactions table (new schema) ────────────────────────────────────────
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS transactions (
-            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_id        INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-            date               TEXT    NOT NULL,
-            description        TEXT,
-            value              REAL    NOT NULL,
-            installment_group  TEXT,
-            installment_number INTEGER,
-            installment_total  INTEGER,
-            created_at         TEXT    DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    conn.commit()
-
-    # ── Migration: old schema → new schema ────────────────────────────────────
-    _migrate(conn)
-
-    conn.close()
-
-
-def _migrate(conn: sqlite3.Connection):
-    """
-    If transactions still has the legacy columns (type, category TEXT),
-    migrate them to category_id and drop the old columns.
-
-    Strategy:
-    1. Check if legacy column 'type' still exists.
-    2. If yes, for each transaction try to find a matching category by name.
-       - If found → set category_id.
-       - If not found → create the category (inheriting type from transaction)
-         and set category_id.
-    3. Rename old table, recreate with new schema, copy data, drop old.
-    """
-    c = conn.cursor()
-    cols = [row[1] for row in c.execute("PRAGMA table_info(transactions)").fetchall()]
-
-    if "type" not in cols:
-        return  # already migrated
-
-    print("[migration] Detected legacy schema — migrating transactions...")
-
-    # Step 1: For every distinct (category, type) pair, ensure a category row exists
-    legacy_rows = c.execute(
-        "SELECT DISTINCT category, type FROM transactions WHERE category IS NOT NULL"
-    ).fetchall()
-
-    for cat_name, cat_type in legacy_rows:
-        # Try to find existing category (case-insensitive)
-        existing = c.execute(
-            "SELECT id FROM categories WHERE LOWER(name) = LOWER(?)", (cat_name,)
-        ).fetchone()
-        if not existing:
-            # Create missing category using the type from transactions
-            # 'type' in old transactions is 'entrada'/'saida', valid for categories too
-            c.execute(
-                "INSERT OR IGNORE INTO categories (name, type) VALUES (?, ?)",
-                (cat_name, cat_type)
-            )
-
-    conn.commit()
-
-    # Step 2: Rebuild transactions table
-    c.execute("ALTER TABLE transactions RENAME TO transactions_legacy")
-
-    c.execute("""
-        CREATE TABLE transactions (
-            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-            category_id        INTEGER REFERENCES categories(id) ON DELETE SET NULL,
-            date               TEXT    NOT NULL,
-            description        TEXT,
-            value              REAL    NOT NULL,
-            installment_group  TEXT,
-            installment_number INTEGER,
-            installment_total  INTEGER,
-            created_at         TEXT    DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-
-    # Step 3: Copy data, resolving category name → category_id
-    c.execute("""
-        INSERT INTO transactions
-            (id, category_id, date, description, value,
-             installment_group, installment_number, installment_total, created_at)
-        SELECT
-            t.id,
-            (SELECT c.id FROM categories c WHERE LOWER(c.name) = LOWER(t.category)),
-            t.date,
-            t.description,
-            t.value,
-            t.installment_group,
-            t.installment_number,
-            t.installment_total,
-            t.created_at
-        FROM transactions_legacy t
-    """)
-
-    c.execute("DROP TABLE transactions_legacy")
-    conn.commit()
-
-    migrated = c.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
-    print(f"[migration] Done — {migrated} transactions migrated.")
+    """Create tables if they don't exist (fallback — prefer Alembic)."""
+    Base.metadata.create_all(get_engine())
 
 
 # ── Categories ─────────────────────────────────────────────────────────────────
 
-def get_all_categories():
-    conn = get_connection()
-    rows = conn.execute("SELECT * FROM categories ORDER BY name").fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def get_all_categories(user_id: int) -> list[dict]:
+    with get_session() as s:
+        rows = s.query(Category).filter_by(user_id=user_id).all()
+        return sorted([
+            {"id": c.id, "name": decrypt(c.name), "type": decrypt(c.type)}
+            for c in rows
+        ], key=lambda x: x["name"])
 
 
-def get_categories_by_type(type_filter: str):
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT id, name FROM categories WHERE type = ? OR type = 'ambos' ORDER BY name",
-        (type_filter,)
-    ).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
-
-
-def add_category(name: str, type_: str):
-    conn = get_connection()
-    try:
-        conn.execute("INSERT INTO categories (name, type) VALUES (?, ?)", (name, type_))
-        conn.commit()
-        return True, "Categoria adicionada!"
-    except sqlite3.IntegrityError:
+def add_category(user_id: int, name: str, type_: str) -> tuple[bool, str]:
+    if any(c["name"].lower() == name.lower() for c in get_all_categories(user_id)):
         return False, "Categoria já existe."
-    finally:
-        conn.close()
+    with get_session() as s:
+        s.add(Category(user_id=user_id, name=encrypt(name), type=encrypt(type_)))
+        s.commit()
+    return True, "Categoria adicionada!"
 
 
-def update_category(id_: int, name: str, type_: str):
-    conn = get_connection()
-    try:
-        conn.execute("UPDATE categories SET name=?, type=? WHERE id=?", (name, type_, id_))
-        conn.commit()
-        return True, "Categoria atualizada!"
-    except sqlite3.IntegrityError:
+def update_category(user_id: int, id_: int, name: str, type_: str) -> tuple[bool, str]:
+    if any(c["name"].lower() == name.lower() and c["id"] != id_
+           for c in get_all_categories(user_id)):
         return False, "Nome já existe."
-    finally:
-        conn.close()
+    with get_session() as s:
+        cat = s.get(Category, id_)
+        if not cat or cat.user_id != user_id:
+            return False, "Categoria não encontrada."
+        cat.name = encrypt(name)
+        cat.type = encrypt(type_)
+        s.commit()
+    return True, "Categoria atualizada!"
 
 
-def delete_category(id_: int):
-    conn = get_connection()
-    # FK is ON DELETE SET NULL — transactions keep existing but lose category link
-    conn.execute("DELETE FROM categories WHERE id=?", (id_,))
-    conn.commit()
-    conn.close()
+def delete_category(user_id: int, id_: int):
+    with get_session() as s:
+        cat = s.get(Category, id_)
+        if cat and cat.user_id == user_id:
+            s.delete(cat)
+            s.commit()
 
 
 # ── Transactions ───────────────────────────────────────────────────────────────
 
-def add_transaction(category_id: int, date_: str, description: str,
-                    value: float, installments: int = 1):
-    conn = get_connection()
+def _decrypt_txn(t: Transaction, cat_name: str, cat_type: str) -> dict:
+    return {
+        "id":                 t.id,
+        "user_id":            t.user_id,
+        "category_id":        t.category_id,
+        "category":           cat_name,
+        "type":               cat_type,
+        "date":               decrypt(t.date),
+        "description":        decrypt(t.description),
+        "value":              decrypt_float(t.value),
+        "installment_group":  t.installment_group,
+        "installment_number": t.installment_number,
+        "installment_total":  t.installment_total,
+    }
+
+
+def add_transaction(user_id: int, category_id: int, date_: str,
+                    description: str, value: float, installments: int = 1):
     import uuid
     group_id = str(uuid.uuid4()) if installments > 1 else None
     base_date = datetime.strptime(date_, "%Y-%m-%d")
     installment_value = round(value / installments, 2)
 
-    for i in range(installments):
-        txn_date = base_date + relativedelta(months=i)
-        conn.execute("""
-            INSERT INTO transactions
-                (category_id, date, description, value,
-                 installment_group, installment_number, installment_total)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            category_id,
-            txn_date.strftime("%Y-%m-%d"),
-            description,
-            installment_value,
-            group_id,
-            i + 1 if installments > 1 else None,
-            installments if installments > 1 else None,
-        ))
-
-    conn.commit()
-    conn.close()
+    with get_session() as s:
+        for i in range(installments):
+            txn_date = base_date + relativedelta(months=i)
+            s.add(Transaction(
+                user_id=user_id,
+                category_id=category_id,
+                date=encrypt(txn_date.strftime("%Y-%m-%d")),
+                description=encrypt(description) if description else None,
+                value=encrypt(str(installment_value)),
+                installment_group=group_id,
+                installment_number=i + 1 if installments > 1 else None,
+                installment_total=installments if installments > 1 else None,
+            ))
+        s.commit()
 
 
-def get_transactions(year: int = None, month: int = None):
-    """Returns transactions joined with category name and type."""
-    conn = get_connection()
-    query = """
-        SELECT
-            t.id,
-            t.category_id,
-            COALESCE(c.name, '(sem categoria)') AS category,
-            COALESCE(c.type, 'saida')           AS type,
-            t.date,
-            t.description,
-            t.value,
-            t.installment_group,
-            t.installment_number,
-            t.installment_total,
-            t.created_at
-        FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE 1=1
-    """
-    params = []
-    if year:
-        query += " AND strftime('%Y', t.date) = ?"
-        params.append(str(year))
-    if month:
-        query += " AND strftime('%m', t.date) = ?"
-        params.append(f"{month:02d}")
-    query += " ORDER BY t.date DESC"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def get_transactions(user_id: int, year: int = None, month: int = None) -> list[dict]:
+    with get_session() as s:
+        rows = (
+            s.query(Transaction, Category)
+            .outerjoin(Category, Transaction.category_id == Category.id)
+            .filter(Transaction.user_id == user_id)
+            .all()
+        )
+
+    result = []
+    for t, c in rows:
+        cat_name = decrypt(c.name) if c else "(sem categoria)"
+        cat_type = decrypt(c.type) if c else "saida"
+        txn = _decrypt_txn(t, cat_name, cat_type)
+        try:
+            d = datetime.strptime(txn["date"], "%Y-%m-%d")
+        except (ValueError, TypeError):
+            continue
+        if year and d.year != year:
+            continue
+        if month and d.month != month:
+            continue
+        result.append(txn)
+
+    return sorted(result, key=lambda x: x["date"], reverse=True)
 
 
-def get_transaction_by_id(id_: int):
-    conn = get_connection()
-    row = conn.execute("""
-        SELECT t.*, COALESCE(c.name, '(sem categoria)') AS category,
-               COALESCE(c.type, 'saida') AS type
-        FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE t.id=?
-    """, (id_,)).fetchone()
-    conn.close()
-    return dict(row) if row else None
+def update_transaction(user_id: int, id_: int, category_id: int,
+                       date_: str, description: str, value: float):
+    with get_session() as s:
+        t = s.get(Transaction, id_)
+        if not t or t.user_id != user_id:
+            return
+        t.category_id = category_id
+        t.date        = encrypt(date_)
+        t.description = encrypt(description) if description else None
+        t.value       = encrypt(str(value))
+        s.commit()
 
 
-def update_transaction(id_: int, category_id: int, date_: str,
-                       description: str, value: float):
-    conn = get_connection()
-    conn.execute("""
-        UPDATE transactions
-        SET category_id=?, date=?, description=?, value=?
-        WHERE id=?
-    """, (category_id, date_, description, value, id_))
-    conn.commit()
-    conn.close()
+def delete_transaction(user_id: int, id_: int):
+    with get_session() as s:
+        t = s.get(Transaction, id_)
+        if t and t.user_id == user_id:
+            s.delete(t)
+            s.commit()
 
 
-def delete_transaction(id_: int):
-    conn = get_connection()
-    conn.execute("DELETE FROM transactions WHERE id=?", (id_,))
-    conn.commit()
-    conn.close()
-
-
-def get_descriptions_by_category(category_id: int = None):
-    """Return distinct non-empty descriptions, optionally filtered by category_id."""
-    conn = get_connection()
-    if category_id:
-        rows = conn.execute(
-            "SELECT DISTINCT description FROM transactions "
-            "WHERE description IS NOT NULL AND description != '' "
-            "AND category_id = ? ORDER BY description",
-            (category_id,)
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT DISTINCT description FROM transactions "
-            "WHERE description IS NOT NULL AND description != '' ORDER BY description"
-        ).fetchall()
-    conn.close()
-    return [r[0] for r in rows]
+def get_descriptions_by_category(user_id: int, category_id: int = None) -> list[str]:
+    txns = get_transactions(user_id)
+    seen = {}
+    for t in txns:
+        if category_id and t["category_id"] != category_id:
+            continue
+        if t["description"]:
+            seen[t["description"]] = True
+    return sorted(seen.keys())
 
 
 # ── Dashboard Aggregations ─────────────────────────────────────────────────────
 
-def get_monthly_summary(year: int, month: int):
-    conn = get_connection()
+def get_monthly_summary(user_id: int, year: int, month: int) -> dict:
+    txns    = get_transactions(user_id, year=year, month=month)
+    entradas = sum(t["value"] for t in txns if t["type"] == "entrada")
+    saidas   = sum(t["value"] for t in txns if t["type"] in ("saida", "ambos"))
 
-    def scalar(q, p):
-        r = conn.execute(q, p).fetchone()
-        return r[0] or 0.0 if r else 0.0
+    all_year = get_transactions(user_id, year=year)
+    acc_in  = sum(t["value"] for t in all_year
+                  if t["type"] == "entrada"
+                  and datetime.strptime(t["date"], "%Y-%m-%d").month <= month)
+    acc_out = sum(t["value"] for t in all_year
+                  if t["type"] in ("saida", "ambos")
+                  and datetime.strptime(t["date"], "%Y-%m-%d").month <= month)
 
-    period = f"{year}-{month:02d}"
-
-    entradas = scalar("""
-        SELECT SUM(t.value) FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE COALESCE(c.type, 'saida') = 'entrada'
-          AND strftime('%Y-%m', t.date) = ?
-    """, (period,))
-
-    saidas = scalar("""
-        SELECT SUM(t.value) FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE COALESCE(c.type, 'saida') IN ('saida', 'ambos')
-          AND strftime('%Y-%m', t.date) = ?
-    """, (period,))
-
-    acc_entradas = scalar("""
-        SELECT SUM(t.value) FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE COALESCE(c.type, 'saida') = 'entrada'
-          AND strftime('%Y', t.date) = ?
-          AND strftime('%m', t.date) <= ?
-    """, (str(year), f"{month:02d}"))
-
-    acc_saidas = scalar("""
-        SELECT SUM(t.value) FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE COALESCE(c.type, 'saida') IN ('saida', 'ambos')
-          AND strftime('%Y', t.date) = ?
-          AND strftime('%m', t.date) <= ?
-    """, (str(year), f"{month:02d}"))
-
-    conn.close()
     return {
-        "entradas": entradas,
-        "saidas": saidas,
-        "saldo": entradas - saidas,
-        "saldo_acumulado": acc_entradas - acc_saidas,
+        "entradas":        entradas,
+        "saidas":          saidas,
+        "saldo":           entradas - saidas,
+        "saldo_acumulado": acc_in - acc_out,
     }
 
 
-def get_expenses_by_category(year: int, month: int):
-    conn = get_connection()
-    rows = conn.execute("""
-        SELECT COALESCE(c.name, '(sem categoria)') AS category, SUM(t.value) AS total
-        FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE COALESCE(c.type, 'saida') IN ('saida', 'ambos')
-          AND strftime('%Y-%m', t.date) = ?
-        GROUP BY category ORDER BY total DESC
-    """, (f"{year}-{month:02d}",)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def get_expenses_by_category(user_id: int, year: int, month: int) -> list[dict]:
+    txns = get_transactions(user_id, year=year, month=month)
+    totals: dict[str, float] = {}
+    for t in txns:
+        if t["type"] in ("saida", "ambos"):
+            totals[t["category"]] = totals.get(t["category"], 0) + t["value"]
+    return sorted([{"category": k, "total": v} for k, v in totals.items()],
+                  key=lambda x: x["total"], reverse=True)
 
 
-def get_income_by_category(year: int, month: int):
-    conn = get_connection()
-    rows = conn.execute("""
-        SELECT COALESCE(c.name, '(sem categoria)') AS category, SUM(t.value) AS total
-        FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE COALESCE(c.type, 'saida') = 'entrada'
-          AND strftime('%Y-%m', t.date) = ?
-        GROUP BY category ORDER BY total DESC
-    """, (f"{year}-{month:02d}",)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+def get_income_by_category(user_id: int, year: int, month: int) -> list[dict]:
+    txns = get_transactions(user_id, year=year, month=month)
+    totals: dict[str, float] = {}
+    for t in txns:
+        if t["type"] == "entrada":
+            totals[t["category"]] = totals.get(t["category"], 0) + t["value"]
+    return sorted([{"category": k, "total": v} for k, v in totals.items()],
+                  key=lambda x: x["total"], reverse=True)
 
 
-def get_monthly_trend(year: int):
-    conn = get_connection()
-    rows = conn.execute("""
-        SELECT strftime('%m', t.date) AS month,
-               COALESCE(c.type, 'saida') AS type,
-               SUM(t.value) AS total
-        FROM transactions t
-        LEFT JOIN categories c ON c.id = t.category_id
-        WHERE strftime('%Y', t.date) = ?
-        GROUP BY month, type
-        ORDER BY month
-    """, (str(year),)).fetchall()
-    conn.close()
+def get_expenses_by_category_and_description(user_id: int, year: int, month: int) -> list[dict]:
+    txns = get_transactions(user_id, year=year, month=month)
+    totals: dict[tuple, float] = {}
+    for t in txns:
+        if t["type"] in ("saida", "ambos"):
+            key = (t["category"], t["description"] or "(sem descrição)")
+            totals[key] = totals.get(key, 0) + t["value"]
+    result = [{"category": k[0], "description": k[1], "total": v} for k, v in totals.items()]
+    return sorted(result, key=lambda x: (x["category"], x["total"]), reverse=True)
 
+
+def get_monthly_trend(user_id: int, year: int) -> dict:
+    all_txns = get_transactions(user_id, year=year)
     months = {f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)}
-    for r in rows:
-        t = r["type"]
-        if t in ("saida", "ambos"):
-            months[r["month"]]["saida"] += r["total"]
+    for t in all_txns:
+        try:
+            m = datetime.strptime(t["date"], "%Y-%m-%d").strftime("%m")
+        except (ValueError, TypeError):
+            continue
+        if t["type"] == "entrada":
+            months[m]["entrada"] += t["value"]
         else:
-            months[r["month"]]["entrada"] += r["total"]
+            months[m]["saida"] += t["value"]
     return months
 
 
-def get_available_years():
-    conn = get_connection()
-    rows = conn.execute(
-        "SELECT DISTINCT strftime('%Y', date) AS yr FROM transactions ORDER BY yr"
-    ).fetchall()
-    conn.close()
-    years = [int(r["yr"]) for r in rows]
-    current_year = datetime.now().year
-    if current_year not in years:
-        years.append(current_year)
+def get_available_years(user_id: int) -> list[int]:
+    txns = get_transactions(user_id)
+    years = {datetime.strptime(t["date"], "%Y-%m-%d").year
+             for t in txns if t.get("date")}
+    years.add(datetime.now().year)
     return sorted(years)

@@ -6,8 +6,9 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
 import database as db
+from auth import require_login, logout
 from components.charts import (
-    donut_chart, bar_chart_expenses, line_chart_trend, saldo_gauge
+    donut_chart, bar_chart_expenses, line_chart_trend
 )
 
 st.set_page_config(
@@ -18,6 +19,10 @@ st.set_page_config(
 )
 
 db.init_db()
+require_login()
+
+current_user = st.session_state["current_user"]
+user_id      = current_user["id"]
 
 st.markdown("""
 <style>
@@ -47,6 +52,13 @@ def fmt(v):
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def fmt_date(d: str) -> str:
+    try:
+        return datetime.strptime(d, "%Y-%m-%d").strftime("%d/%m/%Y")
+    except Exception:
+        return d
+
+
 def parse_valor(s):
     s = s.strip().replace(" ", "")
     if "," in s:
@@ -60,9 +72,10 @@ def parse_valor(s):
 # ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 💰 Gestão Financeira")
+    st.markdown(f"👤 **{current_user['username']}**")
     st.divider()
 
-    years = db.get_available_years()
+    years = db.get_available_years(user_id)
     current_year = datetime.now().year
     default_year_idx = years.index(current_year) if current_year in years else len(years) - 1
     selected_year = st.selectbox("📅 Ano", years, index=default_year_idx)
@@ -84,11 +97,23 @@ with st.sidebar:
     if st.button("🏷️ Categorias", use_container_width=True):
         st.switch_page("pages/categories.py")
 
+    if st.button("👤 Perfil", use_container_width=True):
+        st.switch_page("pages/profile.py")
+
+    if current_user.get("is_admin"):
+        if st.button("👥 Usuários", use_container_width=True):
+            st.switch_page("pages/admin.py")
+
+    st.divider()
+    if st.button("🚪 Sair", use_container_width=True):
+        logout()
+        st.switch_page("pages/login.py")
+
 
 # ── New Transaction Modal ──────────────────────────────────────────────────────
 @st.dialog("➕ Novo Registro")
 def new_transaction_dialog():
-    all_cats = db.get_all_categories()
+    all_cats  = db.get_all_categories(user_id)
     reset_key = st.session_state.get("form_reset_counter", 0)
 
     col1, col2 = st.columns(2)
@@ -106,23 +131,22 @@ def new_transaction_dialog():
         key=f"valor_{reset_key}", placeholder="ex: 1.250,00"
     )
 
-    # Filter categories by selected type
     cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
-    categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()), key=f"cat_{reset_key}")
+    categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()),
+                                  key=f"cat_{reset_key}")
 
     selected_cat_id = cats_filtered.get(categoria_nome)
-    desc_options = db.get_descriptions_by_category(selected_cat_id)
+    desc_options    = db.get_descriptions_by_category(user_id, selected_cat_id)
     descricao_final = st.selectbox(
         "Descrição",
-        options=desc_options,
-        index=None,
+        options=desc_options, index=None,
         accept_new_options=True,
         placeholder="Digite ou selecione uma descrição...",
         key=f"desc_{reset_key}"
     ) or ""
 
     parcelado = st.checkbox("Parcelado?", key=f"parcelado_{reset_key}")
-    parcelas = 1
+    parcelas  = 1
     if parcelado:
         parcelas = st.number_input("Número de parcelas", min_value=2, max_value=60,
                                    value=2, step=1, key=f"parcelas_{reset_key}")
@@ -141,6 +165,7 @@ def new_transaction_dialog():
                 st.error("Informe um valor válido (ex: 1.250,00).")
             else:
                 db.add_transaction(
+                    user_id=user_id,
                     category_id=cats_filtered[categoria_nome],
                     date_=data.strftime("%Y-%m-%d"),
                     description=descricao_final,
@@ -162,10 +187,10 @@ if st.session_state.get("show_form"):
 
 
 # ── Load Data ──────────────────────────────────────────────────────────────────
-summary = db.get_monthly_summary(selected_year, selected_month)
-expenses_by_cat = db.get_expenses_by_category(selected_year, selected_month)
-income_by_cat = db.get_income_by_category(selected_year, selected_month)
-trend = db.get_monthly_trend(selected_year)
+summary          = db.get_monthly_summary(user_id, selected_year, selected_month)
+expenses_by_cat  = db.get_expenses_by_category(user_id, selected_year, selected_month)
+income_by_cat    = db.get_income_by_category(user_id, selected_year, selected_month)
+trend            = db.get_monthly_trend(user_id, selected_year)
 
 # ── Dashboard Header ───────────────────────────────────────────────────────────
 st.markdown(f"### 📊 Dashboard — {selected_month_name} / {selected_year}")
@@ -191,8 +216,8 @@ st.divider()
 # ── Charts ─────────────────────────────────────────────────────────────────────
 col_left, col_right = st.columns(2)
 with col_left:
-    labels_in = [r["category"] for r in income_by_cat]
-    values_in = [r["total"] for r in income_by_cat]
+    labels_in   = [r["category"] for r in income_by_cat]
+    values_in   = [r["total"]    for r in income_by_cat]
     green_colors = ["#4CAF50", "#66BB6A", "#81C784", "#A5D6A7", "#C8E6C9"]
     st.plotly_chart(donut_chart(labels_in, values_in, "📊 Entradas por Categoria",
                                 colors=green_colors),
@@ -200,14 +225,14 @@ with col_left:
 
 with col_right:
     labels = [r["category"] for r in expenses_by_cat]
-    values = [r["total"] for r in expenses_by_cat]
+    values = [r["total"]    for r in expenses_by_cat]
     st.plotly_chart(donut_chart(labels, values, "📊 Despesas por Categoria"),
                     width='stretch', key="donut_exp")
 
 col_line, col_bar = st.columns(2)
 with col_bar:
     cats = [r["category"] for r in expenses_by_cat]
-    vals = [r["total"] for r in expenses_by_cat]
+    vals = [r["total"]    for r in expenses_by_cat]
     st.plotly_chart(bar_chart_expenses(cats, vals, vals, "📊 Detalhamento Despesas"),
                     width='stretch', key="bar_exp")
 with col_line:
