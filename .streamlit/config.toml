@@ -3,3 +3,14 @@ showSidebarNavigation = false
 
 [browser]
 gatherUsageStats = false
+
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = true
+maxUploadSize = 10
+runOnSave = false
+
+[runner]
+magicEnabled = false
+fastReruns = true
