@@ -29,6 +29,8 @@ with col_title:
 with col_back:
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🏠 Dashboard", use_container_width=True):
+        st.session_state.pop("show_form", None)
+        st.session_state.pop("form_reset_counter", None)
         st.switch_page("app.py")
 
 st.divider()
