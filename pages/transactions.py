@@ -7,6 +7,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import database as db
 from auth import require_login
 
+from components.styles import inject_global_css
+inject_global_css()
+
 st.set_page_config(page_title="Lançamentos", page_icon="📋", layout="wide")
 db.init_db()
 

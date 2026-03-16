@@ -26,6 +26,16 @@ user_id      = current_user["id"]
 
 st.markdown("""
 <style>
+    /* Botões primários em verde */
+    [data-testid="stBaseButton-primary"] {
+        background-color: #4CAF50 !important;
+        border-color: #4CAF50 !important;
+        color: white !important;
+    }
+    [data-testid="stBaseButton-primary"]:hover {
+        background-color: #43A047 !important;
+        border-color: #43A047 !important;
+    }
     [data-testid="metric-container"] {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(76,175,80,0.2);

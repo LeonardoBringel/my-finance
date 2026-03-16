@@ -5,6 +5,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from auth import require_login, require_admin, create_user, admin_reset_password, delete_user, list_users
 import database as db
 
+from components.styles import inject_global_css
+inject_global_css()
+
 st.set_page_config(page_title="Administração", page_icon="👥", layout="wide")
 db.init_db()
 
