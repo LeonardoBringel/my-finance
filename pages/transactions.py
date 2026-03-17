@@ -7,8 +7,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import database as db
 from auth import require_login
 
+from components.new_transaction import new_transaction_dialog
 from components.styles import inject_global_css
 inject_global_css()
+from utils import fmt, fmt_date, parse_valor
 
 st.set_page_config(page_title="Lançamentos", page_icon="📋", layout="wide")
 db.init_db()
@@ -31,27 +33,6 @@ st.markdown("""
 
 require_login()
 user_id = st.session_state["current_user"]["id"]
-
-
-def fmt(v):
-    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
-
-def fmt_date(d: str) -> str:
-    try:
-        return datetime.strptime(d, "%Y-%m-%d").strftime("%d/%m/%Y")
-    except Exception:
-        return d
-
-
-def parse_valor(s):
-    s = s.strip().replace(" ", "")
-    if "," in s:
-        s = s.replace(".", "").replace(",", ".")
-    try:
-        return float(s)
-    except ValueError:
-        return None
 
 
 col_title, col_back = st.columns([4, 1])
@@ -91,76 +72,9 @@ if st.button("➕ Novo Registro", type="primary"):
 
 
 # ── New Transaction Dialog ─────────────────────────────────────────────────────
-@st.dialog("➕ Novo Registro")
-def new_transaction_dialog():
-    all_cats  = db.get_all_categories(user_id)
-    reset_key = st.session_state.get("form_txn_reset", 0)
+if st.session_state.get("show_form"):
+    new_transaction_dialog(user_id)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        tipo = st.selectbox(
-            "Tipo *", ["saida", "entrada"],
-            format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada",
-            key=f"txn_tipo_{reset_key}"
-        )
-    with col2:
-        data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
-
-    valor_str = st.text_input("Valor Total (R$) *", value="",
-                              key=f"txn_valor_{reset_key}", placeholder="ex: 1.250,00")
-
-    cats_filtered  = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
-    categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()),
-                                  key=f"txn_cat_{reset_key}")
-
-    selected_cat_id = cats_filtered.get(categoria_nome)
-    desc_options    = db.get_descriptions_by_category(user_id, selected_cat_id)
-    descricao_final = st.selectbox(
-        "Descrição", options=desc_options, index=None,
-        accept_new_options=True,
-        placeholder="Digite ou selecione uma descrição...",
-        key=f"txn_desc_{reset_key}"
-    ) or ""
-
-    parcelado = st.checkbox("Parcelado?", key=f"txn_parc_{reset_key}")
-    parcelas  = 1
-    if parcelado:
-        parcelas = st.number_input("Número de parcelas", min_value=2, max_value=60,
-                                   value=2, step=1, key=f"txn_nparc_{reset_key}")
-
-    valor_parsed = parse_valor(valor_str) if valor_str else None
-    if parcelado and valor_parsed:
-        st.info(f"💡 Valor por parcela: **{fmt(valor_parsed / parcelas)}** × {int(parcelas)}x")
-
-    st.divider()
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("💾 Salvar", type="primary", use_container_width=True):
-            if not categoria_nome:
-                st.error("Selecione uma categoria.")
-            elif not valor_parsed or valor_parsed <= 0:
-                st.error("Informe um valor válido (ex: 1.250,00).")
-            else:
-                db.add_transaction(
-                    user_id=user_id,
-                    category_id=cats_filtered[categoria_nome],
-                    date_=data.strftime("%Y-%m-%d"),
-                    description=descricao_final,
-                    value=valor_parsed,
-                    installments=int(parcelas),
-                )
-                st.success("✅ Salvo! Preencha o próximo ou feche.")
-                st.session_state["form_txn_reset"] = reset_key + 1
-                st.rerun()
-    with c2:
-        if st.button("Fechar", use_container_width=True):
-            st.session_state.pop("show_form_txn", None)
-            st.session_state.pop("form_txn_reset", None)
-            st.rerun()
-
-
-if st.session_state.get("show_form_txn"):
-    new_transaction_dialog()
 
 
 # ── Edit Transaction Dialog ────────────────────────────────────────────────────
