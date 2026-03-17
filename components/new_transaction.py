@@ -18,16 +18,9 @@ def new_transaction_dialog(user_id):
             key=f"tipo_{reset_key}"
         )
     with col2:
-        data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
-
-    valor_str = st.text_input(
-        "Valor Total (R$) *", value="",
-        key=f"valor_{reset_key}", placeholder="ex: 1.250,00"
-    )
-
-    cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
-    categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()),
-                                  key=f"cat_{reset_key}")
+        cats_filtered = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
+        categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()),
+                                      key=f"cat_{reset_key}")
 
     selected_cat_id = cats_filtered.get(categoria_nome)
     desc_options    = db.get_descriptions_by_category(user_id, selected_cat_id)
@@ -38,6 +31,14 @@ def new_transaction_dialog(user_id):
         placeholder="Digite ou selecione uma descrição...",
         key=f"desc_{reset_key}"
     ) or ""
+
+
+    data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
+
+    valor = st.number_input(
+        "Valor Total (R$) *",
+        key=f"valor_{reset_key}", placeholder="ex: R$ 1.250,00", format="%.2f", min_value=0.0)
+    valor_str = str(valor)
 
     parcelado = st.checkbox("Parcelado?", key=f"parcelado_{reset_key}")
     parcelas  = 1
