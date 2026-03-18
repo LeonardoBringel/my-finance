@@ -32,6 +32,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 require_login()
+
+st.session_state.pop("show_form", None)
+st.session_state.pop("form_reset_counter", None)
+
 user_id = st.session_state["current_user"]["id"]
 
 
@@ -67,8 +71,8 @@ with st.expander("🔍 Filtros", expanded=True):
         f_cat = st.text_input("Categoria (contém)", "")
 
 if st.button("➕ Novo Registro", type="primary"):
-    st.session_state["show_form_txn"] = True
-    st.session_state.setdefault("form_txn_reset", 0)
+    st.session_state["show_form"] = True
+    st.session_state.setdefault("form_reset_counter", 0)
 
 
 # ── New Transaction Dialog ─────────────────────────────────────────────────────
