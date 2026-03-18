@@ -11,6 +11,11 @@ inject_global_css()
 st.set_page_config(page_title="Login", page_icon="🔐", layout="centered")
 db.init_db()
 
+version_file = os.path.join(os.path.dirname(__file__), ".version")
+app_version = open(version_file).read().strip() if os.path.exists(version_file) else "latest"
+if "-" in app_version:
+    app_version = app_version.split("-")[0]
+
 st.markdown("""
 <style>
     #MainMenu, footer, header { visibility: hidden; }
@@ -40,3 +45,8 @@ if st.button("Entrar", type="primary", use_container_width=True):
             st.rerun()
         else:
             st.error(msg)
+
+st.markdown(
+    f"<p style='text-align: center; color: rgba(255,255,255,0.15); font-size: 0.9rem;'>{app_version}</p>",
+    unsafe_allow_html=True
+)
