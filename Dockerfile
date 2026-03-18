@@ -24,8 +24,8 @@ RUN uv sync --frozen --no-dev
 # Copy application code
 COPY --chown=appuser:appuser . .
 
-# Streamlit config
-RUN mkdir -p /app/.streamlit
+ENV APP_VERSION=${APP_VERSION}
+RUN echo "${APP_VERSION}" > /app/.version
 
 USER appuser
 

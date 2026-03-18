@@ -18,7 +18,10 @@ services:
       - finance_net
 
   app:
-    build: .
+    build:
+      context: .
+      args:
+        APP_VERSION: ${APP_VERSION:-latest}
     container_name: my_finance_app
     restart: unless-stopped
     ports:
