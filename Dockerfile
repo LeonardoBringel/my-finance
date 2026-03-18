@@ -24,6 +24,7 @@ RUN uv sync --frozen --no-dev
 # Copy application code
 COPY --chown=appuser:appuser . .
 
+ARG APP_VERSION=latest
 ENV APP_VERSION=${APP_VERSION}
 RUN echo "${APP_VERSION}" > /app/.version
 
