@@ -4,3 +4,4 @@ __pycache__/
 *.db
 .env
 .version
+.DS_Store
