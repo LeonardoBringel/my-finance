@@ -22,27 +22,35 @@ def new_transaction_dialog(user_id):
         categoria_nome = st.selectbox("Categoria *", [""] + list(cats_filtered.keys()),
                                       key=f"cat_{reset_key}")
 
-    selected_cat_id = cats_filtered.get(categoria_nome)
-    desc_options    = db.get_descriptions_by_category(user_id, selected_cat_id)
+    selected_cat_id = cats_filtered.get(categoria_nome) if categoria_nome else None
+    desc_options    = db.get_descriptions_by_category(user_id, selected_cat_id) if categoria_nome else []
     descricao_final = st.selectbox(
         "Descrição",
-        options=desc_options, index=None,
+        options=desc_options,
+        index=None,
         accept_new_options=True,
-        placeholder="Digite ou selecione uma descrição...",
-        key=f"desc_{reset_key}"
+        placeholder="Selecione uma categoria primeiro..." if not categoria_nome else "Digite ou selecione uma descrição...",
+        key=f"desc_{reset_key}",
+        disabled=not categoria_nome,
     ) or ""
-
 
     data = st.date_input("Data *", value=datetime.today(), format="DD/MM/YYYY")
 
-    valor = st.number_input(
+    valor_str = st.text_input(
         "Valor Total (R$) *",
-        key=f"valor_{reset_key}", placeholder="ex: R$ 1.250,00", format="%.2f", min_value=0.0)
-    valor_str = str(valor)
+        value="",
+        key=f"valor_{reset_key}",
+        placeholder="ex: 1.250,00"
+    )
 
-    parcelado = st.checkbox("Parcelado?", key=f"parcelado_{reset_key}")
-    parcelas  = 1
-    if parcelado:
+    parcelado = st.checkbox(
+        "Parcelado?",
+        key=f"parcelado_{reset_key}",
+        disabled=tipo == "entrada",
+        help="Parcelamento disponível apenas para saídas" if tipo == "entrada" else None,
+    )
+    parcelas = 1
+    if parcelado and tipo == "saida":
         parcelas = st.number_input("Número de parcelas", min_value=2, max_value=60,
                                    value=2, step=1, key=f"parcelas_{reset_key}")
 
