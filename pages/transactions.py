@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import database as db
 from auth import require_login
 
-from components.new_transaction import new_transaction_dialog
+from components.new_transaction import new_transaction_dialog, clear_transaction_dialog_states
 from components.styles import inject_global_css
 inject_global_css()
 from utils import fmt, fmt_date, parse_valor
@@ -32,12 +32,13 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 require_login()
-
-st.session_state.pop("show_form", None)
-st.session_state.pop("form_reset_counter", None)
+clear_transaction_dialog_states()
 
 user_id = st.session_state["current_user"]["id"]
+today   = date.today()
 
+month_names = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+               "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 
 col_title, col_back = st.columns([4, 1])
 with col_title:
@@ -45,121 +46,89 @@ with col_title:
 with col_back:
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🏠 Dashboard", use_container_width=True):
-        st.session_state.pop("show_form", None)
-        st.session_state.pop("form_reset_counter", None)
+        st.session_state.pop("edit_txn", None)
         st.switch_page("app.py")
+
+# ── Filter version — incrementing this forces all widgets to re-render fresh ──
+if "filter_v" not in st.session_state:
+    st.session_state["filter_v"] = 0
+
+v = st.session_state["filter_v"]  # shorthand for widget keys
 
 # ── Filters ────────────────────────────────────────────────────────────────────
 with st.expander("🔍 Filtros", expanded=True):
     col1, col2, col3, col4 = st.columns(4)
-    years = db.get_available_years(user_id)
+
     with col1:
-        year_options = ["Todos"] + [str(y) for y in years]
-        f_year_str   = st.selectbox("Ano", year_options)
-        f_year       = None if f_year_str == "Todos" else int(f_year_str)
-    month_names = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
+        day_options = ["Todos"] + [str(d) for d in range(1, 32)]
+        f_day_str   = st.selectbox("Dia", day_options,
+                                   index=day_options.index(str(today.day)),
+                                   key=f"f_day_{v}")
+        f_day = None if f_day_str == "Todos" else int(f_day_str)
+
     with col2:
-        f_month_name = st.selectbox("Mês", ["Todos"] + month_names)
-        f_month      = month_names.index(f_month_name) + 1 if f_month_name != "Todos" else None
+        f_month_name = st.selectbox("Mês", ["Todos"] + month_names,
+                                    index=today.month,
+                                    key=f"f_month_{v}")
+        f_month = month_names.index(f_month_name) + 1 if f_month_name != "Todos" else None
+
     with col3:
+        years        = db.get_available_years(user_id)
+        year_options = ["Todos"] + [str(y) for y in years]
+        default_year = str(today.year)
+        f_year_str   = st.selectbox("Ano", year_options,
+                                    index=year_options.index(default_year) if default_year in year_options else 0,
+                                    key=f"f_year_{v}")
+        f_year = None if f_year_str == "Todos" else int(f_year_str)
+
+    with col4:
         f_type = st.selectbox(
             "Tipo", ["Todos", "entrada", "saida"],
-            format_func=lambda x: "Todos" if x == "Todos" else ("💰 Entrada" if x == "entrada" else "💸 Saída")
+            format_func=lambda x: "Todos" if x == "Todos" else ("💰 Entrada" if x == "entrada" else "💸 Saída"),
+            key=f"f_type_{v}"
         )
-    with col4:
-        f_cat = st.text_input("Categoria (contém)", "")
 
-if st.button("➕ Novo Registro", type="primary"):
-    st.session_state["show_form"] = True
-    st.session_state.setdefault("form_reset_counter", 0)
+    all_cats    = db.get_all_categories(user_id)
+    cat_options = ["Todas"] + [c["name"] for c in all_cats]
+    f_cat_name  = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}")
+    f_cat_id    = next((c["id"] for c in all_cats if c["name"] == f_cat_name), None)
 
-
-# ── New Transaction Dialog ─────────────────────────────────────────────────────
-if st.session_state.get("show_form"):
-    new_transaction_dialog(user_id)
-
-
-
-# ── Edit Transaction Dialog ────────────────────────────────────────────────────
-@st.dialog("✏️ Editar Lançamento")
-def edit_transaction_dialog(txn):
-    all_cats     = db.get_all_categories(user_id)
-    current_type = txn.get("type", "saida")
-
-    col1, col2 = st.columns(2)
-    with col1:
-        tipo = st.selectbox(
-            "Tipo *", ["saida", "entrada"],
-            format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada",
-            index=0 if current_type == "saida" else 1,
-            key="edit_tipo"
-        )
-    with col2:
-        data = st.date_input("Data *", value=date.fromisoformat(txn["date"]),
-                             format="DD/MM/YYYY")
-
-    valor_str = st.text_input(
-        "Valor (R$) *",
-        value=f"{txn['value']:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
-        placeholder="ex: 1.250,00"
+    desc_options = db.get_descriptions_by_category(user_id, f_cat_id) if f_cat_id else db.get_descriptions_by_category(user_id)
+    f_desc       = st.selectbox(
+        "Descrição", ["Todas"] + desc_options,
+        disabled=not f_cat_id,
+        help="Selecione uma categoria primeiro" if not f_cat_id else None,
+        key=f"f_desc_{v}"
     )
 
-    cats_filtered  = {c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")}
-    cat_names_f    = list(cats_filtered.keys())
-    current_cat    = txn.get("category", "")
-    cat_idx        = cat_names_f.index(current_cat) if current_cat in cat_names_f else 0
-    categoria_nome = st.selectbox("Categoria *", cat_names_f, index=cat_idx)
-
-    selected_cat_id = cats_filtered.get(categoria_nome)
-    desc_options    = db.get_descriptions_by_category(user_id, selected_cat_id)
-    current_desc    = txn.get("description") or ""
-    desc_index      = desc_options.index(current_desc) if current_desc in desc_options else None
-    descricao       = st.selectbox(
-        "Descrição", options=desc_options, index=desc_index,
-        accept_new_options=True,
-        placeholder="Digite ou selecione uma descrição...",
-        key="edit_desc"
-    ) or ""
-
-    if txn.get("installment_total"):
-        st.info(f"⚠️ Parcela {txn['installment_number']}/{txn['installment_total']} — editar só esta parcela")
-
-    st.divider()
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("💾 Salvar", type="primary", use_container_width=True):
-            valor_parsed = parse_valor(valor_str) if valor_str else None
-            if not valor_parsed or valor_parsed <= 0:
-                st.error("Informe um valor válido.")
-            else:
-                db.update_transaction(
-                    user_id=user_id,
-                    id_=txn["id"],
-                    category_id=cats_filtered[categoria_nome],
-                    date_=data.strftime("%Y-%m-%d"),
-                    description=descricao,
-                    value=valor_parsed,
-                )
-                st.success("✅ Atualizado!")
-                st.session_state.pop("edit_txn", None)
-                st.rerun()
-    with c2:
-        if st.button("Cancelar", use_container_width=True):
-            st.session_state.pop("edit_txn", None)
-            st.rerun()
-
-
-if "edit_txn" in st.session_state:
-    edit_transaction_dialog(st.session_state["edit_txn"])
-
+# ── Action buttons ─────────────────────────────────────────────────────────────
+col_new, col_clear = st.columns([1, 1])
+with col_new:
+    if st.button("➕ Novo Registro", type="primary", use_container_width=True):
+        st.session_state["show_form"] = True
+        st.session_state.setdefault("form_reset_counter", 0)
+with col_clear:
+    if st.button("🔄 Limpar Filtros", use_container_width=True):
+        st.session_state["filter_v"] += 1
+        st.rerun()
 
 # ── Load & Filter ──────────────────────────────────────────────────────────────
 transactions = db.get_transactions(user_id, year=f_year, month=f_month)
+
+if f_day:
+    transactions = [
+        t for t in transactions
+        if datetime.strptime(t["date"], "%Y-%m-%d").day == f_day
+    ]
+
 if f_type != "Todos":
     transactions = [t for t in transactions if t["type"] == f_type]
-if f_cat:
-    transactions = [t for t in transactions if f_cat.lower() in t["category"].lower()]
+
+if f_cat_name != "Todas":
+    transactions = [t for t in transactions if t["category"] == f_cat_name]
+
+if f_desc != "Todas":
+    transactions = [t for t in transactions if t["description"] == f_desc]
 
 # ── Summary Metrics ────────────────────────────────────────────────────────────
 total_in  = sum(t["value"] for t in transactions if t["type"] == "entrada")
@@ -202,6 +171,7 @@ else:
 
         if cols[6].button("✏️", key=f"edit_{txn['id']}"):
             st.session_state["edit_txn"] = txn
+            st.session_state.pop("show_form", None)
             st.rerun()
 
         if cols[7].button("🗑️", key=f"del_{txn['id']}"):
@@ -220,3 +190,10 @@ else:
                 st.session_state.pop("confirm_del_id", None)
                 st.session_state.pop("confirm_del_label", None)
                 st.rerun()
+
+# ── Dialogs (after table so edit_txn is set before rendering) ─────────────────
+if st.session_state.get("show_form"):
+    new_transaction_dialog(user_id)
+
+if st.session_state.get("edit_txn"):
+    new_transaction_dialog(user_id, txn=st.session_state["edit_txn"])
