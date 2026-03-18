@@ -11,7 +11,8 @@ inject_global_css()
 st.set_page_config(page_title="Login", page_icon="🔐", layout="centered")
 db.init_db()
 
-version_file = os.path.join(os.path.dirname(__file__), ".version")
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+version_file = os.path.join(root_dir, ".version")
 app_version = open(version_file).read().strip() if os.path.exists(version_file) else "latest"
 if "-" in app_version:
     app_version = app_version.split("-")[0]
