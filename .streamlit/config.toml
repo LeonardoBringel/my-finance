@@ -10,6 +10,9 @@ enableXsrfProtection = true
 maxUploadSize = 10
 runOnSave = false
 
+address = 127.0.0.1
+port = 8501
+
 [runner]
 magicEnabled = false
 fastReruns = true
