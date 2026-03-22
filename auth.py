@@ -1,11 +1,12 @@
 import bcrypt
 import streamlit as st
+
+from crypto import decrypt, encrypt
 from database import get_session
 from models import User
-from crypto import encrypt, decrypt
-
 
 # ── Password hashing ───────────────────────────────────────────────────────────
+
 
 def hash_password(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
@@ -16,6 +17,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 # ── Session ────────────────────────────────────────────────────────────────────
+
 
 def get_current_user() -> dict | None:
     """Return current user dict from session_state, or None."""
@@ -46,7 +48,7 @@ def login(username: str, password: str) -> tuple[bool, str]:
             if decrypt(u.username) == username:
                 if verify_password(password, u.password_hash):
                     st.session_state["current_user"] = {
-                        "id":       u.id,
+                        "id": u.id,
                         "username": username,
                         "is_admin": u.is_admin,
                     }
@@ -59,6 +61,7 @@ def logout():
 
 
 # ── User management ────────────────────────────────────────────────────────────
+
 
 def create_user(username: str, password: str) -> tuple[bool, str]:
     """Create a new user. First user becomes admin automatically."""
@@ -86,7 +89,9 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
     return True, f"Usuário '{username}' criado!" + (" (admin)" if is_first else "")
 
 
-def change_password(user_id: int, current_password: str, new_password: str) -> tuple[bool, str]:
+def change_password(
+    user_id: int, current_password: str, new_password: str
+) -> tuple[bool, str]:
     with get_session() as session:
         user = session.get(User, user_id)
         if not user:
@@ -113,9 +118,9 @@ def list_users() -> list[dict]:
         users = session.query(User).order_by(User.id).all()
         return [
             {
-                "id":         u.id,
-                "username":   decrypt(u.username),
-                "is_admin":   u.is_admin,
+                "id": u.id,
+                "username": decrypt(u.username),
+                "is_admin": u.is_admin,
                 "created_at": u.created_at,
             }
             for u in users
@@ -134,19 +139,28 @@ def delete_user(user_id: int) -> tuple[bool, str]:
 
 # ── Internal ───────────────────────────────────────────────────────────────────
 
+
 def _seed_categories(session, user_id: int):
-    from models import Category
     from crypto import encrypt
+    from models import Category
 
     defaults = [
-        ("Casa", "saida"), ("Carro", "saida"), ("Estudo", "saida"),
-        ("Outros", "ambos"), ("Recorrente", "saida"), ("Gatos", "saida"),
-        ("Alimentação", "saida"), ("Mercado", "saida"), ("Farmácia", "saida"),
+        ("Casa", "saida"),
+        ("Carro", "saida"),
+        ("Estudo", "saida"),
+        ("Outros", "ambos"),
+        ("Recorrente", "saida"),
+        ("Gatos", "saida"),
+        ("Alimentação", "saida"),
+        ("Mercado", "saida"),
+        ("Farmácia", "saida"),
         ("Salário", "entrada"),
     ]
     for name, type_ in defaults:
-        session.add(Category(
-            user_id=user_id,
-            name=encrypt(name),
-            type=encrypt(type_),
-        ))
+        session.add(
+            Category(
+                user_id=user_id,
+                name=encrypt(name),
+                type=encrypt(type_),
+            )
+        )

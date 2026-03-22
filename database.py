@@ -1,14 +1,14 @@
 import os
 from contextlib import contextmanager
 from datetime import datetime
+
 from dateutil.relativedelta import relativedelta
-
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
+from crypto import decrypt, decrypt_float, encrypt
 from models import Base, Category, Transaction
-from crypto import encrypt, decrypt, decrypt_float
 
 load_dotenv()
 
@@ -59,13 +59,17 @@ def init_db():
 
 # ── Categories ─────────────────────────────────────────────────────────────────
 
+
 def get_all_categories(user_id: int) -> list[dict]:
     with get_session() as s:
         rows = s.query(Category).filter_by(user_id=user_id).all()
-        return sorted([
-            {"id": c.id, "name": decrypt(c.name), "type": decrypt(c.type)}
-            for c in rows
-        ], key=lambda x: x["name"])
+        return sorted(
+            [
+                {"id": c.id, "name": decrypt(c.name), "type": decrypt(c.type)}
+                for c in rows
+            ],
+            key=lambda x: x["name"],
+        )
 
 
 def add_category(user_id: int, name: str, type_: str) -> tuple[bool, str]:
@@ -78,8 +82,10 @@ def add_category(user_id: int, name: str, type_: str) -> tuple[bool, str]:
 
 
 def update_category(user_id: int, id_: int, name: str, type_: str) -> tuple[bool, str]:
-    if any(c["name"].lower() == name.lower() and c["id"] != id_
-           for c in get_all_categories(user_id)):
+    if any(
+        c["name"].lower() == name.lower() and c["id"] != id_
+        for c in get_all_categories(user_id)
+    ):
         return False, "Nome já existe."
     with get_session() as s:
         cat = s.get(Category, id_)
@@ -101,25 +107,33 @@ def delete_category(user_id: int, id_: int):
 
 # ── Transactions ───────────────────────────────────────────────────────────────
 
+
 def _decrypt_txn(t: Transaction, cat_name: str, cat_type: str) -> dict:
     return {
-        "id":                 t.id,
-        "user_id":            t.user_id,
-        "category_id":        t.category_id,
-        "category":           cat_name,
-        "type":               cat_type,
-        "date":               decrypt(t.date),
-        "description":        decrypt(t.description),
-        "value":              decrypt_float(t.value),
-        "installment_group":  t.installment_group,
+        "id": t.id,
+        "user_id": t.user_id,
+        "category_id": t.category_id,
+        "category": cat_name,
+        "type": cat_type,
+        "date": decrypt(t.date),
+        "description": decrypt(t.description),
+        "value": decrypt_float(t.value),
+        "installment_group": t.installment_group,
         "installment_number": t.installment_number,
-        "installment_total":  t.installment_total,
+        "installment_total": t.installment_total,
     }
 
 
-def add_transaction(user_id: int, category_id: int, date_: str,
-                    description: str, value: float, installments: int = 1):
+def add_transaction(
+    user_id: int,
+    category_id: int,
+    date_: str,
+    description: str,
+    value: float,
+    installments: int = 1,
+):
     import uuid
+
     group_id = str(uuid.uuid4()) if installments > 1 else None
     base_date = datetime.strptime(date_, "%Y-%m-%d")
     installment_value = round(value / installments, 2)
@@ -127,16 +141,18 @@ def add_transaction(user_id: int, category_id: int, date_: str,
     with get_session() as s:
         for i in range(installments):
             txn_date = base_date + relativedelta(months=i)
-            s.add(Transaction(
-                user_id=user_id,
-                category_id=category_id,
-                date=encrypt(txn_date.strftime("%Y-%m-%d")),
-                description=encrypt(description) if description else None,
-                value=encrypt(str(installment_value)),
-                installment_group=group_id,
-                installment_number=i + 1 if installments > 1 else None,
-                installment_total=installments if installments > 1 else None,
-            ))
+            s.add(
+                Transaction(
+                    user_id=user_id,
+                    category_id=category_id,
+                    date=encrypt(txn_date.strftime("%Y-%m-%d")),
+                    description=encrypt(description) if description else None,
+                    value=encrypt(str(installment_value)),
+                    installment_group=group_id,
+                    installment_number=i + 1 if installments > 1 else None,
+                    installment_total=installments if installments > 1 else None,
+                )
+            )
         s.commit()
 
 
@@ -167,16 +183,17 @@ def get_transactions(user_id: int, year: int = None, month: int = None) -> list[
     return sorted(result, key=lambda x: x["date"], reverse=True)
 
 
-def update_transaction(user_id: int, id_: int, category_id: int,
-                       date_: str, description: str, value: float):
+def update_transaction(
+    user_id: int, id_: int, category_id: int, date_: str, description: str, value: float
+):
     with get_session() as s:
         t = s.get(Transaction, id_)
         if not t or t.user_id != user_id:
             return
         t.category_id = category_id
-        t.date        = encrypt(date_)
+        t.date = encrypt(date_)
         t.description = encrypt(description) if description else None
-        t.value       = encrypt(str(value))
+        t.value = encrypt(str(value))
         s.commit()
 
 
@@ -201,23 +218,30 @@ def get_descriptions_by_category(user_id: int, category_id: int = None) -> list[
 
 # ── Dashboard Aggregations ─────────────────────────────────────────────────────
 
+
 def get_monthly_summary(user_id: int, year: int, month: int) -> dict:
-    txns    = get_transactions(user_id, year=year, month=month)
+    txns = get_transactions(user_id, year=year, month=month)
     entradas = sum(t["value"] for t in txns if t["type"] == "entrada")
-    saidas   = sum(t["value"] for t in txns if t["type"] in ("saida", "ambos"))
+    saidas = sum(t["value"] for t in txns if t["type"] in ("saida", "ambos"))
 
     all_year = get_transactions(user_id, year=year)
-    acc_in  = sum(t["value"] for t in all_year
-                  if t["type"] == "entrada"
-                  and datetime.strptime(t["date"], "%Y-%m-%d").month <= month)
-    acc_out = sum(t["value"] for t in all_year
-                  if t["type"] in ("saida", "ambos")
-                  and datetime.strptime(t["date"], "%Y-%m-%d").month <= month)
+    acc_in = sum(
+        t["value"]
+        for t in all_year
+        if t["type"] == "entrada"
+        and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
+    )
+    acc_out = sum(
+        t["value"]
+        for t in all_year
+        if t["type"] in ("saida", "ambos")
+        and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
+    )
 
     return {
-        "entradas":        entradas,
-        "saidas":          saidas,
-        "saldo":           entradas - saidas,
+        "entradas": entradas,
+        "saidas": saidas,
+        "saldo": entradas - saidas,
         "saldo_acumulado": acc_in - acc_out,
     }
 
@@ -228,8 +252,11 @@ def get_expenses_by_category(user_id: int, year: int, month: int) -> list[dict]:
     for t in txns:
         if t["type"] in ("saida", "ambos"):
             totals[t["category"]] = totals.get(t["category"], 0) + t["value"]
-    return sorted([{"category": k, "total": v} for k, v in totals.items()],
-                  key=lambda x: x["total"], reverse=True)
+    return sorted(
+        [{"category": k, "total": v} for k, v in totals.items()],
+        key=lambda x: x["total"],
+        reverse=True,
+    )
 
 
 def get_income_by_category(user_id: int, year: int, month: int) -> list[dict]:
@@ -238,18 +265,25 @@ def get_income_by_category(user_id: int, year: int, month: int) -> list[dict]:
     for t in txns:
         if t["type"] == "entrada":
             totals[t["category"]] = totals.get(t["category"], 0) + t["value"]
-    return sorted([{"category": k, "total": v} for k, v in totals.items()],
-                  key=lambda x: x["total"], reverse=True)
+    return sorted(
+        [{"category": k, "total": v} for k, v in totals.items()],
+        key=lambda x: x["total"],
+        reverse=True,
+    )
 
 
-def get_expenses_by_category_and_description(user_id: int, year: int, month: int) -> list[dict]:
+def get_expenses_by_category_and_description(
+    user_id: int, year: int, month: int
+) -> list[dict]:
     txns = get_transactions(user_id, year=year, month=month)
     totals: dict[tuple, float] = {}
     for t in txns:
         if t["type"] in ("saida", "ambos"):
             key = (t["category"], t["description"] or "(sem descrição)")
             totals[key] = totals.get(key, 0) + t["value"]
-    result = [{"category": k[0], "description": k[1], "total": v} for k, v in totals.items()]
+    result = [
+        {"category": k[0], "description": k[1], "total": v} for k, v in totals.items()
+    ]
     return sorted(result, key=lambda x: (x["category"], x["total"]), reverse=True)
 
 
@@ -270,7 +304,8 @@ def get_monthly_trend(user_id: int, year: int) -> dict:
 
 def get_available_years(user_id: int) -> list[int]:
     txns = get_transactions(user_id)
-    years = {datetime.strptime(t["date"], "%Y-%m-%d").year
-             for t in txns if t.get("date")}
+    years = {
+        datetime.strptime(t["date"], "%Y-%m-%d").year for t in txns if t.get("date")
+    }
     years.add(datetime.now().year)
     return sorted(years)

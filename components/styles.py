@@ -1,7 +1,9 @@
 import streamlit as st
 
+
 def inject_global_css():
-    st.markdown("""
+    st.markdown(
+        """
     <style>
         [data-testid="stBaseButton-primary"] {
             background-color: #4CAF50 !important;
@@ -13,4 +15,6 @@ def inject_global_css():
             border-color: #43A047 !important;
         }
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )

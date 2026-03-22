@@ -1,18 +1,20 @@
-import streamlit as st
-import sys
 import os
+import sys
+
+import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 import database as db
 from auth import require_login
-
 from components.styles import inject_global_css
+
 inject_global_css()
 
 st.set_page_config(page_title="Categorias", page_icon="🏷️", layout="wide")
 db.init_db()
 
-st.markdown("""
+st.markdown(
+    """
 <style>
     #MainMenu, footer { visibility: hidden; }
     [data-testid="stHeader"] { background: transparent; }
@@ -20,7 +22,9 @@ st.markdown("""
     [data-testid="collapsedControl"] { display: none; }
     .block-container { padding-top: 1.5rem; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 require_login()
 user_id = st.session_state["current_user"]["id"]
@@ -46,8 +50,12 @@ with st.expander("➕ Nova Categoria", expanded=False):
         new_type = st.selectbox(
             "Tipo",
             ["saida", "entrada", "ambos"],
-            format_func=lambda x: {"saida": "💸 Saída", "entrada": "💰 Entrada", "ambos": "🔄 Ambos"}[x],
-            key="new_cat_type"
+            format_func=lambda x: {
+                "saida": "💸 Saída",
+                "entrada": "💰 Entrada",
+                "ambos": "🔄 Ambos",
+            }[x],
+            key="new_cat_type",
         )
     with col3:
         st.markdown("<br>", unsafe_allow_html=True)
@@ -67,8 +75,11 @@ categories = db.get_all_categories(user_id)
 
 type_labels = {"entrada": "💰 Entrada", "saida": "💸 Saída", "ambos": "🔄 Ambos"}
 
-f_type = st.selectbox("Filtrar por tipo", ["Todos", "entrada", "saida", "ambos"],
-                      format_func=lambda x: "Todos" if x == "Todos" else type_labels[x])
+f_type = st.selectbox(
+    "Filtrar por tipo",
+    ["Todos", "entrada", "saida", "ambos"],
+    format_func=lambda x: "Todos" if x == "Todos" else type_labels[x],
+)
 
 if f_type != "Todos":
     categories = [c for c in categories if c["type"] == f_type]
@@ -93,26 +104,30 @@ else:
             st.session_state[f"editing_cat_{cat['id']}"] = True
 
         if cols[3].button("🗑️", key=f"del_cat_{cat['id']}"):
-            st.session_state["confirm_del_cat_id"]   = cat["id"]
+            st.session_state["confirm_del_cat_id"] = cat["id"]
             st.session_state["confirm_del_cat_name"] = cat["name"]
 
         if st.session_state.get(f"editing_cat_{cat['id']}"):
             with st.container():
                 ec1, ec2, ec3, ec4 = st.columns([3, 2, 1, 1])
                 with ec1:
-                    edit_name = st.text_input("Nome", value=cat["name"], key=f"ename_{cat['id']}")
+                    edit_name = st.text_input(
+                        "Nome", value=cat["name"], key=f"ename_{cat['id']}"
+                    )
                 with ec2:
                     edit_type = st.selectbox(
                         "Tipo",
                         ["saida", "entrada", "ambos"],
                         index=["saida", "entrada", "ambos"].index(cat["type"]),
                         format_func=lambda x: type_labels[x],
-                        key=f"etype_{cat['id']}"
+                        key=f"etype_{cat['id']}",
                     )
                 with ec3:
                     st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("💾", key=f"save_cat_{cat['id']}", type="primary"):
-                        ok, msg = db.update_category(user_id, cat["id"], edit_name, edit_type)
+                        ok, msg = db.update_category(
+                            user_id, cat["id"], edit_name, edit_type
+                        )
                         if ok:
                             st.success(msg)
                             st.session_state.pop(f"editing_cat_{cat['id']}", None)

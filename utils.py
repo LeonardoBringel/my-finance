@@ -20,4 +20,3 @@ def parse_valor(s):
         return float(s)
     except ValueError:
         return None
-

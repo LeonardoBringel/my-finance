@@ -1,17 +1,28 @@
+import os
+import sys
+
 import streamlit as st
-import sys, os
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from auth import require_login, require_admin, create_user, admin_reset_password, delete_user, list_users
 import database as db
-
+from auth import (
+    admin_reset_password,
+    create_user,
+    delete_user,
+    list_users,
+    require_admin,
+    require_login,
+)
 from components.styles import inject_global_css
+
 inject_global_css()
 
 st.set_page_config(page_title="Administração", page_icon="👥", layout="wide")
 db.init_db()
 
-st.markdown("""
+st.markdown(
+    """
 <style>
     #MainMenu, footer { visibility: hidden; }
     [data-testid="stHeader"] { background: transparent; }
@@ -19,7 +30,9 @@ st.markdown("""
     [data-testid="collapsedControl"] { display: none; }
     .block-container { padding-top: 1.5rem; }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 require_login()
 require_admin()
@@ -75,7 +88,9 @@ else:
         cols = st.columns([2.5, 1.5, 2, 1, 1])
         cols[0].markdown(u["username"])
         cols[1].markdown("👑 Admin" if u["is_admin"] else "👤 Usuário")
-        cols[2].markdown(u["created_at"].strftime("%d/%m/%Y") if u["created_at"] else "—")
+        cols[2].markdown(
+            u["created_at"].strftime("%d/%m/%Y") if u["created_at"] else "—"
+        )
 
         # Reset password
         if cols[3].button("🔑", key=f"reset_{u['id']}"):
@@ -91,11 +106,13 @@ else:
             with st.container():
                 r1, r2, r3 = st.columns([2, 2, 1])
                 with r1:
-                    new_pass = st.text_input("Nova senha", type="password",
-                                             key=f"new_pass_{u['id']}")
+                    new_pass = st.text_input(
+                        "Nova senha", type="password", key=f"new_pass_{u['id']}"
+                    )
                 with r2:
-                    confirm_pass = st.text_input("Confirmar", type="password",
-                                                 key=f"conf_pass_{u['id']}")
+                    confirm_pass = st.text_input(
+                        "Confirmar", type="password", key=f"conf_pass_{u['id']}"
+                    )
                 with r3:
                     st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("💾", key=f"save_pass_{u['id']}", type="primary"):
