@@ -16,3 +16,15 @@ dependencies = [
     "streamlit>=1.55.0",
     "watchdog>=6.0.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pre-commit>4.3.0"
+]
+
+[tool.back]
+line-length = 80
+
+[tool.isort]
+profile = "black"
+line_length = 80
