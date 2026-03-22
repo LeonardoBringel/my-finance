@@ -38,8 +38,6 @@ services:
       - finance_net
     command: >
       sh -c "uv run alembic upgrade head && uv run streamlit run app.py
-      --server.port=8501
-      --server.address=0.0.0.0"
 
 volumes:
   postgres_data:
