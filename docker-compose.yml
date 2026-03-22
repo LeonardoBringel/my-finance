@@ -25,7 +25,7 @@ services:
     container_name: my_finance_app
     restart: unless-stopped
     ports:
-      - "8501:8501"
+      - "127.0.0.1:8501:8501"
     env_file:
       - .env
     environment:
