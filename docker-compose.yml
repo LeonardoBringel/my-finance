@@ -37,7 +37,7 @@ services:
     networks:
       - finance_net
     command: >
-      sh -c "uv run alembic upgrade head && uv run streamlit run app.py
+      sh -c "uv run alembic upgrade head && uv run streamlit run app.py"
 
 volumes:
   postgres_data:
