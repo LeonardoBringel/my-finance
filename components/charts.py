@@ -166,6 +166,59 @@ def line_chart_trend(months_data, title="Entradas x Saídas (ano)"):
     return fig
 
 
+def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Saldo"):
+    """
+    Combo chart: bars for entrada/saida, line for cumulative saldo.
+    data: list of { month_label, entrada, saida, saldo_acumulado }
+    """
+    if not data or all(d["entrada"] == 0 and d["saida"] == 0 for d in data):
+        fig = go.Figure()
+        fig.add_annotation(text="Sem dados", x=0.5, y=0.5, showarrow=False,
+                           font=dict(color=TEXT_COLOR, size=16))
+        fig.update_layout(**_base_layout(title))
+        return fig
+
+    labels   = [d["month_label"]     for d in data]
+    entradas = [d["entrada"]          for d in data]
+    saidas   = [d["saida"]            for d in data]
+    saldos   = [d["saldo_acumulado"]  for d in data]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        name="Entradas", x=labels, y=entradas,
+        marker_color="#4CAF50", opacity=0.85,
+        hovertemplate="<b>%{x}</b><br>Entradas: R$ %{y:,.2f}<extra></extra>",
+    ))
+    fig.add_trace(go.Bar(
+        name="Saídas", x=labels, y=saidas,
+        marker_color="#EF5350", opacity=0.85,
+        hovertemplate="<b>%{x}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
+    ))
+    fig.add_trace(go.Scatter(
+        name="Saldo Acumulado", x=labels, y=saldos,
+        mode="lines+markers",
+        line=dict(color="#FFA726", width=2.5),
+        marker=dict(size=7),
+        yaxis="y2",
+        hovertemplate="<b>%{x}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
+    ))
+
+    fig.update_layout(
+        **_base_layout(title, showlegend=True),
+        barmode="group",
+        legend=dict(font=dict(color=TEXT_COLOR), bgcolor="rgba(0,0,0,0)",
+                    orientation="h", y=-0.15),
+        xaxis=dict(showgrid=False, tickfont=dict(color=TEXT_COLOR)),
+        yaxis=dict(showgrid=True, gridcolor=GRID_COLOR,
+                   tickprefix="R$", tickfont=dict(color=TEXT_COLOR)),
+        yaxis2=dict(overlaying="y", side="right",
+                    tickprefix="R$", tickfont=dict(color="#FFA726"),
+                    showgrid=False),
+    )
+    return fig
+
+
 def saldo_gauge(saldo, max_val):
     color = GREEN_MAIN if saldo >= 0 else RED_MAIN
     ratio = max(0, min(1, saldo / max_val)) if max_val else 0

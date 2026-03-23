@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import database as db
 from auth import logout, require_login
-from components.charts import bar_chart_expenses, donut_chart, line_chart_trend
+from components.charts import annual_evolution_chart, bar_chart_expenses, donut_chart, line_chart_trend
 from components.new_transaction import new_transaction_dialog
 from utils import fmt, fmt_date, parse_valor
 
@@ -129,6 +129,7 @@ expenses_by_cat = db.get_expenses_by_category(user_id, selected_year, selected_m
 income_by_cat = db.get_income_by_category(user_id, selected_year, selected_month)
 trend = db.get_monthly_trend(user_id, selected_year)
 desc_by_cat = db.get_descriptions_by_category_for_dashboard(user_id, selected_year, selected_month)
+annual_data = db.get_annual_evolution(user_id, selected_year)
 
 # ── Dashboard Header ───────────────────────────────────────────────────────────
 st.markdown(f"### 📊 Dashboard — {selected_month_name} / {selected_year}")
@@ -198,6 +199,13 @@ with col_line:
         key="line_trend",
     )
 
+# ── Evolução Anual ────────────────────────────────────────────────────────────
+st.divider()
+st.plotly_chart(
+    annual_evolution_chart(annual_data, f"📈 Evolução Anual — {selected_year}"),
+    width="stretch", key="annual_evolution"
+)
+
 # ── Detalhamento por Categoria ─────────────────────────────────────────────────
 st.divider()
 st.markdown("### 🔍 Detalhamento por Categoria")
@@ -228,13 +236,13 @@ else:
                 # ── Stats above chart ──────────────────────────────────────
                 if prev > 0:
                     delta_pct = ((total - prev) / prev) * 100
-                    delta_str = f"\n{delta_pct:+.1f}% vs mês anterior\n"
+                    delta_str = f"{delta_pct:+.1f}% vs mês anterior"
                     delta_color = "green" if delta_pct <= 0 else "red"
                 elif total > 0:
-                    delta_str  = "\nNovo este mês\n"
+                    delta_str  = "Novo este mês"
                     delta_color = "green"
                 else:
-                    delta_str  = "\nSem gastos\n"
+                    delta_str  = "Sem gastos"
                     delta_color = "gray"
 
                 st.markdown(

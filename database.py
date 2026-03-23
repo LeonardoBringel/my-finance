@@ -349,6 +349,42 @@ def get_monthly_trend(user_id: int, year: int) -> dict:
     return months
 
 
+def get_annual_evolution(user_id: int, year: int) -> list[dict]:
+    """
+    Returns monthly entrada, saida and cumulative saldo for the year.
+    [ { month, month_label, entrada, saida, saldo, saldo_acumulado }, ... ]
+    """
+    month_labels = ["Jan","Fev","Mar","Abr","Mai","Jun",
+                    "Jul","Ago","Set","Out","Nov","Dez"]
+    all_txns = get_transactions(user_id, year=year)
+
+    months = {f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)}
+    for t in all_txns:
+        try:
+            m = datetime.strptime(t["date"], "%Y-%m-%d").strftime("%m")
+        except (ValueError, TypeError):
+            continue
+        if t["type"] == "entrada":
+            months[m]["entrada"] += t["value"]
+        elif t["type"] in ("saida", "ambos"):
+            months[m]["saida"] += t["value"]
+
+    result = []
+    saldo_acumulado = 0.0
+    for i, (m, v) in enumerate(sorted(months.items())):
+        saldo = v["entrada"] - v["saida"]
+        saldo_acumulado += saldo
+        result.append({
+            "month":            m,
+            "month_label":      month_labels[int(m) - 1],
+            "entrada":          v["entrada"],
+            "saida":            v["saida"],
+            "saldo":            saldo,
+            "saldo_acumulado":  saldo_acumulado,
+        })
+    return result
+
+
 def get_available_years(user_id: int) -> list[int]:
     txns = get_transactions(user_id)
     years = {
