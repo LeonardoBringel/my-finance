@@ -117,63 +117,6 @@ def bar_chart_expenses(categories, planned, actual, title="Detalhamento Despesas
     return fig
 
 
-def line_chart_trend(months_data, title="Entradas x Saídas (ano)"):
-    month_labels = [
-        "Jan",
-        "Fev",
-        "Mar",
-        "Abr",
-        "Mai",
-        "Jun",
-        "Jul",
-        "Ago",
-        "Set",
-        "Out",
-        "Nov",
-        "Dez",
-    ]
-    keys = sorted(months_data.keys())
-    entradas = [months_data[k]["entrada"] for k in keys]
-    saidas = [months_data[k]["saida"] for k in keys]
-    labels = [month_labels[int(k) - 1] for k in keys]
-
-    fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(
-            x=labels,
-            y=entradas,
-            name="Entradas",
-            mode="lines+markers",
-            line=dict(color=GREEN_MAIN, width=2),
-            marker=dict(size=6),
-            hovertemplate="<b>%{x}</b><br>Entradas: R$ %{y:,.2f}<extra></extra>",
-        )
-    )
-    fig.add_trace(
-        go.Scatter(
-            x=labels,
-            y=saidas,
-            name="Saídas",
-            mode="lines+markers",
-            line=dict(color=RED_MAIN, width=2),
-            marker=dict(size=6),
-            hovertemplate="<b>%{x}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
-        )
-    )
-    fig.update_layout(
-        **_base_layout(title, showlegend=True),
-        legend=dict(font=dict(color=TEXT_COLOR), bgcolor="rgba(0,0,0,0)"),
-        xaxis=dict(showgrid=False, tickfont=dict(color=TEXT_COLOR)),
-        yaxis=dict(
-            showgrid=True,
-            gridcolor=GRID_COLOR,
-            tickprefix="R$",
-            tickfont=dict(color=TEXT_COLOR),
-        ),
-    )
-    return fig
-
-
 def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Saldo"):
     """
     Combo chart: bars for entrada/saida, line for cumulative saldo.
