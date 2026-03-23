@@ -121,6 +121,7 @@ def _decrypt_txn(t: Transaction, cat_name: str, cat_type: str) -> dict:
         "installment_group": t.installment_group,
         "installment_number": t.installment_number,
         "installment_total": t.installment_total,
+        "created_at": t.created_at.isoformat() if t.created_at else None,
     }
 
 
@@ -180,7 +181,9 @@ def get_transactions(user_id: int, year: int = None, month: int = None) -> list[
             continue
         result.append(txn)
 
-    return sorted(result, key=lambda x: x["date"], reverse=True)
+    return sorted(
+        result, key=lambda x: (x["date"], x["created_at"] or ""), reverse=True
+    )
 
 
 def update_transaction(
