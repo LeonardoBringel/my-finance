@@ -6,11 +6,9 @@ GREEN_MAIN = "#4CAF50"
 GREEN_LIGHT = "#81C784"
 GREEN_DARK = "#388E3C"
 RED_MAIN = "#EF5350"
-ORANGE_MAIN = "#FFA726"
 BG_COLOR = "rgba(0,0,0,0)"
 TEXT_COLOR = "#FAFAFA"
 GRID_COLOR = "rgba(255,255,255,0.08)"
-
 EXPENSE_COLORS = [
     "#1B5E20",
     "#2E7D32",
@@ -29,7 +27,6 @@ EXPENSE_COLORS = [
     "#004D40",
 ]
 
-
 def _base_layout(title="", showlegend=False):
     return dict(
         title=dict(text=title, font=dict(color=TEXT_COLOR, size=14)),
@@ -41,7 +38,7 @@ def _base_layout(title="", showlegend=False):
     )
 
 
-def donut_chart(labels, values, title, colors=None):
+def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
     if not values or sum(values) == 0:
         fig = go.Figure()
         fig.add_annotation(
@@ -138,18 +135,18 @@ def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Sal
 
     fig.add_trace(go.Bar(
         name="Entradas", x=labels, y=entradas,
-        marker_color="#4CAF50", opacity=0.85,
+        marker_color=GREEN_LIGHT, opacity=0.85,
         hovertemplate="<b>%{x}</b><br>Entradas: R$ %{y:,.2f}<extra></extra>",
     ))
     fig.add_trace(go.Bar(
         name="Saídas", x=labels, y=saidas,
-        marker_color="#EF5350", opacity=0.85,
+        marker_color=RED_MAIN, opacity=0.85,
         hovertemplate="<b>%{x}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
         name="Saldo Acumulado", x=labels, y=saldos,
         mode="lines+markers",
-        line=dict(color="#FFA726", width=2.5),
+        line=dict(color=GREEN_DARK, width=2.5),
         marker=dict(size=7),
         yaxis="y2",
         hovertemplate="<b>%{x}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
@@ -158,13 +155,13 @@ def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Sal
     fig.update_layout(
         **_base_layout(title, showlegend=True),
         barmode="group",
-        legend=dict(font=dict(color=TEXT_COLOR), bgcolor="rgba(0,0,0,0)",
+        legend=dict(font=dict(color=TEXT_COLOR), bgcolor=BG_COLOR,
                     orientation="h", y=-0.15),
         xaxis=dict(showgrid=False, tickfont=dict(color=TEXT_COLOR)),
         yaxis=dict(showgrid=True, gridcolor=GRID_COLOR,
                    tickprefix="R$", tickfont=dict(color=TEXT_COLOR)),
         yaxis2=dict(overlaying="y", side="right",
-                    tickprefix="R$", tickfont=dict(color="#FFA726"),
+                    tickprefix="R$", tickfont=dict(color=TEXT_COLOR),
                     showgrid=False),
     )
     return fig
@@ -178,7 +175,7 @@ def saldo_gauge(saldo, max_val):
         go.Pie(
             values=[ratio, 1 - ratio],
             hole=0.6,
-            marker=dict(colors=[color, "rgba(255,255,255,0.08)"]),
+            marker=dict(colors=[color, GRID_COLOR]),
             textinfo="none",
             hoverinfo="skip",
             sort=False,

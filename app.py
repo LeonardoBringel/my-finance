@@ -165,10 +165,9 @@ col_left, col_right = st.columns(2)
 with col_left:
     labels_in = [r["category"] for r in income_by_cat]
     values_in = [r["total"] for r in income_by_cat]
-    green_colors = ["#4CAF50", "#66BB6A", "#81C784", "#A5D6A7", "#C8E6C9"]
     st.plotly_chart(
         donut_chart(
-            labels_in, values_in, "📊 Entradas por Categoria", colors=green_colors
+            labels_in, values_in, "📊 Entradas por Categoria"
         ),
         width="stretch",
         key="donut_inc",
