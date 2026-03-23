@@ -27,6 +27,7 @@ EXPENSE_COLORS = [
     "#004D40",
 ]
 
+
 def _base_layout(title="", showlegend=False):
     return dict(
         title=dict(text=title, font=dict(color=TEXT_COLOR, size=14)),
@@ -78,7 +79,6 @@ def bar_chart_expenses(categories, planned, actual, title="Detalhamento Despesas
         fig.update_layout(**_base_layout(title))
         return fig
 
-
     total = sum(actual) if actual else 1
     pct = [v / total * 100 for v in actual]
 
@@ -121,48 +121,76 @@ def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Sal
     """
     if not data or all(d["entrada"] == 0 and d["saida"] == 0 for d in data):
         fig = go.Figure()
-        fig.add_annotation(text="Sem dados", x=0.5, y=0.5, showarrow=False,
-                           font=dict(color=TEXT_COLOR, size=16))
+        fig.add_annotation(
+            text="Sem dados",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(color=TEXT_COLOR, size=16),
+        )
         fig.update_layout(**_base_layout(title))
         return fig
 
-    labels   = [d["month_label"]     for d in data]
-    entradas = [d["entrada"]          for d in data]
-    saidas   = [d["saida"]            for d in data]
-    saldos   = [d["saldo_acumulado"]  for d in data]
+    labels = [d["month_label"] for d in data]
+    entradas = [d["entrada"] for d in data]
+    saidas = [d["saida"] for d in data]
+    saldos = [d["saldo_acumulado"] for d in data]
 
     fig = go.Figure()
 
-    fig.add_trace(go.Bar(
-        name="Entradas", x=labels, y=entradas,
-        marker_color=GREEN_LIGHT, opacity=0.85,
-        hovertemplate="<b>%{x}</b><br>Entradas: R$ %{y:,.2f}<extra></extra>",
-    ))
-    fig.add_trace(go.Bar(
-        name="Saídas", x=labels, y=saidas,
-        marker_color=RED_MAIN, opacity=0.85,
-        hovertemplate="<b>%{x}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
-    ))
-    fig.add_trace(go.Scatter(
-        name="Saldo Acumulado", x=labels, y=saldos,
-        mode="lines+markers",
-        line=dict(color=GREEN_DARK, width=2.5),
-        marker=dict(size=7),
-        yaxis="y2",
-        hovertemplate="<b>%{x}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
-    ))
+    fig.add_trace(
+        go.Bar(
+            name="Entradas",
+            x=labels,
+            y=entradas,
+            marker_color=GREEN_LIGHT,
+            opacity=0.85,
+            hovertemplate="<b>%{x}</b><br>Entradas: R$ %{y:,.2f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            name="Saídas",
+            x=labels,
+            y=saidas,
+            marker_color=RED_MAIN,
+            opacity=0.85,
+            hovertemplate="<b>%{x}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            name="Saldo Acumulado",
+            x=labels,
+            y=saldos,
+            mode="lines+markers",
+            line=dict(color=GREEN_DARK, width=2.5),
+            marker=dict(size=7),
+            yaxis="y2",
+            hovertemplate="<b>%{x}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
+        )
+    )
 
     fig.update_layout(
         **_base_layout(title, showlegend=True),
         barmode="group",
-        legend=dict(font=dict(color=TEXT_COLOR), bgcolor=BG_COLOR,
-                    orientation="h", y=-0.15),
+        legend=dict(
+            font=dict(color=TEXT_COLOR), bgcolor=BG_COLOR, orientation="h", y=-0.15
+        ),
         xaxis=dict(showgrid=False, tickfont=dict(color=TEXT_COLOR)),
-        yaxis=dict(showgrid=True, gridcolor=GRID_COLOR,
-                   tickprefix="R$", tickfont=dict(color=TEXT_COLOR)),
-        yaxis2=dict(overlaying="y", side="right",
-                    tickprefix="R$", tickfont=dict(color=TEXT_COLOR),
-                    showgrid=False),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor=GRID_COLOR,
+            tickprefix="R$",
+            tickfont=dict(color=TEXT_COLOR),
+        ),
+        yaxis2=dict(
+            overlaying="y",
+            side="right",
+            tickprefix="R$",
+            tickfont=dict(color=TEXT_COLOR),
+            showgrid=False,
+        ),
     )
     return fig
 

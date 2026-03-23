@@ -287,12 +287,15 @@ def get_expenses_by_category_and_description(
     return sorted(result, key=lambda x: (x["category"], x["total"]), reverse=True)
 
 
-def get_descriptions_by_category_for_dashboard(user_id: int, year: int, month: int) -> dict:
+def get_descriptions_by_category_for_dashboard(
+    user_id: int, year: int, month: int
+) -> dict:
     """
     Returns a dict: { category_name: { descriptions, total, total_prev_month } }
     for all saida categories of the user in the given month.
     """
     from dateutil.relativedelta import relativedelta as rd
+
     all_cats = get_all_categories(user_id)
     saida_cats = [c for c in all_cats if c["type"] in ("saida", "ambos")]
 
@@ -324,7 +327,8 @@ def get_descriptions_by_category_for_dashboard(user_id: int, year: int, month: i
         result[cat["name"]] = {
             "descriptions": sorted(
                 [{"description": k, "total": v} for k, v in totals.items()],
-                key=lambda x: x["total"], reverse=True
+                key=lambda x: x["total"],
+                reverse=True,
             ),
             "total": cat_total,
             "total_prev": prev_cat_total,
@@ -354,8 +358,20 @@ def get_annual_evolution(user_id: int, year: int) -> list[dict]:
     Returns monthly entrada, saida and cumulative saldo for the year.
     [ { month, month_label, entrada, saida, saldo, saldo_acumulado }, ... ]
     """
-    month_labels = ["Jan","Fev","Mar","Abr","Mai","Jun",
-                    "Jul","Ago","Set","Out","Nov","Dez"]
+    month_labels = [
+        "Jan",
+        "Fev",
+        "Mar",
+        "Abr",
+        "Mai",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Set",
+        "Out",
+        "Nov",
+        "Dez",
+    ]
     all_txns = get_transactions(user_id, year=year)
 
     months = {f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)}
@@ -374,14 +390,16 @@ def get_annual_evolution(user_id: int, year: int) -> list[dict]:
     for i, (m, v) in enumerate(sorted(months.items())):
         saldo = v["entrada"] - v["saida"]
         saldo_acumulado += saldo
-        result.append({
-            "month":            m,
-            "month_label":      month_labels[int(m) - 1],
-            "entrada":          v["entrada"],
-            "saida":            v["saida"],
-            "saldo":            saldo,
-            "saldo_acumulado":  saldo_acumulado,
-        })
+        result.append(
+            {
+                "month": m,
+                "month_label": month_labels[int(m) - 1],
+                "entrada": v["entrada"],
+                "saida": v["saida"],
+                "saldo": saldo,
+                "saldo_acumulado": saldo_acumulado,
+            }
+        )
     return result
 
 
