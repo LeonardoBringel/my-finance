@@ -12,7 +12,15 @@ class User(Base):
     username = Column(Text, nullable=False, unique=True)  # encrypted
     password_hash = Column(Text, nullable=False)  # bcrypt hash
     is_admin = Column(Boolean, nullable=False, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
     categories = relationship(
         "Category", back_populates="user", cascade="all, delete-orphan"
@@ -31,6 +39,15 @@ class Category(Base):
     )
     name = Column(Text, nullable=False)  # encrypted
     type = Column(Text, nullable=False)  # encrypted ('entrada'|'saida'|'ambos')
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
     user = relationship("User", back_populates="categories")
     transactions = relationship("Transaction", back_populates="category")
@@ -52,7 +69,15 @@ class Transaction(Base):
     installment_group = Column(Text, nullable=True)
     installment_number = Column(Integer, nullable=True)
     installment_total = Column(Integer, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
 
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
