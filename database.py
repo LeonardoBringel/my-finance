@@ -287,6 +287,53 @@ def get_expenses_by_category_and_description(
     return sorted(result, key=lambda x: (x["category"], x["total"]), reverse=True)
 
 
+def get_descriptions_by_category_for_dashboard(user_id: int, year: int, month: int) -> dict:
+    """
+    Returns a dict: { category_name: { descriptions, total, total_prev_month } }
+    for all saida categories of the user in the given month.
+    """
+    from dateutil.relativedelta import relativedelta as rd
+    all_cats = get_all_categories(user_id)
+    saida_cats = [c for c in all_cats if c["type"] in ("saida", "ambos")]
+
+    # Current month transactions
+    txns = get_transactions(user_id, year=year, month=month)
+    saida_txns = [t for t in txns if t["type"] in ("saida", "ambos")]
+    total_month = sum(t["value"] for t in saida_txns)
+
+    # Previous month
+    prev = datetime(year, month, 1) - rd(months=1)
+    prev_txns = get_transactions(user_id, year=prev.year, month=prev.month)
+    prev_saida = [t for t in prev_txns if t["type"] in ("saida", "ambos")]
+
+    result = {}
+    for cat in saida_cats:
+        # Current month
+        cat_txns = [t for t in saida_txns if t["category"] == cat["name"]]
+        totals: dict[str, float] = {}
+        for t in cat_txns:
+            desc = t["description"] or "(sem descrição)"
+            totals[desc] = totals.get(desc, 0) + t["value"]
+        cat_total = sum(totals.values())
+
+        # Previous month total for this category
+        prev_cat_total = sum(
+            t["value"] for t in prev_saida if t["category"] == cat["name"]
+        )
+
+        result[cat["name"]] = {
+            "descriptions": sorted(
+                [{"description": k, "total": v} for k, v in totals.items()],
+                key=lambda x: x["total"], reverse=True
+            ),
+            "total": cat_total,
+            "total_prev": prev_cat_total,
+            "pct_of_month": (cat_total / total_month * 100) if total_month > 0 else 0.0,
+        }
+
+    return result
+
+
 def get_monthly_trend(user_id: int, year: int) -> dict:
     all_txns = get_transactions(user_id, year=year)
     months = {f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)}

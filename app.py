@@ -128,6 +128,7 @@ summary = db.get_monthly_summary(user_id, selected_year, selected_month)
 expenses_by_cat = db.get_expenses_by_category(user_id, selected_year, selected_month)
 income_by_cat = db.get_income_by_category(user_id, selected_year, selected_month)
 trend = db.get_monthly_trend(user_id, selected_year)
+desc_by_cat = db.get_descriptions_by_category_for_dashboard(user_id, selected_year, selected_month)
 
 # ── Dashboard Header ───────────────────────────────────────────────────────────
 st.markdown(f"### 📊 Dashboard — {selected_month_name} / {selected_year}")
@@ -196,3 +197,59 @@ with col_line:
         width="stretch",
         key="line_trend",
     )
+
+# ── Detalhamento por Categoria ─────────────────────────────────────────────────
+st.divider()
+st.markdown("### 🔍 Detalhamento por Categoria")
+
+MAX_COLS = 4
+cat_names = list(desc_by_cat.keys())
+
+if not cat_names:
+    st.info("Nenhuma categoria de saída cadastrada.")
+else:
+    for row_start in range(0, len(cat_names), MAX_COLS):
+        row_cats = cat_names[row_start:row_start + MAX_COLS]
+        # Always render MAX_COLS columns — empty ones stay blank
+        cols = st.columns(MAX_COLS)
+        for i in range(MAX_COLS):
+            with cols[i]:
+                if i >= len(row_cats):
+                    # Empty cell — keep grid uniform
+                    st.empty()
+                    continue
+
+                cat_name = row_cats[i]
+                data     = desc_by_cat[cat_name]
+                total    = data["total"]
+                pct      = data["pct_of_month"]
+                prev     = data["total_prev"]
+
+                # ── Stats above chart ──────────────────────────────────────
+                if prev > 0:
+                    delta_pct = ((total - prev) / prev) * 100
+                    delta_str = f"\n{delta_pct:+.1f}% vs mês anterior\n"
+                    delta_color = "green" if delta_pct <= 0 else "red"
+                elif total > 0:
+                    delta_str  = "\nNovo este mês\n"
+                    delta_color = "green"
+                else:
+                    delta_str  = "\nSem gastos\n"
+                    delta_color = "gray"
+
+                st.markdown(
+                    f"**{cat_name}**</br>"
+                    f"{fmt(total)} ({pct:.1f}%)</br>"
+                    f"<span style='color:{delta_color};font-size:0.8rem'>{delta_str}</span>",
+                    unsafe_allow_html=True
+                )
+
+                # ── Donut ──────────────────────────────────────────────────
+                items = data["descriptions"]
+                if not items:
+                    fig = donut_chart([], [], "")
+                else:
+                    labels = [i["description"] for i in items]
+                    values = [i["total"] for i in items]
+                    fig = donut_chart(labels, values, "")
+                st.plotly_chart(fig, width="stretch", key=f"donut_cat_{cat_name}")
