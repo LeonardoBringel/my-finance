@@ -81,6 +81,10 @@ def bar_chart_expenses(categories, planned, actual, title="Detalhamento Despesas
         fig.update_layout(**_base_layout(title))
         return fig
 
+
+    total = sum(actual) if actual else 1
+    pct = [v / total * 100 for v in actual]
+
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
@@ -88,7 +92,11 @@ def bar_chart_expenses(categories, planned, actual, title="Detalhamento Despesas
             x=categories,
             y=actual,
             marker_color=GREEN_MAIN,
-            hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<extra></extra>",
+            text=[f"{p:.1f}%" for p in pct],
+            textposition="outside",
+            textfont=dict(color=TEXT_COLOR, size=11),
+            customdata=pct,
+            hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<br>%{customdata:.1f}% das despesas<extra></extra>",
         )
     )
     fig.update_layout(
