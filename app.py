@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import database as db
 from auth import logout, require_login
-from components.charts import annual_evolution_chart, bar_chart_expenses, donut_chart, line_chart_trend
+from components.charts import annual_evolution_chart, bar_chart_expenses, donut_chart
 from components.new_transaction import new_transaction_dialog
 from utils import fmt, fmt_date, parse_valor
 
@@ -175,16 +175,6 @@ with col_left:
     )
 
 with col_right:
-    labels = [r["category"] for r in expenses_by_cat]
-    values = [r["total"] for r in expenses_by_cat]
-    st.plotly_chart(
-        donut_chart(labels, values, "📊 Despesas por Categoria"),
-        width="stretch",
-        key="donut_exp",
-    )
-
-col_line, col_bar = st.columns(2)
-with col_bar:
     cats = [r["category"] for r in expenses_by_cat]
     vals = [r["total"] for r in expenses_by_cat]
     st.plotly_chart(
@@ -192,15 +182,8 @@ with col_bar:
         width="stretch",
         key="bar_exp",
     )
-with col_line:
-    st.plotly_chart(
-        line_chart_trend(trend, "📈 Entradas x Saídas (ano)"),
-        width="stretch",
-        key="line_trend",
-    )
 
 # ── Evolução Anual ────────────────────────────────────────────────────────────
-st.divider()
 st.plotly_chart(
     annual_evolution_chart(annual_data, f"📈 Evolução Anual — {selected_year}"),
     width="stretch", key="annual_evolution"
