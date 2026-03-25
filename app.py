@@ -14,7 +14,7 @@ from components.charts import (
     donut_chart,
 )
 from components.new_transaction import new_transaction_dialog
-from utils import fmt, fmt_date, parse_valor
+from utils.data_format_utils import format_currency
 
 st.set_page_config(
     page_title="Gestão Financeira",
@@ -144,15 +144,15 @@ st.divider()
 # ── KPI Cards ──────────────────────────────────────────────────────────────────
 col1, col2, col3, col4 = st.columns(4)
 with col1:
-    st.metric("💰 Entradas do Mês", fmt(summary["entradas"]))
+    st.metric("💰 Entradas do Mês", format_currency(summary["entradas"]))
 with col2:
-    st.metric("💸 Despesas do Mês", fmt(summary["saidas"]))
+    st.metric("💸 Despesas do Mês", format_currency(summary["saidas"]))
 with col3:
     saldo = summary["saldo"]
     st.metric(
         "📈 Saldo do Mês",
         "",
-        delta=fmt(saldo),
+        delta=format_currency(saldo),
         delta_color="normal" if saldo >= 0 else "inverse",
     )
 with col4:
@@ -160,7 +160,7 @@ with col4:
     st.metric(
         "🏦 Saldo Acumulado",
         "",
-        delta=fmt(sacc),
+        delta=format_currency(sacc),
         delta_color="normal" if sacc >= 0 else "inverse",
     )
 
@@ -234,7 +234,7 @@ else:
 
                 st.markdown(
                     f"**{cat_name}**</br>"
-                    f"{fmt(total)} ({pct:.1f}%)</br>"
+                    f"{format_currency(total)} ({pct:.1f}%)</br>"
                     f"<span style='color:{delta_color};font-size:0.8rem'>{delta_str}</span>",
                     unsafe_allow_html=True,
                 )

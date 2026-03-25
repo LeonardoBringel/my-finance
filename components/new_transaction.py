@@ -3,7 +3,7 @@ from datetime import date, datetime
 import streamlit as st
 
 import database as db
-from utils import fmt, parse_valor
+from utils.data_format_utils import format_currency, parse_value_text
 
 
 @st.dialog("➕ Novo Registro")
@@ -115,10 +115,10 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                 step=1,
                 key=f"parcelas_{reset_key}",
             )
-        valor_parsed = parse_valor(valor_str) if valor_str else None
+        valor_parsed = parse_value_text(valor_str) if valor_str else None
         if parcelado and valor_parsed and parcelas > 1:
             st.info(
-                f"💡 Valor por parcela: **{fmt(valor_parsed / parcelas)}** × {int(parcelas)}x"
+                f"💡 Valor por parcela: **{format_currency(valor_parsed / parcelas)}** × {int(parcelas)}x"
             )
     else:
         if txn.get("installment_total"):
@@ -129,7 +129,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     # ── Actions ───────────────────────────────────────────────────────────────
     st.divider()
     col_save, col_cancel = st.columns(2)
-    valor_parsed = parse_valor(valor_str) if valor_str else None
+    valor_parsed = parse_value_text(valor_str) if valor_str else None
 
     with col_save:
         label = "💾 Salvar alterações" if is_edit else "💾 Salvar"

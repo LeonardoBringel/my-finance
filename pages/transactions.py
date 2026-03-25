@@ -14,7 +14,7 @@ from components.new_transaction import (
 from components.styles import inject_global_css
 
 inject_global_css()
-from utils import fmt, fmt_date, parse_valor
+from utils.data_format_utils import format_currency, format_date
 
 st.set_page_config(page_title="Lançamentos", page_icon="📋", layout="wide")
 db.init_db()
@@ -171,9 +171,9 @@ total_in = sum(t["value"] for t in transactions if t["type"] == "entrada")
 total_out = sum(t["value"] for t in transactions if t["type"] in ("saida", "ambos"))
 
 col1, col2, col3 = st.columns(3)
-col1.metric("💰 Total Entradas", fmt(total_in))
-col2.metric("💸 Total Saídas", fmt(total_out))
-col3.metric("📈 Saldo", fmt(total_in - total_out))
+col1.metric("💰 Total Entradas", format_currency(total_in))
+col2.metric("💸 Total Saídas", format_currency(total_out))
+col3.metric("📈 Saldo", format_currency(total_in - total_out))
 
 st.divider()
 
@@ -197,12 +197,12 @@ else:
         tipo_label = "Entrada" if tipo == "entrada" else "Saída"
 
         cols[0].markdown(f"{tipo_icon} {tipo_label}")
-        cols[1].markdown(fmt_date(txn["date"]))
+        cols[1].markdown(format_date(txn["date"]))
         cols[2].markdown(txn["category"])
         cols[3].markdown(txn["description"] or "—")
 
         val_color = "green" if tipo == "entrada" else "red"
-        cols[4].markdown(f":{val_color}[{fmt(txn['value'])}]")
+        cols[4].markdown(f":{val_color}[{format_currency(txn['value'])}]")
         cols[5].markdown(
             f"{txn['installment_number']}/{txn['installment_total']}"
             if txn.get("installment_total")
@@ -218,7 +218,7 @@ else:
             st.session_state["confirm_del_id"] = txn["id"]
             st.session_state[
                 "confirm_del_label"
-            ] = f"{txn['category']} — {fmt(txn['value'])}"
+            ] = f"{txn['category']} — {format_currency(txn['value'])}"
 
         if st.session_state.get("confirm_del_id") == txn["id"]:
             st.warning(
