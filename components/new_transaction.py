@@ -150,6 +150,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                     )
                     st.success("✅ Lançamento atualizado!")
                     st.session_state.pop("edit_txn", None)
+                    st.rerun()
                 else:
                     db.add_transaction(
                         user_id=user_id,
@@ -161,7 +162,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                     )
                     st.success("✅ Registro salvo! Preencha o próximo ou feche.")
                     st.session_state["form_reset_counter"] = reset_key + 1
-                st.rerun()
+                    st.rerun(scope="fragment")
 
     with col_cancel:
         if st.button("Fechar", use_container_width=True):
