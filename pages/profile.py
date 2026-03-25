@@ -6,8 +6,9 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import database as db
-from auth import change_password, logout, require_login
+from auth import logout, require_login
 from components.styles import inject_global_css
+from repositories import UsersRepository
 
 inject_global_css()
 
@@ -55,7 +56,9 @@ if st.button("💾 Salvar", type="primary", use_container_width=True):
     elif len(new_pass) < 4:
         st.error("A nova senha deve ter ao menos 4 caracteres.")
     else:
-        ok, msg = change_password(current["id"], current_pass, new_pass)
+        ok, msg = UsersRepository.update_user_password(
+            current["id"], current_pass, new_pass
+        )
         if ok:
             st.success(msg)
         else:

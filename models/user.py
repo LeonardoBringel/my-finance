@@ -2,6 +2,8 @@ from sqlalchemy import Boolean, Column, DateTime, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
+from crypto import decrypt
+
 from .base import Base
 
 
@@ -28,3 +30,14 @@ class User(Base):
     transactions = relationship(
         "Transaction", back_populates="user", cascade="all, delete-orphan"
     )
+
+    def get_username(self):
+        return decrypt(self.username)
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "username": self.get_username(),
+            "is_admin": self.is_admin,
+            "created_at": self.created_at,
+        }

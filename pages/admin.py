@@ -7,14 +7,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 import database as db
 from auth import (
-    admin_reset_password,
     create_user,
-    delete_user,
-    list_users,
     require_admin,
     require_login,
 )
 from components.styles import inject_global_css
+from repositories import UsersRepository
 
 inject_global_css()
 
@@ -72,7 +70,7 @@ with st.expander("➕ Novo Usuário", expanded=False):
                     st.error(msg)
 
 # ── User List ──────────────────────────────────────────────────────────────────
-users = list_users()
+users = UsersRepository.list_users()
 st.markdown(f"**{len(users)} usuário(s) cadastrado(s)**")
 st.divider()
 
@@ -121,7 +119,9 @@ else:
                         elif new_pass != confirm_pass:
                             st.error("Senhas não conferem.")
                         else:
-                            ok, msg = admin_reset_password(u["id"], new_pass)
+                            ok, msg = UsersRepository.admin_update_user_password(
+                                u["id"], new_pass
+                            )
                             if ok:
                                 st.success(msg)
                                 st.session_state.pop(f"resetting_{u['id']}", None)
@@ -137,7 +137,7 @@ else:
             st.warning(f"⚠️ Excluir usuário **{u['username']}** e todos os seus dados?")
             c1, c2, _ = st.columns([1, 1, 4])
             if c1.button("✅ Confirmar", key=f"conf_del_u_{u['id']}", type="primary"):
-                delete_user(u["id"])
+                UsersRepository.delete_user(u["id"])
                 st.session_state.pop(f"confirm_del_u_{u['id']}", None)
                 st.rerun()
             if c2.button("❌ Cancelar", key=f"canc_del_u_{u['id']}"):

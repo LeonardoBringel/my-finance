@@ -1,5 +1,6 @@
 import os
 
+import bcrypt
 from cryptography.fernet import Fernet
 from dotenv import load_dotenv
 
@@ -10,6 +11,15 @@ if not _key:
     raise RuntimeError("FERNET_KEY not set in environment. Check your .env file.")
 
 _fernet = Fernet(_key.encode() if isinstance(_key, str) else _key)
+
+
+# ── Password hashing ───────────────────────────────────────────────────────────
+def hash_password(plain: str) -> str:
+    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
+
+
+def verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def encrypt(value) -> str:

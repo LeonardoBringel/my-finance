@@ -1,20 +1,8 @@
-import bcrypt
 import streamlit as st
 
-from crypto import decrypt, encrypt
+from crypto import encrypt
 from database import get_session
-from models import User
-
-# ── Password hashing ───────────────────────────────────────────────────────────
-
-
-def hash_password(plain: str) -> str:
-    return bcrypt.hashpw(plain.encode(), bcrypt.gensalt()).decode()
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
-
+from repositories import UsersRepository
 
 # ── Session ────────────────────────────────────────────────────────────────────
 
@@ -42,99 +30,28 @@ def login(username: str, password: str) -> tuple[bool, str]:
     Attempt login. Returns (success, message).
     On success, sets st.session_state["current_user"].
     """
-    with get_session() as session:
-        users = session.query(User).all()
-        for u in users:
-            if decrypt(u.username) == username:
-                if verify_password(password, u.password_hash):
-                    st.session_state["current_user"] = {
-                        "id": u.id,
-                        "username": username,
-                        "is_admin": u.is_admin,
-                    }
-                    return True, "Login realizado com sucesso!"
+    current_user = UsersRepository.login(username, password)
+    if not current_user:
         return False, "Usuário ou senha inválidos."
+    st.session_state["current_user"] = current_user
+    return True, "Login realizado com sucesso!"
 
 
 def logout():
     st.session_state.pop("current_user", None)
 
 
-# ── User management ────────────────────────────────────────────────────────────
-
-
 def create_user(username: str, password: str) -> tuple[bool, str]:
     """Create a new user. First user becomes admin automatically."""
-    with get_session() as session:
-        # Check duplicate (decrypt all usernames)
-        existing = session.query(User).all()
-        for u in existing:
-            if decrypt(u.username) == username:
-                return False, "Usuário já existe."
+    if not UsersRepository.is_username_available(username):
+        return False, "Usuário já existe."
+    user = UsersRepository.create_user(username, password)
 
-        is_first = session.query(User).count() == 0
-
-        new_user = User(
-            username=encrypt(username),
-            password_hash=hash_password(password),
-            is_admin=is_first,
-        )
-        session.add(new_user)
-        session.flush()
-
+    with get_session() as session:  # TODO: extract
         # Seed default categories for new user
-        _seed_categories(session, new_user.id)
-        session.commit()
+        _seed_categories(session, user.id)
 
     return True, f"Usuário '{username}' criado!" + (" (admin)" if is_first else "")
-
-
-def change_password(
-    user_id: int, current_password: str, new_password: str
-) -> tuple[bool, str]:
-    with get_session() as session:
-        user = session.get(User, user_id)
-        if not user:
-            return False, "Usuário não encontrado."
-        if not verify_password(current_password, user.password_hash):
-            return False, "Senha atual incorreta."
-        user.password_hash = hash_password(new_password)
-        session.commit()
-    return True, "Senha alterada com sucesso!"
-
-
-def admin_reset_password(user_id: int, new_password: str) -> tuple[bool, str]:
-    with get_session() as session:
-        user = session.get(User, user_id)
-        if not user:
-            return False, "Usuário não encontrado."
-        user.password_hash = hash_password(new_password)
-        session.commit()
-    return True, "Senha redefinida com sucesso!"
-
-
-def list_users() -> list[dict]:
-    with get_session() as session:
-        users = session.query(User).order_by(User.id).all()
-        return [
-            {
-                "id": u.id,
-                "username": decrypt(u.username),
-                "is_admin": u.is_admin,
-                "created_at": u.created_at,
-            }
-            for u in users
-        ]
-
-
-def delete_user(user_id: int) -> tuple[bool, str]:
-    with get_session() as session:
-        user = session.get(User, user_id)
-        if not user:
-            return False, "Usuário não encontrado."
-        session.delete(user)
-        session.commit()
-    return True, "Usuário removido."
 
 
 # ── Internal ───────────────────────────────────────────────────────────────────
