@@ -1,5 +1,6 @@
-from crypto import encrypt, hash_password, verify_password
+from crypto import encrypt
 from models import User
+from utils import password_utils
 
 from .base_repository import get_session
 
@@ -23,7 +24,7 @@ class UsersRepository:
             is_first_user = session.query(User).count() == 0
             user = User(
                 username=encrypt(username),
-                password_hash=hash_password(password),
+                password_hash=password_utils.hash_password(password),
                 is_admin=is_first_user,
             )
             session.add(user)
@@ -42,9 +43,11 @@ class UsersRepository:
             if not user:
                 return (False, "Usuário não encontrado.")
             if not force_as_admin:  # skip password check if admin
-                if not verify_password(current_password, user.password_hash):
+                if not password_utils.verify_password(
+                    current_password, user.password_hash
+                ):
                     retun(False, "Senha atual incorreta.")
-            user.password_hash = hash_password(new_password)
+            user.password_hash = password_utils.hash_password(new_password)
             session.commit()
         return (True, "Senha alterada com sucesso!")
 
@@ -86,7 +89,7 @@ class UsersRepository:
             users = session.query(User).all()
             for user in users:
                 if user.get_username() == username:
-                    if not verify_password(password, user.password_hash):
+                    if not password_utils.verify_password(password, user.password_hash):
                         break
                     return {
                         "id": user.id,
