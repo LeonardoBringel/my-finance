@@ -33,3 +33,17 @@ class Transaction(Base):
 
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
+
+    def to_json(self):
+        return {
+            "id": self.id,
+            "user_id": self.user_id,
+            "category_id": self.category_id,
+            "date": decrypt(self.date),
+            "description": decrypt(self.description),
+            "value": decrypt_float(self.value),
+            "installment_group": self.installment_group,
+            "installment_number": self.installment_number,
+            "installment_total": self.installment_total,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

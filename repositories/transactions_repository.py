@@ -64,25 +64,25 @@ class TransactionsRepository:
                 .all()
             )
 
-        result = []
+        results = []
         for transaction, category in rows:
-            category_name = decrypt(category.name) if category else "(sem categoria)"
-            category_type = decrypt(category.type) if category else "saida"
-            transaction = TransactionsRepository._format_transaction(
-                transaction, category_name, category_type
-            )
+            result = transaction.to_json()
             try:
-                date = datetime.strptime(transaction["date"], "%Y-%m-%d")
+                date = datetime.strptime(result["date"], "%Y-%m-%d")
             except (ValueError, TypeError):
                 continue
             if year and date.year != year:
                 continue
             if month and date.month != month:
                 continue
-            result.append(transaction)
+            result["category"] = (
+                decrypt(category.name) if category else "(sem categoria)"
+            )
+            result["type"] = decrypt(category.type) if category else "saida"
+            results.append(result)
 
         return sorted(
-            result, key=lambda x: (x["date"], x["created_at"] or ""), reverse=True
+            results, key=lambda x: (x["date"], x["created_at"] or ""), reverse=True
         )
 
     @staticmethod
@@ -108,24 +108,3 @@ class TransactionsRepository:
             if transaction.description:
                 descriptions.append(decrypt(transaction.description))
         return sorted(set(descriptions))
-
-    @staticmethod
-    def _format_transaction(
-        transaction: Transaction, category_name: str, category_type: str
-    ) -> dict:
-        return {
-            "id": transaction.id,
-            "user_id": transaction.user_id,
-            "category_id": transaction.category_id,
-            "category": category_name,
-            "type": category_type,
-            "date": decrypt(transaction.date),
-            "description": decrypt(transaction.description),
-            "value": decrypt_float(transaction.value),
-            "installment_group": transaction.installment_group,
-            "installment_number": transaction.installment_number,
-            "installment_total": transaction.installment_total,
-            "created_at": transaction.created_at.isoformat()
-            if transaction.created_at
-            else None,
-        }

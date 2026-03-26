@@ -12,12 +12,12 @@ class CategoriesRepository:
             user_category["name"].lower() == name.lower()
             for user_category in user_categories
         ):
-            return False, "Categoria já existe"
+            return (False, "Categoria já existe")
         with get_session() as session:
             category = Category(name=encrypt(name), type=encrypt(type), user_id=user_id)
             session.add(category)
             session.commit()
-        return True, "Categoria adicionada!"
+        return (True, "Categoria adicionada!")
 
     @staticmethod
     def update_category(
@@ -28,15 +28,15 @@ class CategoriesRepository:
             user_category["name"].lower() == name.lower() and user_category["id"] != id
             for user_category in user_categories
         ):
-            return False, "Nome já existe."
+            return (False, "Nome já existe.")
         with get_session() as session:
             category = session.query(Category).filter_by(user_id=user_id, id=id).first()
             if not category:
-                return False, "Categoria não encontrada."
+                return (False, "Categoria não encontrada.")
             category.name = encrypt(name)
             category.type = encrypt(type)
             session.commit()
-        return True, "Categoria atualizada!"
+        return (True, "Categoria atualizada!")
 
     @staticmethod
     def list_categories(user_id: int) -> list[dict]:
@@ -55,4 +55,4 @@ class CategoriesRepository:
                 return False, "Categoria não encontrada"
             session.delete(category)
             session.commit()
-        return True, "Categoria removida"
+        return (True, "Categoria removida")
