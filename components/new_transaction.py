@@ -3,7 +3,7 @@ from datetime import date, datetime
 import streamlit as st
 
 import database as db
-from repositories import CategoriesRepository
+from repositories import CategoriesRepository, TransactionsRepository
 from utils.data_format_utils import format_currency, parse_value_text
 
 
@@ -43,7 +43,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     # ── Descrição (bloqueada até categoria ser selecionada) ───────────────────
     selected_cat_id = cats_filtered.get(categoria_nome) if categoria_nome else None
     desc_options = (
-        db.get_descriptions_by_category(user_id, selected_cat_id)
+        TransactionsRepository.list_descriptions_by_category(user_id, selected_cat_id)
         if categoria_nome
         else []
     )
@@ -141,11 +141,11 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                 st.error("Informe um valor válido (ex: 1.250,00).")
             else:
                 if is_edit:
-                    db.update_transaction(
+                    TransactionsRepository.update_transaction(
                         user_id=user_id,
-                        id_=txn["id"],
+                        id=txn["id"],
                         category_id=cats_filtered[categoria_nome],
-                        date_=data.strftime("%Y-%m-%d"),
+                        date=data.strftime("%Y-%m-%d"),
                         description=descricao_final,
                         value=valor_parsed,
                     )
@@ -153,10 +153,10 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                     st.session_state.pop("edit_txn", None)
                     st.rerun()
                 else:
-                    db.add_transaction(
+                    TransactionsRepository.create_transaction(
                         user_id=user_id,
                         category_id=cats_filtered[categoria_nome],
-                        date_=data.strftime("%Y-%m-%d"),
+                        date=data.strftime("%Y-%m-%d"),
                         description=descricao_final,
                         value=valor_parsed,
                         installments=int(parcelas),

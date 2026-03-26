@@ -12,7 +12,7 @@ from components.new_transaction import (
     new_transaction_dialog,
 )
 from components.styles import inject_global_css
-from repositories import CategoriesRepository
+from repositories import CategoriesRepository, TransactionsRepository
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
@@ -126,10 +126,8 @@ with st.expander("🔍 Filtros", expanded=True):
     f_cat_name = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}")
     f_cat_id = next((c["id"] for c in all_cats if c["name"] == f_cat_name), None)
 
-    desc_options = (
-        db.get_descriptions_by_category(user_id, f_cat_id)
-        if f_cat_id
-        else db.get_descriptions_by_category(user_id)
+    desc_options = TransactionsRepository.list_descriptions_by_category(
+        user_id, f_cat_id
     )
     f_desc = st.selectbox(
         "Descrição",
@@ -151,7 +149,9 @@ with col_clear:
         st.rerun()
 
 # ── Load & Filter ──────────────────────────────────────────────────────────────
-transactions = db.get_transactions(user_id, year=f_year, month=f_month)
+transactions = TransactionsRepository.list_transactions(
+    user_id, year=f_year, month=f_month
+)
 
 if f_day:
     transactions = [
@@ -227,7 +227,7 @@ else:
             )
             c1, c2, _ = st.columns([1, 1, 4])
             if c1.button("✅ Confirmar", key=f"conf_{txn['id']}", type="primary"):
-                db.delete_transaction(user_id, txn["id"])
+                TransactionsRepository.delete_transaction(user_id, txn["id"])
                 st.session_state.pop("confirm_del_id", None)
                 st.session_state.pop("confirm_del_label", None)
                 st.rerun()
