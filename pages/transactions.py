@@ -12,6 +12,7 @@ from components.new_transaction import (
     new_transaction_dialog,
 )
 from components.styles import inject_global_css
+from repositories import CategoriesRepository
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
@@ -120,7 +121,7 @@ with st.expander("🔍 Filtros", expanded=True):
             key=f"f_type_{v}",
         )
 
-    all_cats = db.get_all_categories(user_id)
+    all_cats = CategoriesRepository.list_categories(user_id)
     cat_options = ["Todas"] + [c["name"] for c in all_cats]
     f_cat_name = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}")
     f_cat_id = next((c["id"] for c in all_cats if c["name"] == f_cat_name), None)

@@ -72,39 +72,6 @@ def get_all_categories(user_id: int) -> list[dict]:
         )
 
 
-def add_category(user_id: int, name: str, type_: str) -> tuple[bool, str]:
-    if any(c["name"].lower() == name.lower() for c in get_all_categories(user_id)):
-        return False, "Categoria já existe."
-    with get_session() as s:
-        s.add(Category(user_id=user_id, name=encrypt(name), type=encrypt(type_)))
-        s.commit()
-    return True, "Categoria adicionada!"
-
-
-def update_category(user_id: int, id_: int, name: str, type_: str) -> tuple[bool, str]:
-    if any(
-        c["name"].lower() == name.lower() and c["id"] != id_
-        for c in get_all_categories(user_id)
-    ):
-        return False, "Nome já existe."
-    with get_session() as s:
-        cat = s.get(Category, id_)
-        if not cat or cat.user_id != user_id:
-            return False, "Categoria não encontrada."
-        cat.name = encrypt(name)
-        cat.type = encrypt(type_)
-        s.commit()
-    return True, "Categoria atualizada!"
-
-
-def delete_category(user_id: int, id_: int):
-    with get_session() as s:
-        cat = s.get(Category, id_)
-        if cat and cat.user_id == user_id:
-            s.delete(cat)
-            s.commit()
-
-
 # ── Transactions ───────────────────────────────────────────────────────────────
 
 

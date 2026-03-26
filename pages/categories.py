@@ -4,14 +4,13 @@ import sys
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-import database as db
 from auth import require_login
 from components.styles import inject_global_css
+from repositories import CategoriesRepository
 
 inject_global_css()
 
 st.set_page_config(page_title="Categorias", page_icon="🏷️", layout="wide")
-db.init_db()
 
 st.markdown(
     """
@@ -61,7 +60,9 @@ with st.expander("➕ Nova Categoria", expanded=False):
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("💾 Adicionar", type="primary", use_container_width=True):
             if new_name.strip():
-                ok, msg = db.add_category(user_id, new_name.strip(), new_type)
+                ok, msg = CategoriesRepository.create_category(
+                    user_id, new_name.strip(), new_type
+                )
                 if ok:
                     st.success(msg)
                     st.rerun()
@@ -71,7 +72,7 @@ with st.expander("➕ Nova Categoria", expanded=False):
                 st.error("Digite um nome para a categoria.")
 
 # ── Category List ──────────────────────────────────────────────────────────────
-categories = db.get_all_categories(user_id)
+categories = CategoriesRepository.list_categories(user_id)
 
 type_labels = {"entrada": "💰 Entrada", "saida": "💸 Saída", "ambos": "🔄 Ambos"}
 
@@ -125,7 +126,7 @@ else:
                 with ec3:
                     st.markdown("<br>", unsafe_allow_html=True)
                     if st.button("💾", key=f"save_cat_{cat['id']}", type="primary"):
-                        ok, msg = db.update_category(
+                        ok, msg = CategoriesRepository.update_category(
                             user_id, cat["id"], edit_name, edit_type
                         )
                         if ok:
@@ -144,7 +145,7 @@ else:
             st.warning(f"⚠️ Excluir categoria **{cat['name']}**?")
             cc1, cc2, _ = st.columns([1, 1, 4])
             if cc1.button("✅ Confirmar", key=f"conf_cat_{cat['id']}", type="primary"):
-                db.delete_category(user_id, cat["id"])
+                CategoriesRepository.delete_category(user_id, cat["id"])
                 st.session_state.pop("confirm_del_cat_id", None)
                 st.session_state.pop("confirm_del_cat_name", None)
                 st.rerun()

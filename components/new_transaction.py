@@ -3,6 +3,7 @@ from datetime import date, datetime
 import streamlit as st
 
 import database as db
+from repositories import CategoriesRepository
 from utils.data_format_utils import format_currency, parse_value_text
 
 
@@ -14,7 +15,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     - txn=dict  → edit mode (fields pre-filled)
     """
     is_edit = txn is not None
-    all_cats = db.get_all_categories(user_id)
+    all_cats = CategoriesRepository.list_categories(user_id)
     reset_key = st.session_state.get("form_reset_counter", 0)
 
     # ── Tipo ──────────────────────────────────────────────────────────────────
