@@ -51,7 +51,7 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
         # Seed default categories for new user
         _seed_categories(session, user.id)
 
-    return True, f"Usuário '{username}' criado!" + (" (admin)" if is_first else "")
+    return True, f"Usuário '{username}' criado!" + (" (admin)" if user.is_admin else "")
 
 
 # ── Internal ───────────────────────────────────────────────────────────────────

@@ -46,7 +46,7 @@ class UsersRepository:
                 if not password_utils.verify_password(
                     current_password, user.password_hash
                 ):
-                    retun(False, "Senha atual incorreta.")
+                    return (False, "Senha atual incorreta.")
             user.password_hash = password_utils.hash_password(new_password)
             session.commit()
         return (True, "Senha alterada com sucesso!")
