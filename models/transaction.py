@@ -2,6 +2,8 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
+from crypto import decrypt, decrypt_float
+
 from .base import Base
 
 
