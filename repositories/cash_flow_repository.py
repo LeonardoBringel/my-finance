@@ -58,6 +58,12 @@ class CashFlowRepository:
     # ── Months ─────────────────────────────────────────────────────────────────
 
     @staticmethod
+    def has_any_month(user_id: int) -> bool:
+        """Returns True if user has ever created any cash flow month."""
+        with get_session() as s:
+            return s.query(CashFlowMonth).filter_by(user_id=user_id).count() > 0
+
+    @staticmethod
     def list_months(user_id: int, year: int) -> list[dict]:
         with get_session() as s:
             months = (
