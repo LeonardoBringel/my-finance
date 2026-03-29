@@ -106,6 +106,9 @@ with st.sidebar:
     if st.button("📋 Ver Lançamentos", use_container_width=True):
         st.switch_page("pages/transactions.py")
 
+    if st.button("💵 Fluxo de Caixa", use_container_width=True):
+        st.switch_page("pages/cash_flow.py")
+
     if st.button("🏷️ Categorias", use_container_width=True):
         st.switch_page("pages/categories.py")
 
