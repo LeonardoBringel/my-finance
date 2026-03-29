@@ -72,6 +72,13 @@ st.divider()
 existing_months = CashFlowRepository.list_months(user_id, selected_year)
 existing_month_nums = {m["month"] for m in existing_months}
 
+# Show onboarding once for new users (never created any cash flow month)
+if "cf_onboarding_done" not in st.session_state:
+    if not CashFlowRepository.has_any_month(user_id):
+        st.session_state["cf_show_onboarding"] = True
+    else:
+        st.session_state["cf_onboarding_done"] = True
+
 
 # ── Dialogs ────────────────────────────────────────────────────────────────────
 
@@ -365,6 +372,56 @@ def edit_month_dialog(month_data: dict):
             st.rerun()
 
 
+@st.dialog("👋 Bem-vindo ao Fluxo de Caixa", width="large")
+def onboarding_dialog():
+    st.markdown(
+        """
+### O que é o Fluxo de Caixa?
+
+O **Fluxo de Caixa** é uma visão planejada das suas finanças, onde você define antecipadamente
+quais entradas e saídas espera ter em cada mês do ano.
+
+---
+
+### Como ele se diferencia dos Lançamentos?
+
+| | Lançamentos | Fluxo de Caixa |
+|---|---|---|
+| **Propósito** | Registrar o que aconteceu | Planejar o que vai acontecer |
+| **Quando usar** | Após uma transação real | Antes ou durante o mês |
+| **Dados** | Histórico real | Projeção / orçamento |
+
+---
+
+### Como funciona?
+
+1. **Template** — Configure uma vez os lançamentos que se repetem todo mês (salário, aluguel, contas fixas). O template é aplicado automaticamente ao criar novos meses.
+
+2. **Meses** — Crie um mês para começar a planejar. Os itens do template já vêm preenchidos, e você pode ajustar valores ou adicionar itens extras.
+
+3. **Tabela anual** — Visualize todos os meses lado a lado, com saldo e saldo acumulado, para ter uma visão clara da saúde financeira ao longo do ano.
+
+---
+
+💡 **Dica:** Comece configurando o template com seus lançamentos recorrentes — assim criar novos meses será muito mais rápido.
+💡 **Dica:** Para gastos de cartão de crédito, registre apenas os cartões e valores de cada fatura, deixando o detalhamento para a funcionalidade de Lançamentos.
+    """
+    )
+
+    st.divider()
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("📋 Configurar Template", type="primary", use_container_width=True):
+            st.session_state["cf_onboarding_done"] = True
+            st.session_state["cf_show_template"] = True
+            st.rerun()
+    with c2:
+        if st.button("Pular, criar mês direto", use_container_width=True):
+            st.session_state["cf_onboarding_done"] = True
+            st.session_state["cf_show_new_month"] = True
+            st.rerun()
+
+
 # ── Action buttons ─────────────────────────────────────────────────────────────
 col_a, col_b, col_c = st.columns([2, 2, 6])
 with col_a:
@@ -456,7 +513,9 @@ else:
 
 
 # ── Trigger dialogs ────────────────────────────────────────────────────────────
-if st.session_state.pop("cf_show_new_month", False):
+if st.session_state.pop("cf_show_onboarding", False):
+    onboarding_dialog()
+elif st.session_state.pop("cf_show_new_month", False):
     new_month_dialog()
 
 if st.session_state.pop("cf_show_template", False):
