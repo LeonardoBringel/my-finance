@@ -30,6 +30,15 @@ class User(Base):
     transactions = relationship(
         "Transaction", back_populates="user", cascade="all, delete-orphan"
     )
+    cash_flow_template = relationship(
+        "CashFlowTemplate",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    cash_flow_months = relationship(
+        "CashFlowMonth", back_populates="user", cascade="all, delete-orphan"
+    )
 
     def get_username(self):
         return decrypt(self.username)
