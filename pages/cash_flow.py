@@ -381,12 +381,31 @@ def edit_month_dialog(month_data: dict):
     with c1:
         if st.button("✅ Concluir", type="primary", use_container_width=True):
             st.session_state.pop("cf_edit_month", None)
+            st.session_state.pop("cf_confirm_delete_month", None)
             st.rerun()
     with c2:
         if st.button("🗑️ Excluir Mês", use_container_width=True):
+            st.session_state["cf_confirm_delete_month"] = True
+            st.rerun(scope="fragment")
+
+    if st.session_state.get("cf_confirm_delete_month"):
+        st.warning(
+            f"⚠️ Confirmar exclusão de **{month_label}**? Todos os lançamentos serão removidos."
+        )
+        cc1, cc2 = st.columns(2)
+        if cc1.button(
+            "✅ Confirmar exclusão",
+            type="primary",
+            use_container_width=True,
+            key="confirm_del_month",
+        ):
             CashFlowRepository.delete_month(user_id, month_data["id"])
             st.session_state.pop("cf_edit_month", None)
+            st.session_state.pop("cf_confirm_delete_month", None)
             st.rerun()
+        if cc2.button("Cancelar", use_container_width=True, key="cancel_del_month"):
+            st.session_state.pop("cf_confirm_delete_month", None)
+            st.rerun(scope="fragment")
 
 
 @st.dialog("👋 Bem-vindo ao Fluxo de Caixa", width="large")
