@@ -68,6 +68,9 @@ selected_year = st.selectbox(
 
 st.divider()
 
+# Clear edit state on page entry (prevents modal auto-opening after navigation)
+st.session_state.pop("cf_edit_month", None)
+
 # ── Load data ──────────────────────────────────────────────────────────────────
 existing_months = CashFlowRepository.list_months(user_id, selected_year)
 existing_month_nums = {m["month"] for m in existing_months}
@@ -76,6 +79,9 @@ existing_month_nums = {m["month"] for m in existing_months}
 if "cf_onboarding_done" not in st.session_state:
     if not CashFlowRepository.has_any_month(user_id):
         st.session_state["cf_show_onboarding"] = True
+        st.session_state[
+            "cf_onboarding_done"
+        ] = True  # mark immediately — never re-triggers
     else:
         st.session_state["cf_onboarding_done"] = True
 
