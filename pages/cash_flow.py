@@ -99,6 +99,11 @@ def template_dialog():
     if "tmpl_items" not in st.session_state:
         st.session_state["tmpl_items"] = [dict(i) for i in items]
 
+    if "tmpl_items_sorted" not in st.session_state:
+        st.session_state["tmpl_items"] = sorted(
+            st.session_state["tmpl_items"], key=lambda x: (x["day"], x["name"].lower())
+        )
+        st.session_state["tmpl_items_sorted"] = True
     tmpl_items = st.session_state["tmpl_items"]
 
     # Header
@@ -171,11 +176,13 @@ def template_dialog():
             else:
                 CashFlowRepository.save_template(user_id, valid)
                 st.session_state.pop("tmpl_items", None)
+                st.session_state.pop("tmpl_items_sorted", None)
                 st.success("✅ Template salvo!")
                 st.rerun()
     with c2:
         if st.button("Fechar", use_container_width=True):
             st.session_state.pop("tmpl_items", None)
+            st.session_state.pop("tmpl_items_sorted", None)
             st.rerun()
 
 
@@ -220,7 +227,11 @@ def edit_month_dialog(month_data: dict):
     fresh = CashFlowRepository.get_month_with_entries(
         user_id, month_data["year"], month_data["month"]
     )
-    entries = sorted(fresh["entries"], key=lambda x: x["day"]) if fresh else []
+    entries = (
+        sorted(fresh["entries"], key=lambda x: (x["day"], x["name"].lower()))
+        if fresh
+        else []
+    )
     month_data = fresh or month_data
 
     # ── Add entry form ─────────────────────────────────────────────────────────
@@ -410,7 +421,6 @@ quais entradas e saídas espera ter em cada mês do ano.
 ---
 
 💡 **Dica:** Comece configurando o template com seus lançamentos recorrentes — assim criar novos meses será muito mais rápido.
-💡 **Dica:** Para gastos de cartão de crédito, registre apenas os cartões e valores de cada fatura, deixando o detalhamento para a funcionalidade de Lançamentos.
     """
     )
 
@@ -454,25 +464,26 @@ else:
         if full:
             months_data[m["month"]] = full
 
-    # Collect all unique entry names across months
-    all_names: list[str] = []
-    seen_names: set[str] = set()
+    # Collect all unique entry names with min/max day across all months
+    name_days: dict[str, list[int]] = {}
     for m_num in sorted(months_data.keys()):
         for e in months_data[m_num]["entries"]:
-            if e["name"] not in seen_names:
-                all_names.append(e["name"])
-                seen_names.add(e["name"])
+            name_days.setdefault(e["name"], []).append(e["day"])
+
+    # Sort by min day across all months, then alphabetically
+    all_names = sorted(name_days.keys(), key=lambda n: (min(name_days[n]), n.lower()))
 
     sorted_months = sorted(months_data.keys())
     col_headers = [MONTH_NAMES[m - 1][:3] for m in sorted_months]
 
     # ── Table header ──────────────────────────────────────────────────────────
-    col_widths = [2.5] + [1] * len(sorted_months)
+    col_widths = [0.8, 2.5] + [1] * len(sorted_months)
     header_cols = st.columns(col_widths)
-    header_cols[0].markdown("**Descrição**")
+    header_cols[0].markdown("**Dia**")
+    header_cols[1].markdown("**Descrição**")
     for i, (m_num, label) in enumerate(zip(sorted_months, col_headers)):
         btn_label = f"**{label}**"
-        if header_cols[i + 1].button(
+        if header_cols[i + 2].button(
             btn_label, key=f"open_month_{m_num}", use_container_width=True
         ):
             st.session_state["cf_edit_month"] = months_data[m_num]
@@ -480,34 +491,39 @@ else:
 
     # ── Entry rows ────────────────────────────────────────────────────────────
     for name in all_names:
+        days = name_days[name]
+        min_day, max_day = min(days), max(days)
+        day_label = str(min_day) if min_day == max_day else f"{min_day}–{max_day}"
+
         row_cols = st.columns(col_widths)
-        row_cols[0].markdown(name)
+        row_cols[0].markdown(day_label)
+        row_cols[1].markdown(name)
         for i, m_num in enumerate(sorted_months):
             entries = months_data[m_num]["entries"]
             match = next((e for e in entries if e["name"] == name), None)
             if match:
                 color = "green" if match["type"] == "entrada" else "red"
-                row_cols[i + 1].markdown(f":{color}[{format_currency(match['value'])}]")
+                row_cols[i + 2].markdown(f":{color}[{format_currency(match['value'])}]")
             else:
-                row_cols[i + 1].markdown("—")
+                row_cols[i + 2].markdown("—")
 
     # ── Saldo row ─────────────────────────────────────────────────────────────
     st.divider()
     saldo_cols = st.columns(col_widths)
-    saldo_cols[0].markdown("**Saldo**")
-    saldo_acumulado = 0.0
+    saldo_cols[0].markdown("")
+    saldo_cols[1].markdown("**Saldo**")
     for i, m_num in enumerate(sorted_months):
         entries = months_data[m_num]["entries"]
         total_in = sum(e["value"] for e in entries if e["type"] == "entrada")
         total_out = sum(e["value"] for e in entries if e["type"] == "saida")
         saldo = total_in - total_out
-        saldo_acumulado += saldo
         color = "green" if saldo >= 0 else "red"
-        saldo_cols[i + 1].markdown(f":{color}[**{format_currency(saldo)}**]")
+        saldo_cols[i + 2].markdown(f":{color}[**{format_currency(saldo)}**]")
 
     # ── Accumulated saldo row ─────────────────────────────────────────────────
     accum_cols = st.columns(col_widths)
-    accum_cols[0].markdown("**Saldo Acumulado**")
+    accum_cols[0].markdown("")
+    accum_cols[1].markdown("**Saldo Acumulado**")
     running = 0.0
     for i, m_num in enumerate(sorted_months):
         entries = months_data[m_num]["entries"]
@@ -515,7 +531,7 @@ else:
         total_out = sum(e["value"] for e in entries if e["type"] == "saida")
         running += total_in - total_out
         color = "green" if running >= 0 else "red"
-        accum_cols[i + 1].markdown(f":{color}[{format_currency(running)}]")
+        accum_cols[i + 2].markdown(f":{color}[{format_currency(running)}]")
 
 
 # ── Trigger dialogs ────────────────────────────────────────────────────────────
