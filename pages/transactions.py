@@ -5,20 +5,19 @@ from datetime import date, datetime
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-import database as db
-from auth import require_login
+
 from components.new_transaction import (
     clear_transaction_dialog_states,
     new_transaction_dialog,
 )
 from components.styles import inject_global_css
 from repositories import CategoriesRepository, TransactionsRepository
+from utils.auth import require_login
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
 
 st.set_page_config(page_title="Lançamentos", page_icon="📋", layout="wide")
-db.init_db()
 
 st.markdown(
     """
@@ -67,15 +66,15 @@ with col_back:
     st.markdown("<br>", unsafe_allow_html=True)
     if st.button("🏠 Dashboard", use_container_width=True):
         st.session_state.pop("edit_txn", None)
-        st.switch_page("app.py")
+        st.switch_page("pages/dashboard.py")
 
-# ── Filter version — incrementing this forces all widgets to re-render fresh ──
+# ── Filter version — incrementar força re-render de todos os widgets ──────────
 if "filter_v" not in st.session_state:
     st.session_state["filter_v"] = 0
 
-v = st.session_state["filter_v"]  # shorthand for widget keys
+v = st.session_state["filter_v"]
 
-# ── Filters ────────────────────────────────────────────────────────────────────
+# ── Filtros ────────────────────────────────────────────────────────────────────
 with st.expander("🔍 Filtros", expanded=True):
     col1, col2, col3, col4 = st.columns(4)
 
@@ -98,7 +97,7 @@ with st.expander("🔍 Filtros", expanded=True):
         )
 
     with col3:
-        years = db.get_available_years(user_id)
+        years = TransactionsRepository.get_available_years(user_id)
         year_options = ["Todos"] + [str(y) for y in years]
         default_year = str(today.year)
         f_year_str = st.selectbox(
@@ -137,7 +136,7 @@ with st.expander("🔍 Filtros", expanded=True):
         key=f"f_desc_{v}",
     )
 
-# ── Action buttons ─────────────────────────────────────────────────────────────
+# ── Botões de ação ─────────────────────────────────────────────────────────────
 col_new, col_clear = st.columns([1, 1])
 with col_new:
     if st.button("➕ Novo Registro", type="primary", use_container_width=True):
@@ -148,7 +147,7 @@ with col_clear:
         st.session_state["filter_v"] += 1
         st.rerun()
 
-# ── Load & Filter ──────────────────────────────────────────────────────────────
+# ── Carregar e filtrar ─────────────────────────────────────────────────────────
 transactions = TransactionsRepository.list_transactions(
     user_id, year=f_year, month=f_month
 )
@@ -167,7 +166,7 @@ if f_cat_name != "Todas":
 if f_desc != "Todas":
     transactions = [t for t in transactions if t["description"] == f_desc]
 
-# ── Summary Metrics ────────────────────────────────────────────────────────────
+# ── Métricas de resumo ─────────────────────────────────────────────────────────
 total_in = sum(t["value"] for t in transactions if t["type"] == "entrada")
 total_out = sum(t["value"] for t in transactions if t["type"] in ("saida", "ambos"))
 
@@ -178,7 +177,7 @@ col3.metric("📈 Saldo", format_currency(total_in - total_out))
 
 st.divider()
 
-# ── Table ──────────────────────────────────────────────────────────────────────
+# ── Tabela de lançamentos ──────────────────────────────────────────────────────
 if not transactions:
     st.info("Nenhum lançamento encontrado para os filtros selecionados.")
 else:
@@ -236,7 +235,7 @@ else:
                 st.session_state.pop("confirm_del_label", None)
                 st.rerun()
 
-# ── Dialogs (after table so edit_txn is set before rendering) ─────────────────
+# ── Dialogs ────────────────────────────────────────────────────────────────────
 if st.session_state.get("show_form"):
     new_transaction_dialog(user_id)
 

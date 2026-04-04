@@ -2,12 +2,14 @@ from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from crypto import decrypt, decrypt_float
+from utils.crypto import decrypt, decrypt_float
 
 from .base import Base
 
 
 class Transaction(Base):
+    """Representa uma transação financeira (entrada ou saída) de um usuário."""
+
     __tablename__ = "transactions"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -17,9 +19,9 @@ class Transaction(Base):
     category_id = Column(
         Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
     )
-    date = Column(Text, nullable=False)  # encrypted
-    description = Column(Text, nullable=True)  # encrypted
-    value = Column(Text, nullable=False)  # encrypted float as string
+    date = Column(Text, nullable=False)  # criptografado
+    description = Column(Text, nullable=True)  # criptografado
+    value = Column(Text, nullable=False)  # float criptografado como string
     installment_group = Column(Text, nullable=True)
     installment_number = Column(Integer, nullable=True)
     installment_total = Column(Integer, nullable=True)
@@ -36,7 +38,8 @@ class Transaction(Base):
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
 
-    def to_json(self):
+    def to_json(self) -> dict:
+        """Serializa a transação para um dicionário com os campos descriptografados."""
         return {
             "id": self.id,
             "user_id": self.user_id,

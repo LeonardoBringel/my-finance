@@ -4,9 +4,10 @@ import sys
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from auth import require_login
+
 from components.styles import inject_global_css
 from repositories import CategoriesRepository
+from utils.auth import require_login
 
 inject_global_css()
 
@@ -36,11 +37,11 @@ with col_back:
     if st.button("🏠 Dashboard", use_container_width=True):
         st.session_state.pop("show_form", None)
         st.session_state.pop("form_reset_counter", None)
-        st.switch_page("app.py")
+        st.switch_page("pages/dashboard.py")
 
 st.divider()
 
-# ── Add New Category ───────────────────────────────────────────────────────────
+# ── Nova Categoria ─────────────────────────────────────────────────────────────
 with st.expander("➕ Nova Categoria", expanded=False):
     col1, col2, col3 = st.columns([2, 1.5, 1])
     with col1:
@@ -71,7 +72,7 @@ with st.expander("➕ Nova Categoria", expanded=False):
             else:
                 st.error("Digite um nome para a categoria.")
 
-# ── Category List ──────────────────────────────────────────────────────────────
+# ── Lista de Categorias ────────────────────────────────────────────────────────
 categories = CategoriesRepository.list_categories(user_id)
 
 type_labels = {"entrada": "💰 Entrada", "saida": "💸 Saída", "ambos": "🔄 Ambos"}

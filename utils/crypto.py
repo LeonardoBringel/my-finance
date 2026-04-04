@@ -12,9 +12,8 @@ if not _key:
 _fernet = Fernet(_key.encode() if isinstance(_key, str) else _key)
 
 
-# ── Password hashing ───────────────────────────────────────────────────────────
 def encrypt(value) -> str:
-    """Encrypt any value to a string. Returns empty string for None/empty."""
+    """Criptografa qualquer valor para string. Retorna string vazia para None/empty."""
     if value is None:
         return ""
     text = str(value)
@@ -24,18 +23,18 @@ def encrypt(value) -> str:
 
 
 def decrypt(token: str):
-    """Decrypt a token back to string. Returns None for None/empty."""
+    """Descriptografa um token de volta para string. Retorna None para None/empty."""
     if not token:
         return None
     try:
         return _fernet.decrypt(token.encode()).decode()
     except Exception:
-        # Already plain text (e.g. legacy data) — return as-is
+        # Dado legado em texto plano — retorna como está
         return token
 
 
 def decrypt_float(token: str) -> float:
-    """Decrypt and convert to float."""
+    """Descriptografa um token e converte para float."""
     val = decrypt(token)
     try:
         return float(val)

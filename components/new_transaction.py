@@ -2,17 +2,17 @@ from datetime import date, datetime
 
 import streamlit as st
 
-import database as db
 from repositories import CategoriesRepository, TransactionsRepository
 from utils.data_format_utils import format_currency, parse_value_text
 
 
 @st.dialog("➕ Novo Registro")
 def new_transaction_dialog(user_id: int, txn: dict = None):
-    """
-    Unified create/edit dialog.
-    - txn=None  → create mode
-    - txn=dict  → edit mode (fields pre-filled)
+    """Dialog unificado para criar ou editar uma transação financeira.
+
+    Args:
+        user_id: ID do usuário autenticado.
+        txn: Dict da transação existente para modo de edição, ou None para criação.
     """
     is_edit = txn is not None
     all_cats = CategoriesRepository.list_categories(user_id)
@@ -40,7 +40,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
             "Categoria *", cat_list, index=cat_index, key=f"cat_{reset_key}"
         )
 
-    # ── Descrição (bloqueada até categoria ser selecionada) ───────────────────
+    # ── Descrição ─────────────────────────────────────────────────────────────
     selected_cat_id = cats_filtered.get(categoria_nome) if categoria_nome else None
     desc_options = (
         TransactionsRepository.list_descriptions_by_category(user_id, selected_cat_id)
@@ -78,6 +78,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     )
 
     def _format_valor():
+        """Formata o campo de valor no padrão brasileiro ao digitar."""
         raw = st.session_state.get(f"valor_{reset_key}", "")
         digits = "".join(filter(str.isdigit, raw))
         if digits:
@@ -96,7 +97,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
         on_change=_format_valor,
     )
 
-    # ── Parcelado (apenas criação + saída) ────────────────────────────────────
+    # ── Parcelamento (apenas criação de saídas) ───────────────────────────────
     parcelas = 1
     if not is_edit:
         parcelado = st.checkbox(
@@ -127,7 +128,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                 f"⚠️ Parcela {txn['installment_number']}/{txn['installment_total']} — editar só esta parcela"
             )
 
-    # ── Actions ───────────────────────────────────────────────────────────────
+    # ── Ações ──────────────────────────────────────────────────────────────────
     st.divider()
     col_save, col_cancel = st.columns(2)
     valor_parsed = parse_value_text(valor_str) if valor_str else None
@@ -173,6 +174,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
             st.rerun()
 
 
-def clear_transaction_dialog_states():
+def clear_transaction_dialog_states() -> None:
+    """Remove da session_state as chaves relacionadas ao dialog de nova transação."""
     st.session_state.pop("show_form", None)
     st.session_state.pop("form_reset_counter", None)

@@ -3,13 +3,15 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 
-from crypto import decrypt, decrypt_float, encrypt
 from models import Category, Transaction
+from utils.crypto import decrypt, decrypt_float, encrypt
 
 from .base_repository import get_session
 
 
 class TransactionsRepository:
+    """Repositório para operações de leitura e escrita de transações financeiras."""
+
     @staticmethod
     def create_transaction(
         user_id: int,
@@ -18,7 +20,8 @@ class TransactionsRepository:
         description: str,
         value: float,
         installments: int = 1,
-    ):
+    ) -> None:
+        """Cria uma ou mais transações. Gera parcelas consecutivas mensais quando installments > 1."""
         installments_group_id = str(uuid.uuid4()) if installments > 1 else None
         base_date = datetime.strptime(date, "%Y-%m-%d")
         installment_value = round(value / installments, 2)
@@ -41,7 +44,8 @@ class TransactionsRepository:
     @staticmethod
     def update_transaction(
         user_id: int, id: int, category_id: int, date: str, description: str, value: str
-    ):
+    ) -> None:
+        """Atualiza os campos de uma transação existente pertencente ao usuário."""
         with get_session() as session:
             transaction = session.get(Transaction, id)
             if not transaction or transaction.user_id != user_id:
@@ -56,6 +60,7 @@ class TransactionsRepository:
     def list_transactions(
         user_id: int, year: int = None, month: int = None, day: int = None
     ) -> list[dict]:
+        """Lista as transações do usuário com filtros opcionais por ano, mês e dia."""
         with get_session() as session:
             rows = (
                 session.query(Transaction, Category)
@@ -86,7 +91,8 @@ class TransactionsRepository:
         )
 
     @staticmethod
-    def delete_transaction(user_id: int, id: int):
+    def delete_transaction(user_id: int, id: int) -> None:
+        """Remove uma transação pelo ID, validando que pertence ao usuário."""
         with get_session() as session:
             transaction = session.get(Transaction, id)
             if not transaction or transaction.user_id != user_id:
@@ -98,6 +104,7 @@ class TransactionsRepository:
     def list_descriptions_by_category(
         user_id: int, category_id: int = None
     ) -> list[str]:
+        """Retorna lista ordenada e única de descrições de transações, opcionalmente filtrada por categoria."""
         with get_session() as session:
             transactions = session.query(Transaction).filter_by(user_id=user_id).all()
 
@@ -108,3 +115,176 @@ class TransactionsRepository:
             if transaction.description:
                 descriptions.append(decrypt(transaction.description))
         return sorted(set(descriptions))
+
+    # ── Agregações para o Dashboard ────────────────────────────────────────────
+
+    @staticmethod
+    def get_monthly_summary(user_id: int, year: int, month: int) -> dict:
+        """Retorna totais de entradas, saídas, saldo mensal e saldo acumulado até o mês."""
+        txns = TransactionsRepository.list_transactions(user_id, year=year, month=month)
+        entradas = sum(t["value"] for t in txns if t["type"] == "entrada")
+        saidas = sum(t["value"] for t in txns if t["type"] in ("saida", "ambos"))
+
+        all_year = TransactionsRepository.list_transactions(user_id, year=year)
+        acc_in = sum(
+            t["value"]
+            for t in all_year
+            if t["type"] == "entrada"
+            and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
+        )
+        acc_out = sum(
+            t["value"]
+            for t in all_year
+            if t["type"] in ("saida", "ambos")
+            and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
+        )
+
+        return {
+            "entradas": entradas,
+            "saidas": saidas,
+            "saldo": entradas - saidas,
+            "saldo_acumulado": acc_in - acc_out,
+        }
+
+    @staticmethod
+    def get_expenses_by_category(user_id: int, year: int, month: int) -> list[dict]:
+        """Retorna totais de saídas agrupados por categoria, ordenados do maior para o menor."""
+        txns = TransactionsRepository.list_transactions(user_id, year=year, month=month)
+        totals: dict[str, float] = {}
+        for t in txns:
+            if t["type"] in ("saida", "ambos"):
+                totals[t["category"]] = totals.get(t["category"], 0) + t["value"]
+        return sorted(
+            [{"category": k, "total": v} for k, v in totals.items()],
+            key=lambda x: x["total"],
+            reverse=True,
+        )
+
+    @staticmethod
+    def get_income_by_category(user_id: int, year: int, month: int) -> list[dict]:
+        """Retorna totais de entradas agrupados por categoria, ordenados do maior para o menor."""
+        txns = TransactionsRepository.list_transactions(user_id, year=year, month=month)
+        totals: dict[str, float] = {}
+        for t in txns:
+            if t["type"] == "entrada":
+                totals[t["category"]] = totals.get(t["category"], 0) + t["value"]
+        return sorted(
+            [{"category": k, "total": v} for k, v in totals.items()],
+            key=lambda x: x["total"],
+            reverse=True,
+        )
+
+    @staticmethod
+    def get_descriptions_by_category_for_dashboard(
+        user_id: int, year: int, month: int
+    ) -> dict:
+        """Retorna detalhamento de saídas por categoria com total atual, anterior e percentual do mês.
+
+        Formato retornado:
+            { nome_categoria: { descriptions, total, total_prev, pct_of_month } }
+        """
+        from dateutil.relativedelta import relativedelta as rd
+
+        from repositories.categories_repository import CategoriesRepository
+
+        all_cats = CategoriesRepository.list_categories(user_id)
+        saida_cats = [c for c in all_cats if c["type"] in ("saida", "ambos")]
+
+        txns = TransactionsRepository.list_transactions(user_id, year=year, month=month)
+        saida_txns = [t for t in txns if t["type"] in ("saida", "ambos")]
+        total_month = sum(t["value"] for t in saida_txns)
+
+        prev = datetime(year, month, 1) - rd(months=1)
+        prev_txns = TransactionsRepository.list_transactions(
+            user_id, year=prev.year, month=prev.month
+        )
+        prev_saida = [t for t in prev_txns if t["type"] in ("saida", "ambos")]
+
+        result = {}
+        for cat in saida_cats:
+            cat_txns = [t for t in saida_txns if t["category"] == cat["name"]]
+            totals: dict[str, float] = {}
+            for t in cat_txns:
+                desc = t["description"] or "(sem descrição)"
+                totals[desc] = totals.get(desc, 0) + t["value"]
+            cat_total = sum(totals.values())
+
+            prev_cat_total = sum(
+                t["value"] for t in prev_saida if t["category"] == cat["name"]
+            )
+
+            result[cat["name"]] = {
+                "descriptions": sorted(
+                    [{"description": k, "total": v} for k, v in totals.items()],
+                    key=lambda x: x["total"],
+                    reverse=True,
+                ),
+                "total": cat_total,
+                "total_prev": prev_cat_total,
+                "pct_of_month": (cat_total / total_month * 100)
+                if total_month > 0
+                else 0.0,
+            }
+
+        return result
+
+    @staticmethod
+    def get_annual_evolution(user_id: int, year: int) -> list[dict]:
+        """Retorna evolução mensal de entradas, saídas e saldo acumulado para o ano.
+
+        Formato retornado:
+            [ { month, month_label, entrada, saida, saldo, saldo_acumulado }, ... ]
+        """
+        month_labels = [
+            "Jan",
+            "Fev",
+            "Mar",
+            "Abr",
+            "Mai",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Set",
+            "Out",
+            "Nov",
+            "Dez",
+        ]
+        all_txns = TransactionsRepository.list_transactions(user_id, year=year)
+
+        months = {f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)}
+        for t in all_txns:
+            try:
+                m = datetime.strptime(t["date"], "%Y-%m-%d").strftime("%m")
+            except (ValueError, TypeError):
+                continue
+            if t["type"] == "entrada":
+                months[m]["entrada"] += t["value"]
+            elif t["type"] in ("saida", "ambos"):
+                months[m]["saida"] += t["value"]
+
+        result = []
+        saldo_acumulado = 0.0
+        for i, (m, v) in enumerate(sorted(months.items())):
+            saldo = v["entrada"] - v["saida"]
+            saldo_acumulado += saldo
+            result.append(
+                {
+                    "month": m,
+                    "month_label": month_labels[int(m) - 1],
+                    "entrada": v["entrada"],
+                    "saida": v["saida"],
+                    "saldo": saldo,
+                    "saldo_acumulado": saldo_acumulado,
+                }
+            )
+        return result
+
+    @staticmethod
+    def get_available_years(user_id: int) -> list[int]:
+        """Retorna os anos com transações registradas, incluindo o ano atual."""
+        txns = TransactionsRepository.list_transactions(user_id)
+        years = {
+            datetime.strptime(t["date"], "%Y-%m-%d").year for t in txns if t.get("date")
+        }
+        years.add(datetime.now().year)
+        return sorted(years)

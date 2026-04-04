@@ -1,26 +1,27 @@
-from crypto import encrypt
 from models import User
 from utils import password_utils
+from utils.crypto import encrypt
 
 from .base_repository import get_session
 
 
 class UsersRepository:
+    """Repositório para operações de leitura e escrita de usuários."""
+
     @staticmethod
     def is_username_available(username: str) -> bool:
+        """Verifica se o nome de usuário não está em uso."""
         with get_session() as session:
             users = session.query(User).all()
-            for (
-                user
-            ) in users:  # TODO: this can be simplified by adding hashed username field
+            for user in users:
                 if user.get_username() == username:
                     return False
         return True
 
     @staticmethod
     def create_user(username: str, password: str) -> User:
+        """Cria um novo usuário. O primeiro usuário cadastrado recebe permissão de administrador."""
         with get_session() as session:
-            # first user is admin by default
             is_first_user = session.query(User).count() == 0
             user = User(
                 username=encrypt(username),
@@ -37,12 +38,13 @@ class UsersRepository:
         new_password: str,
         current_password: str = None,
         force_as_admin: bool = False,
-    ):
+    ) -> tuple[bool, str]:
+        """Atualiza a senha do usuário. Verifica a senha atual, exceto quando force_as_admin=True."""
         with get_session() as session:
             user = session.get(User, user_id)
             if not user:
                 return (False, "Usuário não encontrado.")
-            if not force_as_admin:  # skip password check if admin
+            if not force_as_admin:
                 if not password_utils.verify_password(
                     current_password, user.password_hash
                 ):
@@ -55,6 +57,7 @@ class UsersRepository:
     def update_user_password(
         user_id: int, current_password: str, new_password: str
     ) -> tuple[bool, str]:
+        """Altera a senha do próprio usuário, exigindo a senha atual para confirmação."""
         return UsersRepository._update_user_password(
             user_id=user_id,
             current_password=current_password,
@@ -63,18 +66,25 @@ class UsersRepository:
 
     @staticmethod
     def admin_update_user_password(user_id: int, new_password: str) -> tuple[bool, str]:
+        """Altera a senha de qualquer usuário sem exigir a senha atual (uso exclusivo de admins)."""
         return UsersRepository._update_user_password(
             user_id=user_id, new_password=new_password, force_as_admin=True
         )
 
     @staticmethod
     def list_users() -> list[dict]:
+        """Lista todos os usuários cadastrados ordenados por ID."""
         with get_session() as session:
             users = session.query(User).order_by(User.id).all()
             return [user.to_json() for user in users]
 
     @staticmethod
     def delete_user(user_id: int) -> tuple[bool, str]:
+        """Remove um usuário e todos os seus dados associados (cascade).
+
+        Returns:
+            Tupla (sucesso, mensagem).
+        """
         with get_session() as session:
             user = session.get(User, user_id)
             if not user:
@@ -84,7 +94,12 @@ class UsersRepository:
         return True, "Usuário removido."
 
     @staticmethod
-    def login(username: str, password: str):
+    def login(username: str, password: str) -> dict | None:
+        """Autentica o usuário verificando nome e senha.
+
+        Returns:
+            Dict com id, username e is_admin em caso de sucesso, ou None.
+        """
         with get_session() as session:
             users = session.query(User).all()
             for user in users:

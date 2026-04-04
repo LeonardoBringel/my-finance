@@ -1,7 +1,8 @@
 import streamlit as st
 
 
-def inject_global_css():
+def inject_global_css() -> None:
+    """Injeta o CSS global da aplicação com o tema de botões primários em verde."""
     st.markdown(
         """
     <style>

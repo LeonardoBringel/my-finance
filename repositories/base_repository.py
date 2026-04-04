@@ -12,6 +12,7 @@ _session = None
 
 
 def _build_url() -> str:
+    """Monta a URL de conexão com o banco de dados a partir das variáveis de ambiente."""
     return (
         f"postgresql+psycopg2://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWORD')}"
         f"@{os.getenv('DB_HOST')}:{os.getenv('DB_PORT', 5432)}/{os.getenv('DB_NAME')}"
@@ -19,6 +20,7 @@ def _build_url() -> str:
 
 
 def get_engine():
+    """Retorna a instância singleton do engine SQLAlchemy."""
     global _engine
     if _engine is None:
         _engine = create_engine(_build_url(), pool_pre_ping=True)
@@ -26,6 +28,7 @@ def get_engine():
 
 
 def get_session_factory():
+    """Retorna a factory de sessões SQLAlchemy (singleton)."""
     global _session
     if _session is None:
         _session = sessionmaker(bind=get_engine(), expire_on_commit=False)
@@ -34,6 +37,7 @@ def get_session_factory():
 
 @contextmanager
 def get_session() -> Session:
+    """Context manager que fornece uma sessão de banco de dados com rollback automático em caso de erro."""
     factory = get_session_factory()
     session = factory()
     try:
@@ -43,3 +47,10 @@ def get_session() -> Session:
         raise
     finally:
         session.close()
+
+
+def init_db() -> None:
+    """Cria as tabelas do banco de dados caso não existam. Prefira usar Alembic para migrações."""
+    from models import Base
+
+    Base.metadata.create_all(get_engine())

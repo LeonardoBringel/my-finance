@@ -5,19 +5,17 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import database as db
-from auth import (
+from components.styles import inject_global_css
+from repositories import UsersRepository
+from utils.auth import (
     create_user,
     require_admin,
     require_login,
 )
-from components.styles import inject_global_css
-from repositories import UsersRepository
 
 inject_global_css()
 
 st.set_page_config(page_title="Administração", page_icon="👥", layout="wide")
-db.init_db()
 
 st.markdown(
     """
@@ -45,11 +43,11 @@ with col_back:
     if st.button("🏠 Dashboard", use_container_width=True):
         st.session_state.pop("show_form", None)
         st.session_state.pop("form_reset_counter", None)
-        st.switch_page("app.py")
+        st.switch_page("pages/dashboard.py")
 
 st.divider()
 
-# ── Create User ────────────────────────────────────────────────────────────────
+# ── Criar Usuário ──────────────────────────────────────────────────────────────
 with st.expander("➕ Novo Usuário", expanded=False):
     col1, col2, col3 = st.columns([2, 2, 1])
     with col1:
@@ -69,7 +67,7 @@ with st.expander("➕ Novo Usuário", expanded=False):
                 else:
                     st.error(msg)
 
-# ── User List ──────────────────────────────────────────────────────────────────
+# ── Lista de Usuários ──────────────────────────────────────────────────────────
 users = UsersRepository.list_users()
 st.markdown(f"**{len(users)} usuário(s) cadastrado(s)**")
 st.divider()
@@ -90,16 +88,13 @@ else:
             u["created_at"].strftime("%d/%m/%Y") if u["created_at"] else "—"
         )
 
-        # Reset password
         if cols[3].button("🔑", key=f"reset_{u['id']}"):
             st.session_state[f"resetting_{u['id']}"] = True
 
-        # Delete (can't delete yourself)
         if u["id"] != current["id"]:
             if cols[4].button("🗑️", key=f"del_u_{u['id']}"):
                 st.session_state[f"confirm_del_u_{u['id']}"] = True
 
-        # Reset password form
         if st.session_state.get(f"resetting_{u['id']}"):
             with st.container():
                 r1, r2, r3 = st.columns([2, 2, 1])
@@ -132,7 +127,6 @@ else:
                         st.session_state.pop(f"resetting_{u['id']}", None)
                         st.rerun()
 
-        # Delete confirm
         if st.session_state.get(f"confirm_del_u_{u['id']}"):
             st.warning(f"⚠️ Excluir usuário **{u['username']}** e todos os seus dados?")
             c1, c2, _ = st.columns([1, 1, 4])

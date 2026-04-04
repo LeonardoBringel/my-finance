@@ -5,14 +5,14 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import database as db
-from auth import create_user, login
 from components.styles import inject_global_css
+from repositories import init_db
+from utils.auth import create_user, login
 
 inject_global_css()
 
 st.set_page_config(page_title="Login", page_icon="🔐", layout="centered")
-db.init_db()
+init_db()
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 version_file = os.path.join(root_dir, ".version")
@@ -34,9 +34,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Already logged in → go to dashboard
+# Já autenticado → vai para o dashboard
 if st.session_state.get("current_user"):
-    st.switch_page("app.py")
+    st.switch_page("pages/dashboard.py")
 
 st.markdown("## 💰 Gestão Financeira")
 st.markdown("##### Faça login para continuar")

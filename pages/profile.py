@@ -5,15 +5,13 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-import database as db
-from auth import logout, require_login
 from components.styles import inject_global_css
 from repositories import UsersRepository
+from utils.auth import logout, require_login
 
 inject_global_css()
 
 st.set_page_config(page_title="Perfil", page_icon="👤", layout="centered")
-db.init_db()
 
 st.markdown(
     """
@@ -39,7 +37,7 @@ with col_back:
     if st.button("🏠 Dashboard", use_container_width=True):
         st.session_state.pop("show_form", None)
         st.session_state.pop("form_reset_counter", None)
-        st.switch_page("app.py")
+        st.switch_page("pages/dashboard.py")
 
 st.divider()
 st.markdown("### 🔑 Alterar Senha")
