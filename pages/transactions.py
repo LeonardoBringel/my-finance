@@ -44,6 +44,59 @@ clear_transaction_dialog_states()
 user_id = st.session_state["current_user"]["id"]
 today = date.today()
 
+
+# ── Onboarding ─────────────────────────────────────────────────────────────────
+@st.dialog("📋 Bem-vindo aos Lançamentos", width="large")
+def onboarding_dialog():
+    """Dialog de boas-vindas com instruções sobre o registro de lançamentos."""
+    st.markdown(
+        """
+### O que são Lançamentos?
+
+Os **Lançamentos** são o registro real das suas movimentações financeiras — o que você
+efetivamente recebeu ou gastou.
+
+---
+
+### Como funciona?
+
+1. Clique em **➕ Novo Registro** para registrar uma transação.
+2. Informe a **categoria**, a **data**, o **valor** e uma descrição opcional.
+3. Para compras parceladas, informe o número de parcelas e elas serão criadas automaticamente.
+
+---
+
+### Dicas
+
+- Use os **filtros** para encontrar lançamentos por dia, mês, categoria ou tipo.
+- As métricas no topo mostram o total de entradas, saídas e saldo do período filtrado.
+- O **Dashboard** consolida todos os lançamentos em gráficos e KPIs mensais.
+
+---
+
+💡 **Antes de começar:** Certifique-se de ter criado suas **Categorias** — elas são
+necessárias para registrar lançamentos.
+    """
+    )
+    st.divider()
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button(
+            "➕ Criar Primeiro Lançamento", type="primary", use_container_width=True
+        ):
+            st.session_state["show_form"] = True
+            st.session_state.setdefault("form_reset_counter", 0)
+            st.rerun()
+    with c2:
+        if st.button("🏷️ Gerenciar Categorias", use_container_width=True):
+            st.switch_page("pages/categories.py")
+
+
+if "txn_onboarding_done" not in st.session_state:
+    if not TransactionsRepository.has_any_transaction(user_id):
+        st.session_state["txn_show_onboarding"] = True
+    st.session_state["txn_onboarding_done"] = True
+
 month_names = [
     "Janeiro",
     "Fevereiro",
@@ -236,6 +289,9 @@ else:
                 st.rerun()
 
 # ── Dialogs ────────────────────────────────────────────────────────────────────
+if st.session_state.pop("txn_show_onboarding", False):
+    onboarding_dialog()
+
 if st.session_state.get("show_form"):
     new_transaction_dialog(user_id)
 

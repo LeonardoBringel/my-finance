@@ -29,6 +29,53 @@ st.markdown(
 require_login()
 user_id = st.session_state["current_user"]["id"]
 
+
+# ── Onboarding ─────────────────────────────────────────────────────────────────
+@st.dialog("🏷️ Bem-vindo às Categorias", width="large")
+def onboarding_dialog():
+    """Dialog de boas-vindas com instruções sobre o gerenciamento de categorias."""
+    st.markdown(
+        """
+### O que são Categorias?
+
+As **Categorias** organizam seus lançamentos financeiros, permitindo visualizar para onde
+seu dinheiro está indo e de onde ele vem.
+
+---
+
+### Tipos de categoria
+
+| Tipo | Uso |
+|---|---|
+| 💸 **Saída** | Despesas, contas, compras |
+| 💰 **Entrada** | Salário, renda, recebimentos |
+| 🔄 **Ambos** | Categorias que servem para entradas e saídas |
+
+---
+
+### Como começar?
+
+1. Use o formulário **➕ Nova Categoria** para criar sua primeira categoria.
+2. Dê um nome claro, como *Alimentação*, *Salário* ou *Aluguel*.
+3. Escolha o tipo adequado e clique em **💾 Adicionar**.
+
+Depois de criar as categorias, você poderá registrar lançamentos e visualizá-los
+organizados no Dashboard.
+    """
+    )
+    st.divider()
+    if st.button(
+        "✅ Entendido, vamos começar!", type="primary", use_container_width=True
+    ):
+        st.rerun()
+
+
+if "cat_onboarding_done" not in st.session_state:
+    if not CategoriesRepository.has_any_category(user_id):
+        st.session_state["cat_show_onboarding"] = True
+    st.session_state["cat_onboarding_done"] = True
+
+
 col_title, col_back = st.columns([4, 1])
 with col_title:
     st.markdown("## 🏷️ Gerenciar Categorias")

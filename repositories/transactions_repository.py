@@ -91,6 +91,12 @@ class TransactionsRepository:
         )
 
     @staticmethod
+    def has_any_transaction(user_id: int) -> bool:
+        """Retorna True se o usuário possui ao menos uma transação cadastrada."""
+        with get_session() as session:
+            return session.query(Transaction).filter_by(user_id=user_id).count() > 0
+
+    @staticmethod
     def delete_transaction(user_id: int, id: int) -> None:
         """Remove uma transação pelo ID, validando que pertence ao usuário."""
         with get_session() as session:

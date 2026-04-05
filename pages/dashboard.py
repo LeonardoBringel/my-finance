@@ -13,6 +13,7 @@ from components.charts import (
 )
 from components.new_transaction import new_transaction_dialog
 from repositories import (
+    CategoriesRepository,
     TransactionsRepository,
 )
 from utils.auth import logout, require_login
@@ -126,7 +127,59 @@ with st.sidebar:
         st.switch_page("pages/login.py")
 
 
+# ── Onboarding ─────────────────────────────────────────────────────────────────
+@st.dialog("👋 Bem-vindo à Gestão Financeira", width="large")
+def onboarding_dialog():
+    """Dialog de boas-vindas com instruções para novos usuários do dashboard."""
+    st.markdown(
+        """
+Esta é sua central de **Gestão Financeira**. Aqui você acompanha entradas, saídas,
+saldo e a evolução das suas finanças ao longo do ano.
+
+---
+
+### Por onde começar?
+
+**1. Crie suas Categorias**
+Categorias organizam seus gastos e receitas (ex: *Alimentação*, *Salário*, *Lazer*).
+Acesse **🏷️ Categorias** no menu lateral e crie as primeiras.
+
+**2. Registre seus Lançamentos**
+Com as categorias criadas, clique em **➕ Novo Registro** para lançar suas
+movimentações financeiras.
+
+**3. Explore o Dashboard**
+Os gráficos e KPIs são atualizados automaticamente conforme você registra transações.
+Use os filtros de **Ano** e **Mês** no menu lateral para navegar pelo histórico.
+
+---
+
+💡 **Dica:** Também há um **Fluxo de Caixa** para planejamento — defina um template
+com seus lançamentos recorrentes e projete os meses do ano antecipadamente.
+    """
+    )
+    st.divider()
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🏷️ Criar Categorias", type="primary", use_container_width=True):
+            st.switch_page("pages/categories.py")
+    with c2:
+        if st.button("Explorar o Dashboard", use_container_width=True):
+            st.rerun()
+
+
+if "dash_onboarding_done" not in st.session_state:
+    if not CategoriesRepository.has_any_category(
+        user_id
+    ) and not TransactionsRepository.has_any_transaction(user_id):
+        st.session_state["dash_show_onboarding"] = True
+    st.session_state["dash_onboarding_done"] = True
+
+
 # ── New Transaction Modal ──────────────────────────────────────────────────────
+if st.session_state.pop("dash_show_onboarding", False):
+    onboarding_dialog()
+
 if st.session_state.get("show_form"):
     new_transaction_dialog(user_id)
 

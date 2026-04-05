@@ -61,6 +61,12 @@ class CategoriesRepository:
             )
 
     @staticmethod
+    def has_any_category(user_id: int) -> bool:
+        """Retorna True se o usuário possui ao menos uma categoria cadastrada."""
+        with get_session() as session:
+            return session.query(Category).filter_by(user_id=user_id).count() > 0
+
+    @staticmethod
     def delete_category(user_id: int, id: int) -> tuple[bool, str]:
         """Remove uma categoria do usuário pelo ID.
 
