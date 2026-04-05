@@ -50,34 +50,4 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
         return False, "Usuário já existe."
     user = UsersRepository.create_user(username, password)
 
-    with get_session() as session:
-        _seed_categories(session, user.id)
-
     return True, f"Usuário '{username}' criado!" + (" (admin)" if user.is_admin else "")
-
-
-def _seed_categories(session, user_id: int) -> None:
-    """Popula as categorias padrão para um novo usuário."""
-    from models import Category
-    from utils.crypto import encrypt
-
-    defaults = [
-        ("Casa", "saida"),
-        ("Carro", "saida"),
-        ("Estudo", "saida"),
-        ("Outros", "ambos"),
-        ("Recorrente", "saida"),
-        ("Gatos", "saida"),
-        ("Alimentação", "saida"),
-        ("Mercado", "saida"),
-        ("Farmácia", "saida"),
-        ("Salário", "entrada"),
-    ]
-    for name, type_ in defaults:
-        session.add(
-            Category(
-                user_id=user_id,
-                name=encrypt(name),
-                type=encrypt(type_),
-            )
-        )
