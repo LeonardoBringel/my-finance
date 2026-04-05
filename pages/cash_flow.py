@@ -96,15 +96,19 @@ def template_dialog():
     tmpl = CashFlowTemplateRepository.get_template(user_id)
     items = tmpl["items"] if tmpl else []
 
-    if "tmpl_items" not in st.session_state:
-        st.session_state["tmpl_items"] = [dict(i) for i in items]
+    tmpl_items_key = f"tmpl_items_{user_id}"
+    tmpl_sorted_key = f"tmpl_items_sorted_{user_id}"
 
-    if "tmpl_items_sorted" not in st.session_state:
-        st.session_state["tmpl_items"] = sorted(
-            st.session_state["tmpl_items"], key=lambda x: (x["day"], x["name"].lower())
+    if tmpl_items_key not in st.session_state:
+        st.session_state[tmpl_items_key] = [dict(i) for i in items]
+
+    if tmpl_sorted_key not in st.session_state:
+        st.session_state[tmpl_items_key] = sorted(
+            st.session_state[tmpl_items_key],
+            key=lambda x: (x["day"], x["name"].lower()),
         )
-        st.session_state["tmpl_items_sorted"] = True
-    tmpl_items = st.session_state["tmpl_items"]
+        st.session_state[tmpl_sorted_key] = True
+    tmpl_items = st.session_state[tmpl_items_key]
 
     if tmpl_items:
         h = st.columns([3, 1, 2, 1.5, 0.7])
@@ -150,11 +154,11 @@ def template_dialog():
             to_remove = idx
 
     if to_remove is not None:
-        st.session_state["tmpl_items"].pop(to_remove)
+        st.session_state[tmpl_items_key].pop(to_remove)
         st.rerun(scope="fragment")
 
     if st.button("➕ Adicionar Item", use_container_width=True):
-        st.session_state["tmpl_items"].append(
+        st.session_state[tmpl_items_key].append(
             {"name": "", "day": 1, "value": 0.0, "type": "saida"}
         )
         st.rerun(scope="fragment")
@@ -165,7 +169,7 @@ def template_dialog():
         if st.button("💾 Salvar Template", type="primary", use_container_width=True):
             valid = [
                 i
-                for i in st.session_state["tmpl_items"]
+                for i in st.session_state[tmpl_items_key]
                 if i["name"].strip() and i["value"] > 0
             ]
             if not valid:
@@ -174,14 +178,14 @@ def template_dialog():
                 )
             else:
                 CashFlowTemplateRepository.save_template(user_id, valid)
-                st.session_state.pop("tmpl_items", None)
-                st.session_state.pop("tmpl_items_sorted", None)
+                st.session_state.pop(tmpl_items_key, None)
+                st.session_state.pop(tmpl_sorted_key, None)
                 st.success("✅ Template salvo!")
                 st.rerun()
     with c2:
         if st.button("Fechar", use_container_width=True):
-            st.session_state.pop("tmpl_items", None)
-            st.session_state.pop("tmpl_items_sorted", None)
+            st.session_state.pop(tmpl_items_key, None)
+            st.session_state.pop(tmpl_sorted_key, None)
             st.rerun()
 
 
