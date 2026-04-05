@@ -47,10 +47,3 @@ def get_session() -> Session:
         raise
     finally:
         session.close()
-
-
-def init_db() -> None:
-    """Cria as tabelas do banco de dados caso não existam. Prefira usar Alembic para migrações."""
-    from models import Base
-
-    Base.metadata.create_all(get_engine())

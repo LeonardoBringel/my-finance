@@ -14,7 +14,6 @@ from components.charts import (
 from components.new_transaction import new_transaction_dialog
 from repositories import (
     TransactionsRepository,
-    init_db,
 )
 from utils.auth import logout, require_login
 from utils.data_format_utils import format_currency
@@ -26,7 +25,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-init_db()
 require_login()
 
 current_user = st.session_state["current_user"]
