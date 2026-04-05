@@ -88,11 +88,19 @@ with col_back:
 
 st.divider()
 
+if success_msg := st.session_state.pop("cat_success_msg", None):
+    st.success(success_msg)
+
 # ── Nova Categoria ─────────────────────────────────────────────────────────────
+if "new_cat_v" not in st.session_state:
+    st.session_state["new_cat_v"] = 0
+
+_v = st.session_state["new_cat_v"]
+
 with st.expander("➕ Nova Categoria", expanded=False):
     col1, col2, col3 = st.columns([2, 1.5, 1])
     with col1:
-        new_name = st.text_input("Nome da categoria", key="new_cat_name")
+        new_name = st.text_input("Nome da categoria", key=f"new_cat_name_{_v}")
     with col2:
         new_type = st.selectbox(
             "Tipo",
@@ -102,7 +110,7 @@ with st.expander("➕ Nova Categoria", expanded=False):
                 "entrada": "💰 Entrada",
                 "ambos": "🔄 Ambos",
             }[x],
-            key="new_cat_type",
+            key=f"new_cat_type_{_v}",
         )
     with col3:
         st.markdown("<br>", unsafe_allow_html=True)
@@ -112,7 +120,8 @@ with st.expander("➕ Nova Categoria", expanded=False):
                     user_id, new_name.strip(), new_type
                 )
                 if ok:
-                    st.success(msg)
+                    st.session_state["cat_success_msg"] = msg
+                    st.session_state["new_cat_v"] += 1
                     st.rerun()
                 else:
                     st.error(msg)
