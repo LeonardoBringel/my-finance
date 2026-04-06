@@ -36,9 +36,16 @@ def _set_session_cookie(token: str) -> None:
 
 
 def _delete_session_cookie() -> None:
-    """Remove o cookie de sessão do browser."""
+    """Remove o cookie de sessão do browser.
+
+    O KeyError é ignorado quando o dict interno do CookieController não tem o cookie
+    carregado ainda — o comando JavaScript de remoção já foi enviado ao browser.
+    """
     ctrl = _get_cookie_controller()
-    ctrl.remove(COOKIE_NAME)
+    try:
+        ctrl.remove(COOKIE_NAME)
+    except KeyError:
+        pass
 
 
 def get_current_user() -> dict | None:
