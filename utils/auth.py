@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
+import extra_streamlit_components as stx
 import streamlit as st
-import streamlit.components.v1 as components
 
 from repositories import UsersRepository
 from utils.session import (
@@ -12,31 +12,31 @@ from utils.session import (
 )
 
 
+@st.cache_resource
+def _get_cookie_manager() -> stx.CookieManager:
+    """Retorna a instância singleton do CookieManager (cached por processo).
+
+    Returns:
+        Instância do CookieManager do extra-streamlit-components.
+    """
+    return stx.CookieManager()
+
+
 def _set_session_cookie(token: str) -> None:
-    """Grava o JWT de sessão no cookie do browser via JavaScript.
+    """Grava o JWT de sessão no cookie do browser via CookieManager.
 
     Args:
         token: Token JWT a armazenar no cookie.
     """
-    expiry = (datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRY_DAYS)).strftime(
-        "%a, %d %b %Y %H:%M:%S GMT"
-    )
-    components.html(
-        f"""<script>
-        document.cookie = '{COOKIE_NAME}={token}; expires={expiry}; path=/; SameSite=Strict';
-        </script>""",
-        height=0,
-    )
+    cm = _get_cookie_manager()
+    expires_at = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRY_DAYS)
+    cm.set(COOKIE_NAME, token, expires_at=expires_at, key="set_session")
 
 
 def _delete_session_cookie() -> None:
-    """Remove o cookie de sessão via JavaScript."""
-    components.html(
-        f"""<script>
-        document.cookie = '{COOKIE_NAME}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
-        </script>""",
-        height=0,
-    )
+    """Remove o cookie de sessão via CookieManager."""
+    cm = _get_cookie_manager()
+    cm.delete(COOKIE_NAME, key="del_session")
 
 
 def get_current_user() -> dict | None:
@@ -47,7 +47,8 @@ def get_current_user() -> dict | None:
 def require_login() -> None:
     """Garante que há uma sessão ativa. Tenta restaurar de cookie JWT antes de redirecionar ao login.
 
-    Deve ser chamado no topo de cada página protegida.
+    Lê o cookie diretamente dos headers HTTP via st.context.cookies (síncrono, sem
+    problemas de timing). Deve ser chamado no topo de cada página protegida.
     """
     if get_current_user():
         return
