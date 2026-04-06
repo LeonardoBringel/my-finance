@@ -65,4 +65,5 @@ if st.button("💾 Salvar", type="primary", use_container_width=True):
 st.divider()
 if st.button("🚪 Sair", use_container_width=True):
     logout()
-    st.switch_page("pages/login.py")
+    # Sem st.switch_page() — o CookieController aciona o rerun naturalmente após
+    # remover o cookie; require_login() redireciona para login nesse rerun.

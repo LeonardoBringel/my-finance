@@ -50,9 +50,16 @@ def require_login() -> None:
     """Garante que há uma sessão ativa. Tenta restaurar de cookie JWT antes de redirecionar ao login.
 
     Lê o cookie diretamente dos headers HTTP via st.context.cookies (síncrono, sem
-    problemas de timing). Deve ser chamado no topo de cada página protegida.
+    problemas de timing). Respeita o flag _logged_out para evitar restaurar sessão
+    após logout explícito na mesma conexão WebSocket.
+    Deve ser chamado no topo de cada página protegida.
     """
     if get_current_user():
+        return
+
+    # Não restaura sessão se o usuário acabou de fazer logout nesta conexão
+    if st.session_state.get("_logged_out"):
+        st.switch_page("pages/login.py")
         return
 
     token = st.context.cookies.get(COOKIE_NAME)
@@ -88,14 +95,16 @@ def login(username: str, password: str) -> tuple[bool, str]:
     if not current_user:
         return False, "Usuário ou senha inválidos."
     st.session_state["current_user"] = current_user
+    st.session_state.pop("_logged_out", None)
     token = create_session_token(current_user["id"])
     _set_session_cookie(token)
     return True, "Login realizado com sucesso!"
 
 
 def logout() -> None:
-    """Remove o usuário da session_state e apaga o cookie de sessão."""
+    """Remove o usuário da session_state, marca flag de logout e apaga o cookie de sessão."""
     st.session_state.pop("current_user", None)
+    st.session_state["_logged_out"] = True
     _delete_session_cookie()
 
 

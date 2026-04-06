@@ -48,10 +48,11 @@ if st.button("Entrar", type="primary", use_container_width=True):
         st.error("Preencha usuário e senha.")
     else:
         ok, msg = login(username, password)
-        if ok:
-            st.rerun()
-        else:
+        if not ok:
             st.error(msg)
+        # Sem st.rerun() — o CookieController aciona o rerun naturalmente após
+        # gravar o cookie no browser; o check de current_user no topo da página
+        # redireciona para o dashboard nesse rerun.
 
 st.markdown(
     f"<p style='text-align: center; color: rgba(255,255,255,0.15); font-size: 0.9rem;'>{app_version}</p>",
