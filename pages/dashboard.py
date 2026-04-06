@@ -204,7 +204,7 @@ st.markdown(f"### 📊 Dashboard — {selected_month_name} / {selected_year}")
 st.divider()
 
 # ── KPI Cards ──────────────────────────────────────────────────────────────────
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.metric("💰 Entradas do Mês", format_currency(summary["entradas"]))
 with col2:
@@ -224,6 +224,13 @@ with col4:
         "",
         delta=format_currency(sacc),
         delta_color="normal" if sacc >= 0 else "inverse",
+    )
+with col5:
+    pct_inst = summary["pct_installments"]
+    st.metric(
+        "🔄 Parcelas (meses ant.)",
+        f"{pct_inst:.1f}%",
+        help="Percentual das despesas do mês referente a parcelas de compras de meses anteriores",
     )
 
 st.divider()
