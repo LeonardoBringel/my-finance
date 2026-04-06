@@ -94,6 +94,23 @@ class UsersRepository:
         return True, "Usuário removido."
 
     @staticmethod
+    def get_user_by_id(user_id: int) -> dict | None:
+        """Retorna o dict do usuário pelo ID, ou None se não encontrado.
+
+        Returns:
+            Dict com id, username e is_admin, ou None.
+        """
+        with get_session() as session:
+            user = session.get(User, user_id)
+            if not user:
+                return None
+            return {
+                "id": user.id,
+                "username": user.get_username(),
+                "is_admin": user.is_admin,
+            }
+
+    @staticmethod
     def login(username: str, password: str) -> dict | None:
         """Autentica o usuário verificando nome e senha.
 
