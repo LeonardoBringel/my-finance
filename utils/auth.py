@@ -1,7 +1,7 @@
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
-import extra_streamlit_components as stx
 import streamlit as st
+from streamlit_cookies_controller import CookieController
 
 from repositories import UsersRepository
 from utils.session import (
@@ -12,31 +12,33 @@ from utils.session import (
 )
 
 
-@st.cache_resource
-def _get_cookie_manager() -> stx.CookieManager:
-    """Retorna a instância singleton do CookieManager (cached por processo).
+def _get_cookie_controller() -> CookieController:
+    """Retorna uma instância do CookieController para gravação/exclusão de cookies.
 
     Returns:
-        Instância do CookieManager do extra-streamlit-components.
+        Instância do CookieController renderizada no contexto Streamlit atual.
     """
-    return stx.CookieManager()
+    return CookieController(key="auth_cookie_ctrl")
 
 
 def _set_session_cookie(token: str) -> None:
-    """Grava o JWT de sessão no cookie do browser via CookieManager.
+    """Grava o JWT de sessão no cookie do browser.
 
     Args:
         token: Token JWT a armazenar no cookie.
     """
-    cm = _get_cookie_manager()
-    expires_at = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRY_DAYS)
-    cm.set(COOKIE_NAME, token, expires_at=expires_at, key="set_session")
+    ctrl = _get_cookie_controller()
+    ctrl.set(
+        COOKIE_NAME,
+        token,
+        max_age=int(timedelta(days=TOKEN_EXPIRY_DAYS).total_seconds()),
+    )
 
 
 def _delete_session_cookie() -> None:
-    """Remove o cookie de sessão via CookieManager."""
-    cm = _get_cookie_manager()
-    cm.delete(COOKIE_NAME, key="del_session")
+    """Remove o cookie de sessão do browser."""
+    ctrl = _get_cookie_controller()
+    ctrl.remove(COOKIE_NAME)
 
 
 def get_current_user() -> dict | None:

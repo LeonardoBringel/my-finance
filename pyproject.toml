@@ -16,6 +16,7 @@ dependencies = [
     "python-dotenv>=1.2.2",
     "sqlalchemy>=2.0.48",
     "streamlit>=1.55.0",
+    "streamlit-cookies-controller>=0.0.4",
     "watchdog>=6.0.0",
 ]
 
