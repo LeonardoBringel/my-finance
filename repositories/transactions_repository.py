@@ -58,9 +58,26 @@ class TransactionsRepository:
 
     @staticmethod
     def list_transactions(
-        user_id: int, year: int = None, month: int = None, day: int = None
+        user_id: int,
+        year: int = None,
+        month: int = None,
+        day: int = None,
+        date_from=None,
+        date_to=None,
     ) -> list[dict]:
-        """Lista as transações do usuário com filtros opcionais por ano, mês e dia."""
+        """Lista as transações do usuário com filtros opcionais por ano, mês, dia ou intervalo de datas.
+
+        Args:
+            user_id: ID do usuário.
+            year: Filtro por ano (opcional).
+            month: Filtro por mês (opcional).
+            day: Filtro por dia (opcional).
+            date_from: Filtro de data inicial inclusive (datetime.date, opcional).
+            date_to: Filtro de data final inclusive (datetime.date, opcional).
+
+        Returns:
+            Lista de dicts com as transações, ordenadas por data decrescente.
+        """
         with get_session() as session:
             rows = (
                 session.query(Transaction, Category)
@@ -73,12 +90,18 @@ class TransactionsRepository:
         for transaction, category in rows:
             result = transaction.to_json()
             try:
-                date = datetime.strptime(result["date"], "%Y-%m-%d")
+                txn_date = datetime.strptime(result["date"], "%Y-%m-%d")
             except (ValueError, TypeError):
                 continue
-            if year and date.year != year:
+            if year and txn_date.year != year:
                 continue
-            if month and date.month != month:
+            if month and txn_date.month != month:
+                continue
+            if day and txn_date.day != day:
+                continue
+            if date_from and txn_date.date() < date_from:
+                continue
+            if date_to and txn_date.date() > date_to:
                 continue
             result["category"] = (
                 decrypt(category.name) if category else "(sem categoria)"
@@ -126,10 +149,23 @@ class TransactionsRepository:
 
     @staticmethod
     def get_monthly_summary(user_id: int, year: int, month: int) -> dict:
-        """Retorna totais de entradas, saídas, saldo mensal e saldo acumulado até o mês."""
+        """Retorna totais de entradas, saídas, saldo mensal, saldo acumulado e % de parcelas anteriores.
+
+        Returns:
+            Dict com entradas, saidas, saldo, saldo_acumulado e pct_installments.
+        """
         txns = TransactionsRepository.list_transactions(user_id, year=year, month=month)
         entradas = sum(t["value"] for t in txns if t["type"] == "entrada")
         saidas = sum(t["value"] for t in txns if t["type"] in ("saida", "ambos"))
+
+        installment_saidas = sum(
+            t["value"]
+            for t in txns
+            if t["type"] in ("saida", "ambos")
+            and t.get("installment_number")
+            and t["installment_number"] > 1
+        )
+        pct_installments = (installment_saidas / saidas * 100) if saidas > 0 else 0.0
 
         all_year = TransactionsRepository.list_transactions(user_id, year=year)
         acc_in = sum(
@@ -150,6 +186,7 @@ class TransactionsRepository:
             "saidas": saidas,
             "saldo": entradas - saidas,
             "saldo_acumulado": acc_in - acc_out,
+            "pct_installments": pct_installments,
         }
 
     @staticmethod

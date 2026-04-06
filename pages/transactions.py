@@ -1,3 +1,4 @@
+import calendar
 import os
 import sys
 from datetime import date, datetime
@@ -43,6 +44,8 @@ clear_transaction_dialog_states()
 
 user_id = st.session_state["current_user"]["id"]
 today = date.today()
+first_day_of_month = today.replace(day=1)
+last_day_of_month = today.replace(day=calendar.monthrange(today.year, today.month)[1])
 
 
 # ── Onboarding ─────────────────────────────────────────────────────────────────
@@ -68,7 +71,7 @@ efetivamente recebeu ou gastou.
 
 ### Dicas
 
-- Use os **filtros** para encontrar lançamentos por dia, mês, categoria ou tipo.
+- Use os **filtros** para encontrar lançamentos por período, categoria ou tipo.
 - As métricas no topo mostram o total de entradas, saídas e saldo do período filtrado.
 - O **Dashboard** consolida todos os lançamentos em gráficos e KPIs mensais.
 
@@ -97,21 +100,6 @@ if "txn_onboarding_done" not in st.session_state:
         st.session_state["txn_show_onboarding"] = True
     st.session_state["txn_onboarding_done"] = True
 
-month_names = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-]
-
 col_title, col_back = st.columns([4, 1])
 with col_title:
     st.markdown("## 📋 Lançamentos")
@@ -129,41 +117,17 @@ v = st.session_state["filter_v"]
 
 # ── Filtros ────────────────────────────────────────────────────────────────────
 with st.expander("🔍 Filtros", expanded=True):
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2 = st.columns([2, 1])
 
     with col1:
-        day_options = ["Todos"] + [str(d) for d in range(1, 32)]
-        f_day_str = st.selectbox(
-            "Dia",
-            day_options,
-            index=day_options.index(str(today.day)),
-            key=f"f_day_{v}",
+        date_range = st.date_input(
+            "Período",
+            value=(first_day_of_month, last_day_of_month),
+            format="DD/MM/YYYY",
+            key=f"f_daterange_{v}",
         )
-        f_day = None if f_day_str == "Todos" else int(f_day_str)
 
     with col2:
-        f_month_name = st.selectbox(
-            "Mês", ["Todos"] + month_names, index=today.month, key=f"f_month_{v}"
-        )
-        f_month = (
-            month_names.index(f_month_name) + 1 if f_month_name != "Todos" else None
-        )
-
-    with col3:
-        years = TransactionsRepository.get_available_years(user_id)
-        year_options = ["Todos"] + [str(y) for y in years]
-        default_year = str(today.year)
-        f_year_str = st.selectbox(
-            "Ano",
-            year_options,
-            index=year_options.index(default_year)
-            if default_year in year_options
-            else 0,
-            key=f"f_year_{v}",
-        )
-        f_year = None if f_year_str == "Todos" else int(f_year_str)
-
-    with col4:
         f_type = st.selectbox(
             "Tipo",
             ["Todos", "entrada", "saida"],
@@ -173,21 +137,32 @@ with st.expander("🔍 Filtros", expanded=True):
             key=f"f_type_{v}",
         )
 
-    all_cats = CategoriesRepository.list_categories(user_id)
-    cat_options = ["Todas"] + [c["name"] for c in all_cats]
-    f_cat_name = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}")
-    f_cat_id = next((c["id"] for c in all_cats if c["name"] == f_cat_name), None)
+    col3, col4 = st.columns(2)
+    with col3:
+        all_cats = CategoriesRepository.list_categories(user_id)
+        cat_options = ["Todas"] + [c["name"] for c in all_cats]
+        f_cat_name = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}")
+        f_cat_id = next((c["id"] for c in all_cats if c["name"] == f_cat_name), None)
 
-    desc_options = TransactionsRepository.list_descriptions_by_category(
-        user_id, f_cat_id
-    )
-    f_desc = st.selectbox(
-        "Descrição",
-        ["Todas"] + desc_options,
-        disabled=not f_cat_id,
-        help="Selecione uma categoria primeiro" if not f_cat_id else None,
-        key=f"f_desc_{v}",
-    )
+    with col4:
+        desc_options = TransactionsRepository.list_descriptions_by_category(
+            user_id, f_cat_id
+        )
+        f_desc = st.selectbox(
+            "Descrição",
+            ["Todas"] + desc_options,
+            disabled=not f_cat_id,
+            help="Selecione uma categoria primeiro" if not f_cat_id else None,
+            key=f"f_desc_{v}",
+        )
+
+# ── Resolve intervalo de datas do filtro ───────────────────────────────────────
+if isinstance(date_range, (list, tuple)) and len(date_range) == 2:
+    f_date_from, f_date_to = date_range[0], date_range[1]
+elif isinstance(date_range, (list, tuple)) and len(date_range) == 1:
+    f_date_from = f_date_to = date_range[0]
+else:
+    f_date_from = f_date_to = date_range if date_range else first_day_of_month
 
 # ── Botões de ação ─────────────────────────────────────────────────────────────
 col_new, col_clear = st.columns([1, 1])
@@ -202,13 +177,8 @@ with col_clear:
 
 # ── Carregar e filtrar ─────────────────────────────────────────────────────────
 transactions = TransactionsRepository.list_transactions(
-    user_id, year=f_year, month=f_month
+    user_id, date_from=f_date_from, date_to=f_date_to
 )
-
-if f_day:
-    transactions = [
-        t for t in transactions if datetime.strptime(t["date"], "%Y-%m-%d").day == f_day
-    ]
 
 if f_type != "Todos":
     transactions = [t for t in transactions if t["type"] == f_type]
@@ -230,11 +200,14 @@ col3.metric("📈 Saldo", format_currency(total_in - total_out))
 
 st.divider()
 
-# ── Tabela de lançamentos ──────────────────────────────────────────────────────
-if not transactions:
-    st.info("Nenhum lançamento encontrado para os filtros selecionados.")
-else:
-    st.markdown(f"**{len(transactions)} lançamento(s) encontrado(s)**")
+
+# ── Renderização da tabela de lançamentos ──────────────────────────────────────
+def render_txn_table(txns: list[dict]) -> None:
+    """Renderiza a tabela de lançamentos com colunas de edição e exclusão.
+
+    Args:
+        txns: Lista de dicts de transações a exibir.
+    """
     header = st.columns([1.2, 1.5, 1.8, 2.5, 1.5, 1.2, 0.8, 0.8])
     for h, label in zip(
         header,
@@ -243,7 +216,7 @@ else:
         h.markdown(f"**{label}**")
     st.divider()
 
-    for txn in transactions:
+    for txn in txns:
         cols = st.columns([1.2, 1.5, 1.8, 2.5, 1.5, 1.2, 0.8, 0.8])
         tipo = txn["type"]
         tipo_icon = "💰" if tipo == "entrada" else "💸"
@@ -287,6 +260,35 @@ else:
                 st.session_state.pop("confirm_del_id", None)
                 st.session_state.pop("confirm_del_label", None)
                 st.rerun()
+
+
+# ── Tabela de lançamentos ──────────────────────────────────────────────────────
+if not transactions:
+    st.info("Nenhum lançamento encontrado para os filtros selecionados.")
+else:
+    past_txns = [
+        t
+        for t in transactions
+        if datetime.strptime(t["date"], "%Y-%m-%d").date() <= today
+    ]
+    future_txns = [
+        t
+        for t in transactions
+        if datetime.strptime(t["date"], "%Y-%m-%d").date() > today
+    ]
+
+    if past_txns:
+        st.markdown(f"**{len(past_txns)} lançamento(s) registrado(s)**")
+        render_txn_table(past_txns)
+
+    if future_txns:
+        st.divider()
+        st.markdown(f"### 🔮 Lançamentos Futuros")
+        st.caption(f"{len(future_txns)} lançamento(s) agendado(s) após hoje")
+        render_txn_table(future_txns)
+
+    if not past_txns and not future_txns:
+        st.info("Nenhum lançamento encontrado para os filtros selecionados.")
 
 # ── Dialogs ────────────────────────────────────────────────────────────────────
 if st.session_state.pop("txn_show_onboarding", False):
