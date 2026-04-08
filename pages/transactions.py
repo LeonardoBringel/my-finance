@@ -139,9 +139,10 @@ with st.expander("🔍 Filtros", expanded=True):
 
     col3, col4 = st.columns(2)
     with col3:
-        all_cats = CategoriesRepository.list_categories(user_id)
+        cat_type_filter = None if f_type == "Todos" else f_type
+        all_cats = CategoriesRepository.list_categories(user_id, type_=cat_type_filter)
         cat_options = ["Todas"] + [c["name"] for c in all_cats]
-        f_cat_name = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}")
+        f_cat_name = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}_{f_type}")
         f_cat_id = next((c["id"] for c in all_cats if c["name"] == f_cat_name), None)
 
     with col4:

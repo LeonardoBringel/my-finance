@@ -51,14 +51,25 @@ class CategoriesRepository:
         return (True, "Categoria atualizada!")
 
     @staticmethod
-    def list_categories(user_id: int) -> list[dict]:
-        """Lista todas as categorias do usuário ordenadas alfabeticamente por nome."""
+    def list_categories(user_id: int, type_: str | None = None) -> list[dict]:
+        """Lista as categorias do usuário ordenadas alfabeticamente por nome.
+
+        Args:
+            user_id: ID do usuário.
+            type_: Filtro opcional por tipo ('entrada' ou 'saida'). Se None, retorna todas.
+
+        Returns:
+            Lista de dicts representando as categorias.
+        """
         with get_session() as session:
             categories = session.query(Category).filter_by(user_id=user_id).all()
-            return sorted(
+            result = sorted(
                 [category.to_json() for category in categories],
                 key=lambda x: x["name"],
             )
+        if type_ is not None:
+            result = [c for c in result if c["type"] == type_]
+        return result
 
     @staticmethod
     def has_any_category(user_id: int) -> bool:
