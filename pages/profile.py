@@ -5,7 +5,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from components.styles import inject_global_css
+from components.styles import inject_global_css, inject_subpage_css, page_header
 from repositories import UsersRepository
 from utils.auth import logout, require_login
 
@@ -29,15 +29,10 @@ st.markdown(
 require_login()
 current = st.session_state["current_user"]
 
-col_title, col_back = st.columns([3, 1])
-with col_title:
-    st.markdown(f"## 👤 Perfil — {current['username']}")
-with col_back:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🏠 Dashboard", use_container_width=True):
-        st.session_state.pop("show_form", None)
-        st.session_state.pop("form_reset_counter", None)
-        st.switch_page("pages/dashboard.py")
+page_header(
+    f"👤 Perfil — {current['username']}",
+    cleanup_keys=["show_form", "form_reset_counter"],
+)
 
 st.divider()
 st.markdown("### 🔑 Alterar Senha")

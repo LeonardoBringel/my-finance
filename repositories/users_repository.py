@@ -19,7 +19,7 @@ class UsersRepository:
         return True
 
     @staticmethod
-    def create_user(username: str, password: str) -> User:
+    def create_user(username: str, password: str) -> dict:
         """Cria um novo usuário. O primeiro usuário cadastrado recebe permissão de administrador."""
         with get_session() as session:
             is_first_user = session.query(User).count() == 0
@@ -30,7 +30,7 @@ class UsersRepository:
             )
             session.add(user)
             session.commit()
-            return user
+            return {"id": user.id, "username": username, "is_admin": user.is_admin}
 
     @staticmethod
     def _update_user_password(

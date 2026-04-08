@@ -5,7 +5,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from components.styles import inject_global_css
+from components.styles import inject_global_css, inject_subpage_css, page_header
 from repositories import UsersRepository
 from utils.auth import (
     create_user,
@@ -17,33 +17,14 @@ inject_global_css()
 
 st.set_page_config(page_title="Administração", page_icon="👥", layout="wide")
 
-st.markdown(
-    """
-<style>
-    #MainMenu, footer { visibility: hidden; }
-    [data-testid="stHeader"] { background: transparent; }
-    [data-testid="stSidebar"] { display: none; }
-    [data-testid="collapsedControl"] { display: none; }
-    .block-container { padding-top: 1.5rem; }
-</style>
-""",
-    unsafe_allow_html=True,
-)
+inject_subpage_css()
 
 require_login()
 require_admin()
 
 current = st.session_state["current_user"]
 
-col_title, col_back = st.columns([4, 1])
-with col_title:
-    st.markdown("## 👥 Gerenciar Usuários")
-with col_back:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🏠 Dashboard", use_container_width=True):
-        st.session_state.pop("show_form", None)
-        st.session_state.pop("form_reset_counter", None)
-        st.switch_page("pages/dashboard.py")
+page_header("👥 Gerenciar Usuários", cleanup_keys=["show_form", "form_reset_counter"])
 
 st.divider()
 

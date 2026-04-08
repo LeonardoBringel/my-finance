@@ -6,58 +6,34 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from components.styles import inject_global_css
+from components.styles import (
+    init_onboarding,
+    inject_global_css,
+    inject_subpage_css,
+    page_header,
+)
 from repositories import (
     CashFlowEntryRepository,
     CashFlowMonthRepository,
     CashFlowTemplateRepository,
 )
 from utils.auth import require_login
-from utils.data_format_utils import format_currency, parse_value_text
+from utils.data_format_utils import (
+    MONTH_NAMES,
+    format_currency,
+    parse_value_text,
+)
 
 inject_global_css()
 
 st.set_page_config(page_title="Fluxo de Caixa", page_icon="💵", layout="wide")
 
-st.markdown(
-    """
-<style>
-    #MainMenu, footer { visibility: hidden; }
-    [data-testid="stHeader"] { background: transparent; }
-    [data-testid="stSidebar"] { display: none; }
-    [data-testid="collapsedControl"] { display: none; }
-    .block-container { padding-top: 1.5rem; }
-</style>
-""",
-    unsafe_allow_html=True,
-)
+inject_subpage_css()
 
 require_login()
 user_id = st.session_state["current_user"]["id"]
 
-MONTH_NAMES = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-]
-
-# ── Header ─────────────────────────────────────────────────────────────────────
-col_title, col_back = st.columns([4, 1])
-with col_title:
-    st.markdown("## 💵 Fluxo de Caixa")
-with col_back:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🏠 Dashboard", use_container_width=True):
-        st.switch_page("pages/dashboard.py")
+page_header("💵 Fluxo de Caixa")
 
 # ── Seletor de ano ─────────────────────────────────────────────────────────────
 current_year = datetime.now().year
@@ -77,13 +53,7 @@ st.session_state.pop("cf_edit_month", None)
 existing_months = CashFlowMonthRepository.list_months(user_id, selected_year)
 existing_month_nums = {m["month"] for m in existing_months}
 
-# Exibe onboarding uma única vez para novos usuários
-if "cf_onboarding_done" not in st.session_state:
-    if not CashFlowMonthRepository.has_any_month(user_id):
-        st.session_state["cf_show_onboarding"] = True
-        st.session_state["cf_onboarding_done"] = True
-    else:
-        st.session_state["cf_onboarding_done"] = True
+init_onboarding("cf", not CashFlowMonthRepository.has_any_month(user_id))
 
 
 # ── Dialogs ────────────────────────────────────────────────────────────────────
@@ -524,30 +494,42 @@ else:
             else:
                 row_cols[i + 2].markdown("—")
 
+    month_totals = {
+        m_num: (
+            sum(
+                e["value"]
+                for e in months_data[m_num]["entries"]
+                if e["type"] == "entrada"
+            ),
+            sum(
+                e["value"]
+                for e in months_data[m_num]["entries"]
+                if e["type"] == "saida"
+            ),
+        )
+        for m_num in sorted_months
+    }
+
     st.divider()
     total_in_cols = st.columns(col_widths)
     total_in_cols[0].markdown("")
     total_in_cols[1].markdown("**Total Entradas**")
     for i, m_num in enumerate(sorted_months):
-        entries = months_data[m_num]["entries"]
-        total_in = sum(e["value"] for e in entries if e["type"] == "entrada")
+        total_in, _ = month_totals[m_num]
         total_in_cols[i + 2].markdown(f":green[{format_currency(total_in)}]")
 
     total_out_cols = st.columns(col_widths)
     total_out_cols[0].markdown("")
     total_out_cols[1].markdown("**Total Saídas**")
     for i, m_num in enumerate(sorted_months):
-        entries = months_data[m_num]["entries"]
-        total_out = sum(e["value"] for e in entries if e["type"] == "saida")
+        _, total_out = month_totals[m_num]
         total_out_cols[i + 2].markdown(f":red[{format_currency(total_out)}]")
 
     saldo_cols = st.columns(col_widths)
     saldo_cols[0].markdown("")
     saldo_cols[1].markdown("**Saldo**")
     for i, m_num in enumerate(sorted_months):
-        entries = months_data[m_num]["entries"]
-        total_in = sum(e["value"] for e in entries if e["type"] == "entrada")
-        total_out = sum(e["value"] for e in entries if e["type"] == "saida")
+        total_in, total_out = month_totals[m_num]
         saldo = total_in - total_out
         color = "green" if saldo >= 0 else "red"
         saldo_cols[i + 2].markdown(f":{color}[**{format_currency(saldo)}**]")
@@ -557,9 +539,7 @@ else:
     accum_cols[1].markdown("**Saldo Acumulado**")
     running = 0.0
     for i, m_num in enumerate(sorted_months):
-        entries = months_data[m_num]["entries"]
-        total_in = sum(e["value"] for e in entries if e["type"] == "entrada")
-        total_out = sum(e["value"] for e in entries if e["type"] == "saida")
+        total_in, total_out = month_totals[m_num]
         running += total_in - total_out
         color = "green" if running >= 0 else "red"
         accum_cols[i + 2].markdown(f":{color}[{format_currency(running)}]")

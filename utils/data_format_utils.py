@@ -1,5 +1,20 @@
 from datetime import datetime
 
+MONTH_NAMES = [
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+]
+
 
 def format_currency(value: float) -> str:
     """Formata um valor numérico como moeda brasileira (R$ 1.234,56)."""

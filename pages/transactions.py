@@ -11,7 +11,12 @@ from components.new_transaction import (
     clear_transaction_dialog_states,
     new_transaction_dialog,
 )
-from components.styles import inject_global_css
+from components.styles import (
+    init_onboarding,
+    inject_global_css,
+    inject_subpage_css,
+    page_header,
+)
 from repositories import CategoriesRepository, TransactionsRepository
 from utils.auth import require_login
 
@@ -20,14 +25,10 @@ from utils.data_format_utils import format_currency, format_date
 
 st.set_page_config(page_title="Lançamentos", page_icon="📋", layout="wide")
 
+inject_subpage_css()
 st.markdown(
     """
 <style>
-    #MainMenu, footer { visibility: hidden; }
-    [data-testid="stHeader"] { background: transparent; }
-    [data-testid="stSidebar"] { display: none; }
-    [data-testid="collapsedControl"] { display: none; }
-    .block-container { padding-top: 1.5rem; }
     [data-testid="metric-container"] {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(76,175,80,0.2);
@@ -95,19 +96,9 @@ necessárias para registrar lançamentos.
             st.switch_page("pages/categories.py")
 
 
-if "txn_onboarding_done" not in st.session_state:
-    if not TransactionsRepository.has_any_transaction(user_id):
-        st.session_state["txn_show_onboarding"] = True
-    st.session_state["txn_onboarding_done"] = True
+init_onboarding("txn", not TransactionsRepository.has_any_transaction(user_id))
 
-col_title, col_back = st.columns([4, 1])
-with col_title:
-    st.markdown("## 📋 Lançamentos")
-with col_back:
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🏠 Dashboard", use_container_width=True):
-        st.session_state.pop("edit_txn", None)
-        st.switch_page("pages/dashboard.py")
+page_header("📋 Lançamentos", cleanup_keys=["edit_txn"])
 
 # ── Filter version — incrementar força re-render de todos os widgets ──────────
 if "filter_v" not in st.session_state:

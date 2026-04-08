@@ -128,4 +128,6 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
     if not UsersRepository.is_username_available(username):
         return False, "Usuário já existe."
     user = UsersRepository.create_user(username, password)
-    return True, f"Usuário '{username}' criado!" + (" (admin)" if user.is_admin else "")
+    return True, f"Usuário '{username}' criado!" + (
+        " (admin)" if user["is_admin"] else ""
+    )

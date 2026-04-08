@@ -12,12 +12,13 @@ from components.charts import (
     donut_chart,
 )
 from components.new_transaction import new_transaction_dialog
+from components.styles import init_onboarding, inject_global_css
 from repositories import (
     CategoriesRepository,
     TransactionsRepository,
 )
 from utils.auth import logout, require_login
-from utils.data_format_utils import format_currency
+from utils.data_format_utils import MONTH_NAMES, format_currency
 
 st.set_page_config(
     page_title="Gestão Financeira",
@@ -31,19 +32,10 @@ require_login()
 current_user = st.session_state["current_user"]
 user_id = current_user["id"]
 
+inject_global_css()
 st.markdown(
     """
 <style>
-    /* Botões primários em verde */
-    [data-testid="stBaseButton-primary"] {
-        background-color: #4CAF50 !important;
-        border-color: #4CAF50 !important;
-        color: white !important;
-    }
-    [data-testid="stBaseButton-primary"]:hover {
-        background-color: #43A047 !important;
-        border-color: #43A047 !important;
-    }
     [data-testid="metric-container"] {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(76,175,80,0.2);
@@ -80,24 +72,10 @@ with st.sidebar:
     )
     selected_year = st.selectbox("📅 Ano", years, index=default_year_idx)
 
-    month_names = [
-        "Janeiro",
-        "Fevereiro",
-        "Março",
-        "Abril",
-        "Maio",
-        "Junho",
-        "Julho",
-        "Agosto",
-        "Setembro",
-        "Outubro",
-        "Novembro",
-        "Dezembro",
-    ]
     selected_month_name = st.selectbox(
-        "📆 Mês", month_names, index=datetime.now().month - 1
+        "📆 Mês", MONTH_NAMES, index=datetime.now().month - 1
     )
-    selected_month = month_names.index(selected_month_name) + 1
+    selected_month = MONTH_NAMES.index(selected_month_name) + 1
 
     st.divider()
 
@@ -169,12 +147,11 @@ com seus lançamentos recorrentes e projete os meses do ano antecipadamente.
             st.rerun()
 
 
-if "dash_onboarding_done" not in st.session_state:
-    if not CategoriesRepository.has_any_category(
-        user_id
-    ) and not TransactionsRepository.has_any_transaction(user_id):
-        st.session_state["dash_show_onboarding"] = True
-    st.session_state["dash_onboarding_done"] = True
+init_onboarding(
+    "dash",
+    not CategoriesRepository.has_any_category(user_id)
+    and not TransactionsRepository.has_any_transaction(user_id),
+)
 
 
 # ── New Transaction Modal ──────────────────────────────────────────────────────
