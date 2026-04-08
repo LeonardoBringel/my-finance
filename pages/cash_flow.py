@@ -525,6 +525,22 @@ else:
                 row_cols[i + 2].markdown("—")
 
     st.divider()
+    total_in_cols = st.columns(col_widths)
+    total_in_cols[0].markdown("")
+    total_in_cols[1].markdown("**Total Entradas**")
+    for i, m_num in enumerate(sorted_months):
+        entries = months_data[m_num]["entries"]
+        total_in = sum(e["value"] for e in entries if e["type"] == "entrada")
+        total_in_cols[i + 2].markdown(f":green[{format_currency(total_in)}]")
+
+    total_out_cols = st.columns(col_widths)
+    total_out_cols[0].markdown("")
+    total_out_cols[1].markdown("**Total Saídas**")
+    for i, m_num in enumerate(sorted_months):
+        entries = months_data[m_num]["entries"]
+        total_out = sum(e["value"] for e in entries if e["type"] == "saida")
+        total_out_cols[i + 2].markdown(f":red[{format_currency(total_out)}]")
+
     saldo_cols = st.columns(col_widths)
     saldo_cols[0].markdown("")
     saldo_cols[1].markdown("**Saldo**")
