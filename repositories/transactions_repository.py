@@ -4,7 +4,8 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 from models import Category, Transaction
-from utils.crypto import decrypt, decrypt_float, encrypt
+from repositories.categories_repository import CategoriesRepository
+from utils.crypto import decrypt, encrypt
 
 from .base_repository import get_session
 
@@ -228,9 +229,6 @@ class TransactionsRepository:
         Formato retornado:
             { nome_categoria: { descriptions, total, total_prev, pct_of_month } }
         """
-        from dateutil.relativedelta import relativedelta as rd
-
-        from repositories.categories_repository import CategoriesRepository
 
         all_cats = CategoriesRepository.list_categories(user_id)
         saida_cats = [c for c in all_cats if c["type"] in ("saida", "ambos")]
@@ -239,7 +237,7 @@ class TransactionsRepository:
         saida_txns = [t for t in txns if t["type"] in ("saida", "ambos")]
         total_month = sum(t["value"] for t in saida_txns)
 
-        prev = datetime(year, month, 1) - rd(months=1)
+        prev = datetime(year, month, 1) - relativedelta(months=1)
         prev_txns = TransactionsRepository.list_transactions(
             user_id, year=prev.year, month=prev.month
         )
@@ -356,7 +354,6 @@ class TransactionsRepository:
         Returns:
             Dict com summary, expenses_by_cat, income_by_cat, descriptions_by_cat, annual.
         """
-        from repositories.categories_repository import CategoriesRepository
 
         # Fetch 1: todas as transações do ano selecionado
         all_year = TransactionsRepository.list_transactions(user_id, year=year)

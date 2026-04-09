@@ -6,7 +6,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from components.styles import inject_global_css
-from utils.auth import create_user, login
+from utils.auth import login
 
 inject_global_css()
 

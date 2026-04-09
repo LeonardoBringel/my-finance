@@ -21,7 +21,6 @@ from utils.auth import require_login
 from utils.data_format_utils import (
     MONTH_NAMES,
     format_currency,
-    parse_value_text,
 )
 
 inject_global_css()

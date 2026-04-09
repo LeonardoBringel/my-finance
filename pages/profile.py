@@ -5,7 +5,7 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from components.styles import inject_global_css, inject_subpage_css, page_header
+from components.styles import inject_global_css, page_header
 from repositories import UsersRepository
 from utils.auth import logout, require_login
 
