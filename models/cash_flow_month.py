@@ -1,4 +1,11 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -24,6 +31,13 @@ class CashFlowMonth(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+    __table_args__ = (
+        Index("ix_cash_flow_months_user_year", "user_id", "year"),
+        UniqueConstraint(
+            "user_id", "year", "month", name="uq_cash_flow_months_user_year_month"
+        ),
     )
 
     user = relationship("User", back_populates="cash_flow_months")

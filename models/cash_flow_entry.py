@@ -2,6 +2,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -35,5 +36,7 @@ class CashFlowEntry(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    __table_args__ = (Index("ix_cash_flow_entries_month_id", "month_id"),)
 
     month = relationship("CashFlowMonth", back_populates="entries")

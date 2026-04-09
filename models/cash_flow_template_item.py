@@ -2,6 +2,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     Numeric,
     String,
@@ -31,5 +32,7 @@ class CashFlowTemplateItem(Base):
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
+
+    __table_args__ = (Index("ix_cash_flow_template_items_template_id", "template_id"),)
 
     template = relationship("CashFlowTemplate", back_populates="items")

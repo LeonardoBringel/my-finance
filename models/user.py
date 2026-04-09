@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, DateTime, Integer, Text
+from sqlalchemy import Boolean, Column, DateTime, Index, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -28,6 +28,8 @@ class User(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    __table_args__ = (Index("ix_users_username_hash", "username_hash", unique=True),)
 
     categories = relationship(
         "Category", back_populates="user", cascade="all, delete-orphan"

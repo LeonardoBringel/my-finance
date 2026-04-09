@@ -38,7 +38,10 @@ class Transaction(Base):
         nullable=False,
     )
 
-    __table_args__ = (Index("ix_transactions_user_year", "user_id", "year"),)
+    __table_args__ = (
+        Index("ix_transactions_user_year", "user_id", "year"),
+        Index("ix_transactions_category_id", "category_id"),
+    )
 
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -27,6 +27,8 @@ class Category(Base):
         onupdate=func.now(),
         nullable=False,
     )
+
+    __table_args__ = (Index("ix_categories_user_id", "user_id"),)
 
     user = relationship("User", back_populates="categories")
     transactions = relationship("Transaction", back_populates="category")
