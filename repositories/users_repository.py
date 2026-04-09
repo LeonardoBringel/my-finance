@@ -1,6 +1,6 @@
 from models import User
 from utils import password_utils
-from utils.crypto import encrypt
+from utils.crypto import encrypt, hash_for_lookup
 
 from .base_repository import get_session
 
@@ -12,11 +12,11 @@ class UsersRepository:
     def is_username_available(username: str) -> bool:
         """Verifica se o nome de usuário não está em uso."""
         with get_session() as session:
-            users = session.query(User).all()
-            for user in users:
-                if user.get_username() == username:
-                    return False
-        return True
+            return (
+                session.query(User)
+                .filter_by(username_hash=hash_for_lookup(username))
+                .first()
+            ) is None
 
     @staticmethod
     def create_user(username: str, password: str) -> dict:
@@ -25,6 +25,7 @@ class UsersRepository:
             is_first_user = session.query(User).count() == 0
             user = User(
                 username=encrypt(username),
+                username_hash=hash_for_lookup(username),
                 password_hash=password_utils.hash_password(password),
                 is_admin=is_first_user,
             )
@@ -118,13 +119,13 @@ class UsersRepository:
             Dict com id, username e is_admin em caso de sucesso, ou None.
         """
         with get_session() as session:
-            users = session.query(User).all()
-            for user in users:
-                if user.get_username() == username:
-                    if not password_utils.verify_password(password, user.password_hash):
-                        break
-                    return {
-                        "id": user.id,
-                        "username": username,
-                        "is_admin": user.is_admin,
-                    }
+            user = (
+                session.query(User)
+                .filter_by(username_hash=hash_for_lookup(username))
+                .first()
+            )
+            if not user:
+                return None
+            if not password_utils.verify_password(password, user.password_hash):
+                return None
+            return {"id": user.id, "username": username, "is_admin": user.is_admin}

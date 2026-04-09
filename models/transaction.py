@@ -1,4 +1,4 @@
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -20,6 +20,9 @@ class Transaction(Base):
         Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
     )
     date = Column(Text, nullable=False)  # criptografado
+    year = Column(
+        Integer, nullable=True
+    )  # ano da transação em texto plano, para filtros SQL
     description = Column(Text, nullable=True)  # criptografado
     value = Column(Text, nullable=False)  # float criptografado como string
     installment_group = Column(Text, nullable=True)
@@ -35,6 +38,8 @@ class Transaction(Base):
         nullable=False,
     )
 
+    __table_args__ = (Index("ix_transactions_user_year", "user_id", "year"),)
+
     user = relationship("User", back_populates="transactions")
     category = relationship("Category", back_populates="transactions")
 
@@ -45,6 +50,7 @@ class Transaction(Base):
             "user_id": self.user_id,
             "category_id": self.category_id,
             "date": decrypt(self.date),
+            "year": self.year,
             "description": decrypt(self.description),
             "value": decrypt_float(self.value),
             "installment_group": self.installment_group,

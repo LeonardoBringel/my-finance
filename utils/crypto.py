@@ -1,3 +1,5 @@
+import hashlib
+import hmac as _hmac_mod
 import os
 
 from cryptography.fernet import Fernet
@@ -31,6 +33,26 @@ def decrypt(token: str):
     except Exception:
         # Dado legado em texto plano — retorna como está
         return token
+
+
+def hash_for_lookup(value: str) -> str:
+    """Gera um HMAC-SHA256 determinístico para lookups indexados no banco de dados.
+
+    Usa a FERNET_KEY como segredo do HMAC, vinculando o hash a esta instalação.
+
+    Args:
+        value: Valor em texto plano a ser hasheado.
+
+    Returns:
+        Digest hexadecimal HMAC-SHA256, ou string vazia para entrada vazia.
+    """
+    if not value:
+        return ""
+    return _hmac_mod.new(
+        _key.encode(),
+        value.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
 
 
 def decrypt_float(token: str) -> float:

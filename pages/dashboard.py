@@ -163,19 +163,14 @@ if st.session_state.get("show_form"):
 
 
 # ── Load Data ──────────────────────────────────────────────────────────────────
-summary = TransactionsRepository.get_monthly_summary(
+_dash = TransactionsRepository.get_dashboard_data(
     user_id, selected_year, selected_month
 )
-expenses_by_cat = TransactionsRepository.get_expenses_by_category(
-    user_id, selected_year, selected_month
-)
-income_by_cat = TransactionsRepository.get_income_by_category(
-    user_id, selected_year, selected_month
-)
-desc_by_cat = TransactionsRepository.get_descriptions_by_category_for_dashboard(
-    user_id, selected_year, selected_month
-)
-annual_data = TransactionsRepository.get_annual_evolution(user_id, selected_year)
+summary = _dash["summary"]
+expenses_by_cat = _dash["expenses_by_cat"]
+income_by_cat = _dash["income_by_cat"]
+desc_by_cat = _dash["descriptions_by_cat"]
+annual_data = _dash["annual"]
 
 # ── Dashboard Header ───────────────────────────────────────────────────────────
 st.markdown(f"### 📊 Dashboard — {selected_month_name} / {selected_year}")

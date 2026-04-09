@@ -14,6 +14,9 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     username = Column(Text, nullable=False, unique=True)  # criptografado
+    username_hash = Column(
+        Text, nullable=True
+    )  # HMAC-SHA256 do username para lookups indexados
     password_hash = Column(Text, nullable=False)  # hash bcrypt
     is_admin = Column(Boolean, nullable=False, default=False)
     created_at = Column(

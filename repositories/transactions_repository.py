@@ -32,6 +32,7 @@ class TransactionsRepository:
                     user_id=user_id,
                     category_id=category_id,
                     date=encrypt(transaction_date.strftime("%Y-%m-%d")),
+                    year=transaction_date.year,
                     description=encrypt(description) if description else None,
                     value=encrypt(str(installment_value)),
                     installment_group=installments_group_id,
@@ -52,6 +53,7 @@ class TransactionsRepository:
                 return
             transaction.category_id = category_id
             transaction.date = encrypt(date)
+            transaction.year = datetime.strptime(date, "%Y-%m-%d").year
             transaction.description = encrypt(description) if description else None
             transaction.value = encrypt(str(value))
             session.commit()
@@ -325,9 +327,187 @@ class TransactionsRepository:
     @staticmethod
     def get_available_years(user_id: int) -> list[int]:
         """Retorna os anos com transações registradas, incluindo o ano atual."""
-        txns = TransactionsRepository.list_transactions(user_id)
-        years = {
-            datetime.strptime(t["date"], "%Y-%m-%d").year for t in txns if t.get("date")
-        }
+        with get_session() as session:
+            rows = (
+                session.query(Transaction.year)
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.year.isnot(None),
+                )
+                .distinct()
+                .all()
+            )
+        years = {r.year for r in rows}
         years.add(datetime.now().year)
         return sorted(years)
+
+    @staticmethod
+    def get_dashboard_data(user_id: int, year: int, month: int) -> dict:
+        """Retorna todos os dados do dashboard em 1–2 chamadas ao banco.
+
+        Substitui as 5 chamadas individuais de agregação por uma única operação,
+        reduzindo de 7 para 1–2 invocações de list_transactions() por render.
+
+        Args:
+            user_id: ID do usuário autenticado.
+            year: Ano selecionado no dashboard.
+            month: Mês selecionado no dashboard (1–12).
+
+        Returns:
+            Dict com summary, expenses_by_cat, income_by_cat, descriptions_by_cat, annual.
+        """
+        from repositories.categories_repository import CategoriesRepository
+
+        # Fetch 1: todas as transações do ano selecionado
+        all_year = TransactionsRepository.list_transactions(user_id, year=year)
+        curr_month = [
+            t
+            for t in all_year
+            if datetime.strptime(t["date"], "%Y-%m-%d").month == month
+        ]
+
+        # Fetch 2: mês anterior — evitado quando o mês anterior é do mesmo ano
+        if month > 1:
+            prev_month_txns = [
+                t
+                for t in all_year
+                if datetime.strptime(t["date"], "%Y-%m-%d").month == month - 1
+            ]
+        else:
+            prev_month_txns = TransactionsRepository.list_transactions(
+                user_id, year=year - 1, month=12
+            )
+
+        # ── Resumo mensal ──────────────────────────────────────────────────────
+        entradas = sum(t["value"] for t in curr_month if t["type"] == "entrada")
+        saidas = sum(t["value"] for t in curr_month if t["type"] in ("saida", "ambos"))
+        installment_saidas = sum(
+            t["value"]
+            for t in curr_month
+            if t["type"] in ("saida", "ambos")
+            and t.get("installment_number")
+            and t["installment_number"] > 1
+        )
+        pct_installments = (installment_saidas / saidas * 100) if saidas > 0 else 0.0
+        acc_in = sum(
+            t["value"]
+            for t in all_year
+            if t["type"] == "entrada"
+            and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
+        )
+        acc_out = sum(
+            t["value"]
+            for t in all_year
+            if t["type"] in ("saida", "ambos")
+            and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
+        )
+        summary = {
+            "entradas": entradas,
+            "saidas": saidas,
+            "saldo": entradas - saidas,
+            "saldo_acumulado": acc_in - acc_out,
+            "pct_installments": pct_installments,
+        }
+
+        # ── Totais por categoria ───────────────────────────────────────────────
+        exp_totals: dict[str, float] = {}
+        inc_totals: dict[str, float] = {}
+        for t in curr_month:
+            if t["type"] in ("saida", "ambos"):
+                exp_totals[t["category"]] = (
+                    exp_totals.get(t["category"], 0) + t["value"]
+                )
+            elif t["type"] == "entrada":
+                inc_totals[t["category"]] = (
+                    inc_totals.get(t["category"], 0) + t["value"]
+                )
+        expenses_by_cat = sorted(
+            [{"category": k, "total": v} for k, v in exp_totals.items()],
+            key=lambda x: x["total"],
+            reverse=True,
+        )
+        income_by_cat = sorted(
+            [{"category": k, "total": v} for k, v in inc_totals.items()],
+            key=lambda x: x["total"],
+            reverse=True,
+        )
+
+        # ── Detalhamento de saídas por categoria ──────────────────────────────
+        all_cats = CategoriesRepository.list_categories(user_id)
+        saida_cats = [c for c in all_cats if c["type"] in ("saida", "ambos")]
+        saida_txns = [t for t in curr_month if t["type"] in ("saida", "ambos")]
+        total_month = sum(t["value"] for t in saida_txns)
+        prev_saida = [t for t in prev_month_txns if t["type"] in ("saida", "ambos")]
+
+        descriptions_by_cat = {}
+        for cat in saida_cats:
+            cat_txns = [t for t in saida_txns if t["category"] == cat["name"]]
+            totals: dict[str, float] = {}
+            for t in cat_txns:
+                desc = t["description"] or "(sem descrição)"
+                totals[desc] = totals.get(desc, 0) + t["value"]
+            cat_total = sum(totals.values())
+            prev_cat_total = sum(
+                t["value"] for t in prev_saida if t["category"] == cat["name"]
+            )
+            descriptions_by_cat[cat["name"]] = {
+                "descriptions": sorted(
+                    [{"description": k, "total": v} for k, v in totals.items()],
+                    key=lambda x: x["total"],
+                    reverse=True,
+                ),
+                "total": cat_total,
+                "total_prev": prev_cat_total,
+                "pct_of_month": (cat_total / total_month * 100)
+                if total_month > 0
+                else 0.0,
+            }
+
+        # ── Evolução anual ────────────────────────────────────────────────────
+        month_labels = [
+            "Jan",
+            "Fev",
+            "Mar",
+            "Abr",
+            "Mai",
+            "Jun",
+            "Jul",
+            "Ago",
+            "Set",
+            "Out",
+            "Nov",
+            "Dez",
+        ]
+        months_agg = {f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)}
+        for t in all_year:
+            try:
+                m = datetime.strptime(t["date"], "%Y-%m-%d").strftime("%m")
+            except (ValueError, TypeError):
+                continue
+            if t["type"] == "entrada":
+                months_agg[m]["entrada"] += t["value"]
+            elif t["type"] in ("saida", "ambos"):
+                months_agg[m]["saida"] += t["value"]
+        annual = []
+        saldo_acc = 0.0
+        for i, (m, v) in enumerate(sorted(months_agg.items())):
+            saldo = v["entrada"] - v["saida"]
+            saldo_acc += saldo
+            annual.append(
+                {
+                    "month": m,
+                    "month_label": month_labels[int(m) - 1],
+                    "entrada": v["entrada"],
+                    "saida": v["saida"],
+                    "saldo": saldo,
+                    "saldo_acumulado": saldo_acc,
+                }
+            )
+
+        return {
+            "summary": summary,
+            "expenses_by_cat": expenses_by_cat,
+            "income_by_cat": income_by_cat,
+            "descriptions_by_cat": descriptions_by_cat,
+            "annual": annual,
+        }
