@@ -7,6 +7,10 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
+from components.advance_installments import (
+    advance_installments_dialog,
+    clear_advance_dialog_states,
+)
 from components.new_transaction import (
     clear_transaction_dialog_states,
     new_transaction_dialog,
@@ -42,6 +46,7 @@ st.markdown(
 
 require_login()
 clear_transaction_dialog_states()
+clear_advance_dialog_states()
 
 user_id = st.session_state["current_user"]["id"]
 today = date.today()
@@ -157,11 +162,14 @@ else:
     f_date_from = f_date_to = date_range if date_range else first_day_of_month
 
 # ── Botões de ação ─────────────────────────────────────────────────────────────
-col_new, col_clear = st.columns([1, 1])
+col_new, col_advance, col_clear = st.columns([1, 1, 1])
 with col_new:
     if st.button("➕ Novo Registro", type="primary", use_container_width=True):
         st.session_state["show_form"] = True
         st.session_state.setdefault("form_reset_counter", 0)
+with col_advance:
+    if st.button("⏩ Adiantar Parcelas", use_container_width=True):
+        st.session_state["show_advance_form"] = True
 with col_clear:
     if st.button("🔄 Limpar Filtros", use_container_width=True):
         st.session_state["filter_v"] += 1
@@ -291,3 +299,6 @@ if st.session_state.get("show_form"):
 
 if st.session_state.get("edit_txn"):
     new_transaction_dialog(user_id, txn=st.session_state["edit_txn"])
+
+if st.session_state.get("show_advance_form"):
+    advance_installments_dialog(user_id)

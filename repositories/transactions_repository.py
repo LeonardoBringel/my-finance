@@ -340,6 +340,119 @@ class TransactionsRepository:
         return sorted(years)
 
     @staticmethod
+    def list_installment_groups_with_future_installments(user_id: int) -> list[dict]:
+        """Retorna grupos de parcelas que possuem ao menos uma parcela futura.
+
+        Considera como futura qualquer parcela cujo mês/ano seja posterior ao mês atual.
+
+        Returns:
+            Lista de dicts ordenada por descrição com: installment_group, description,
+            category, installment_total, future_count.
+        """
+        today = datetime.now().date()
+
+        with get_session() as session:
+            rows = (
+                session.query(Transaction, Category)
+                .outerjoin(Category, Transaction.category_id == Category.id)
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.installment_group.isnot(None),
+                )
+                .all()
+            )
+            data = []
+            for t, cat in rows:
+                t_dict = t.to_json()
+                t_dict["category"] = decrypt(cat.name) if cat else "(sem categoria)"
+                data.append(t_dict)
+
+        groups: dict[str, dict] = {}
+        for t in data:
+            group_id = t["installment_group"]
+            try:
+                txn_date = datetime.strptime(t["date"], "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                continue
+
+            is_future = txn_date.year > today.year or (
+                txn_date.year == today.year and txn_date.month > today.month
+            )
+
+            if group_id not in groups:
+                groups[group_id] = {
+                    "installment_group": group_id,
+                    "description": t["description"],
+                    "category": t["category"],
+                    "installment_total": t["installment_total"],
+                    "future_count": 0,
+                }
+
+            if is_future:
+                groups[group_id]["future_count"] += 1
+
+        return sorted(
+            [g for g in groups.values() if g["future_count"] > 0],
+            key=lambda x: x["description"] or "",
+        )
+
+    @staticmethod
+    def advance_installments(user_id: int, installment_group: str, count: int) -> None:
+        """Adianta as últimas N parcelas futuras de um grupo para o mês atual.
+
+        As parcelas são selecionadas pelas maiores installment_number (as últimas).
+        A data destino usa o mesmo dia da parcela original no mês/ano atual,
+        ajustando para o último dia do mês quando necessário.
+
+        Args:
+            user_id: ID do usuário.
+            installment_group: UUID do grupo de parcelas.
+            count: Quantidade de parcelas a adiantar.
+        """
+        import calendar as cal
+
+        today = datetime.now().date()
+
+        with get_session() as session:
+            transactions = (
+                session.query(Transaction)
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.installment_group == installment_group,
+                )
+                .all()
+            )
+
+            future_txns = []
+            for t in transactions:
+                try:
+                    txn_date = datetime.strptime(decrypt(t.date), "%Y-%m-%d").date()
+                except (ValueError, TypeError):
+                    continue
+                is_future = txn_date.year > today.year or (
+                    txn_date.year == today.year and txn_date.month > today.month
+                )
+                if is_future:
+                    future_txns.append((t, txn_date))
+
+            if not future_txns:
+                return
+
+            future_txns.sort(key=lambda x: x[0].installment_number or 0, reverse=True)
+            to_advance = future_txns[:count]
+
+            original_day = to_advance[0][1].day
+            last_day = cal.monthrange(today.year, today.month)[1]
+            target_day = min(original_day, last_day)
+            new_date_str = today.replace(day=target_day).strftime("%Y-%m-%d")
+
+            for t, _ in to_advance:
+                t.date = encrypt(new_date_str)
+                t.year = today.year
+
+            session.commit()
+
+    @staticmethod
     def get_dashboard_data(user_id: int, year: int, month: int) -> dict:
         """Retorna todos os dados do dashboard em 1–2 chamadas ao banco.
 
