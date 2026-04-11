@@ -35,6 +35,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - /var/log/my-finance:/var/log/my-finance
     networks:
       - finance_net
     command: >
