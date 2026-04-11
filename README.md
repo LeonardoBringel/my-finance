@@ -12,6 +12,7 @@ Track income and expenses, plan monthly cash flow, and visualize your financial 
 - **Categories** — Custom income/expense categories per user
 - **User Management** — Admin panel for managing users
 - **Encryption** — Sensitive fields encrypted before persisting to the database
+- **Fail2Ban** - Fail2Ban integration for deployed environments
 
 ## 🚀 Technologies Used
 
@@ -59,6 +60,9 @@ DB_PORT=5432
 DB_NAME=my_finance
 
 FERNET_KEY=your_fernet_key   # generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+
+ENABLE_FAIL2BAN_LOGGING=false # enable this to add fail2ban integration
+FAIL2BAN_LOG_PATH=/var/log/my-finance/auth.log
 ```
 
 4. **Run database migrations**
