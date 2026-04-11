@@ -1,4 +1,5 @@
-from datetime import timedelta
+import os
+from datetime import datetime, timedelta
 
 import streamlit as st
 from streamlit_cookies_controller import CookieController
@@ -10,6 +11,37 @@ from utils.session import (
     create_session_token,
     decode_session_token,
 )
+
+
+def _get_client_ip() -> str:
+    """Retorna o IP real do cliente via header X-Real-IP (setado pelo nginx).
+
+    Returns:
+        IP do cliente ou 'unknown' se não disponível.
+    """
+    try:
+        return st.context.headers.get("X-Real-IP", "unknown")
+    except Exception:
+        return "unknown"
+
+
+def _log_failed_login(ip: str) -> None:
+    """Registra tentativa de login falha no arquivo de log para o fail2ban.
+
+    Só executa se ENABLE_FAIL2BAN_LOGGING=true no ambiente.
+
+    Args:
+        ip: IP do cliente que falhou no login.
+    """
+    if os.getenv("ENABLE_FAIL2BAN_LOGGING", "false").lower() != "true":
+        return
+    log_path = os.getenv("FAIL2BAN_LOG_PATH", "/var/log/my-finance/auth.log")
+    entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} [FAILED_LOGIN] ip={ip}\n"
+    try:
+        with open(log_path, "a") as f:
+            f.write(entry)
+    except Exception as e:
+        print(f"Fail to log login attempt: {str(e)}")
 
 
 def _get_cookie_controller() -> CookieController:
@@ -100,6 +132,7 @@ def login(username: str, password: str) -> tuple[bool, str]:
     """
     current_user = UsersRepository.login(username, password)
     if not current_user:
+        _log_failed_login(_get_client_ip())
         return False, "Usuário ou senha inválidos."
     st.session_state["current_user"] = current_user
     st.session_state.pop("_logged_out", None)
