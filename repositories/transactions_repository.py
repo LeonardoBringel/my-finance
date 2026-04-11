@@ -347,7 +347,8 @@ class TransactionsRepository:
 
         Returns:
             Lista de dicts ordenada por descrição com: installment_group, description,
-            category, installment_total, future_count.
+            category, installment_total, installment_value, future_count,
+            future_total_value, current_installment.
         """
         today = datetime.now().date()
 
@@ -385,16 +386,22 @@ class TransactionsRepository:
                     "description": t["description"],
                     "category": t["category"],
                     "installment_total": t["installment_total"],
+                    "installment_value": t["value"] or 0.0,
                     "future_count": 0,
+                    "future_total_value": 0.0,
                 }
 
             if is_future:
                 groups[group_id]["future_count"] += 1
+                groups[group_id]["future_total_value"] += t["value"] or 0.0
 
-        return sorted(
-            [g for g in groups.values() if g["future_count"] > 0],
-            key=lambda x: x["description"] or "",
-        )
+        result = []
+        for g in groups.values():
+            if g["future_count"] > 0:
+                g["current_installment"] = g["installment_total"] - g["future_count"]
+                result.append(g)
+
+        return sorted(result, key=lambda x: x["description"] or "")
 
     @staticmethod
     def advance_installments(user_id: int, installment_group: str, count: int) -> None:

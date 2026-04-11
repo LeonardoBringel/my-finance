@@ -1,6 +1,7 @@
 import streamlit as st
 
 from repositories import TransactionsRepository
+from utils.data_format_utils import format_currency
 
 
 @st.dialog("⏩ Adiantar Parcelas", width="large")
@@ -25,6 +26,8 @@ def _render_step_1(user_id: int) -> None:
     """Renderiza a etapa 1: listagem dos grupos de parcelas com parcelas futuras."""
     st.caption("Selecione um grupo de parcelas para adiantar ao mês atual.")
 
+    st.divider()
+
     groups = TransactionsRepository.list_installment_groups_with_future_installments(
         user_id
     )
@@ -35,23 +38,32 @@ def _render_step_1(user_id: int) -> None:
             _close_dialog()
         return
 
-    st.divider()
-
-    header_cols = st.columns([3, 2, 2, 1.5])
+    header_cols = st.columns([3, 2, 1.5, 1.5, 2, 1.5])
     for col, label in zip(
-        header_cols, ["Descrição", "Categoria", "Parcelas futuras", ""]
+        header_cols,
+        [
+            "Descrição",
+            "Categoria",
+            "Parcela atual",
+            "Valor parcela",
+            "Total futuro",
+            "",
+        ],
     ):
-        col.markdown(f"**{label}**")
-
-    st.divider()
+        if label:
+            col.markdown(f"**{label}**")
 
     for group in groups:
         desc = group["description"] or "—"
-        cols = st.columns([3, 2, 2, 1.5])
+        current = group["current_installment"]
+        total = group["installment_total"]
+        cols = st.columns([3, 2, 1.5, 1.5, 2, 1.5])
         cols[0].markdown(desc)
         cols[1].markdown(group["category"])
-        cols[2].markdown(f"{group['future_count']} de {group['installment_total']}")
-        if cols[3].button("Selecionar", key=f"sel_{group['installment_group']}"):
+        cols[2].markdown(f"{current}/{total}")
+        cols[3].markdown(format_currency(group["installment_value"]))
+        cols[4].markdown(format_currency(group["future_total_value"]))
+        if cols[5].button("Selecionar", key=f"sel_{group['installment_group']}"):
             st.session_state["advance_selected_group"] = group
             st.session_state["advance_step"] = 2
             st.rerun(scope="fragment")
@@ -69,11 +81,17 @@ def _render_step_2(user_id: int) -> None:
     category = group.get("category", "—")
     future_count = group.get("future_count", 0)
     installment_total = group.get("installment_total", 0)
+    current_installment = group.get(
+        "current_installment", installment_total - future_count
+    )
+    installment_value = group.get("installment_value", 0.0)
+    future_total_value = group.get("future_total_value", 0.0)
 
     st.markdown(f"**{desc}** — {category}")
-    st.caption(
-        f"Parcelas futuras disponíveis: **{future_count}** de {installment_total} total"
-    )
+    col_info1, col_info2, col_info3 = st.columns(3)
+    col_info1.metric("Parcela atual", f"{current_installment}/{installment_total}")
+    col_info2.metric("Valor da parcela", format_currency(installment_value))
+    col_info3.metric("Total futuro", format_currency(future_total_value))
     st.info(
         "As parcelas adiantadas serão as **últimas** do grupo (por número de parcela) "
         "e receberão a data do mês atual mantendo o mesmo dia."
