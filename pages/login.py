@@ -40,19 +40,38 @@ st.markdown("## 💰 Gestão Financeira")
 st.markdown("##### Faça login para continuar")
 st.divider()
 
-username = st.text_input("Usuário", placeholder="seu usuário")
-password = st.text_input("Senha", type="password", placeholder="sua senha")
+logging_in = st.session_state.get("logging_in", False)
 
-if st.button("Entrar", type="primary", use_container_width=True):
+username = st.text_input(
+    "Usuário", placeholder="seu usuário", key="login_username", disabled=logging_in
+)
+password = st.text_input(
+    "Senha",
+    type="password",
+    placeholder="sua senha",
+    key="login_password",
+    disabled=logging_in,
+)
+
+if st.button("Entrar", type="primary", use_container_width=True, disabled=logging_in):
     if not username or not password:
         st.error("Preencha usuário e senha.")
     else:
-        ok, msg = login(username, password)
-        if not ok:
-            st.error(msg)
-        # Sem st.rerun() — o CookieController aciona o rerun naturalmente após
-        # gravar o cookie no browser; o check de current_user no topo da página
-        # redireciona para o dashboard nesse rerun.
+        st.session_state["logging_in"] = True
+        st.rerun()
+
+if logging_in:
+    with st.spinner("Autenticando..."):
+        ok, msg = login(
+            st.session_state.get("login_username", ""),
+            st.session_state.get("login_password", ""),
+        )
+    st.session_state.pop("logging_in", None)
+    if not ok:
+        st.error(msg)
+    # Sem st.rerun() — o CookieController aciona o rerun naturalmente após
+    # gravar o cookie no browser; o check de current_user no topo da página
+    # redireciona para o dashboard nesse rerun.
 
 st.markdown(
     f"<p style='text-align: center; color: rgba(255,255,255,0.15); font-size: 0.9rem;'>{app_version}</p>",
