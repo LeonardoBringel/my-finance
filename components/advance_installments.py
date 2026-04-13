@@ -145,12 +145,12 @@ def _close_dialog() -> None:
 
 
 def clear_advance_dialog_states() -> None:
-    """Remove da session_state chaves órfãs do dialog de adiantamento.
+    """Remove da session_state todas as chaves do dialog de adiantamento.
 
-    Chamado no carregamento da página para limpar estado obsoleto quando
-    o dialog não está ativo (e.g. usuário navegou para outra página).
+    Chamado no início de cada carregamento de página para garantir que o
+    dialog não reabra sozinho em reruns subsequentes (ex: fechar via X nativo).
     """
-    if not st.session_state.get("show_advance_form"):
-        st.session_state.pop("advance_step", None)
-        st.session_state.pop("advance_selected_group", None)
-        st.session_state.pop("advance_count", None)
+    st.session_state.pop("show_advance_form", None)
+    st.session_state.pop("advance_step", None)
+    st.session_state.pop("advance_selected_group", None)
+    st.session_state.pop("advance_count", None)
