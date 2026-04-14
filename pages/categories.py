@@ -228,7 +228,14 @@ else:
                                     user_id, tgt_cat["id"]
                                 )
                             )
-                            tgt_desc_list = [d["description"] for d in tgt_descs]
+                            tgt_desc_list = [
+                                d["description"]
+                                for d in tgt_descs
+                                if not (
+                                    tgt_cat["id"] == cat["id"]
+                                    and d["description"] == di["description"]
+                                )
+                            ]
                             if tgt_desc_list:
                                 tgt_desc = mf2.selectbox(
                                     "Descrição destino",
