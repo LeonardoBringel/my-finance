@@ -11,7 +11,7 @@ from components.styles import (
     inject_subpage_css,
     page_header,
 )
-from repositories import CategoriesRepository
+from repositories import CategoriesRepository, TransactionsRepository
 from utils.auth import require_login
 
 inject_global_css()
@@ -113,7 +113,7 @@ with st.expander("➕ Nova Categoria", expanded=False):
                 st.error("Digite um nome para a categoria.")
 
 # ── Lista de Categorias ────────────────────────────────────────────────────────
-categories = CategoriesRepository.list_categories(user_id)
+all_categories = CategoriesRepository.list_categories(user_id)
 txn_counts = CategoriesRepository.get_transaction_counts_by_category(user_id)
 
 type_labels = {"entrada": "💰 Entrada", "saida": "💸 Saída", "ambos": "🔄 Ambos"}
@@ -124,8 +124,9 @@ f_type = st.selectbox(
     format_func=lambda x: "Todos" if x == "Todos" else type_labels[x],
 )
 
+categories = all_categories
 if f_type != "Todos":
-    categories = [c for c in categories if c["type"] == f_type]
+    categories = [c for c in all_categories if c["type"] == f_type]
 
 st.markdown(f"**{len(categories)} categoria(s)**")
 st.divider()
@@ -151,6 +152,119 @@ else:
         if cols[4].button("🗑️", key=f"del_cat_{cat['id']}"):
             st.session_state["confirm_del_cat_id"] = cat["id"]
             st.session_state["confirm_del_cat_name"] = cat["name"]
+
+        # ── Descriptions expander ──────────────────────────────────────────────
+        active_key = f"active_desc_{cat['id']}"
+        descs = TransactionsRepository.get_descriptions_with_counts(user_id, cat["id"])
+        is_expanded = st.session_state.get(active_key) is not None
+        with st.expander(f"📋 Descrições ({len(descs)})", expanded=is_expanded):
+            if not descs:
+                st.info("Nenhuma descrição cadastrada para esta categoria.")
+            else:
+                dh = st.columns([3.5, 0.8, 0.7, 0.7])
+                dh[0].markdown("**Descrição**")
+                dh[1].markdown("**Qtd**")
+                dh[2].markdown("**✏️**")
+                dh[3].markdown("**↗️**")
+
+                for idx, di in enumerate(descs):
+                    dc = st.columns([3.5, 0.8, 0.7, 0.7])
+                    dc[0].markdown(di["description"])
+                    dc[1].markdown(str(di["count"]))
+
+                    if dc[2].button("✏️", key=f"drename_{cat['id']}_{idx}"):
+                        st.session_state[active_key] = {"idx": idx, "action": "rename"}
+                        st.rerun()
+
+                    if dc[3].button("↗️", key=f"dmigrate_{cat['id']}_{idx}"):
+                        st.session_state[active_key] = {"idx": idx, "action": "migrate"}
+                        st.rerun()
+
+                    active = st.session_state.get(active_key)
+                    if active and active["idx"] == idx:
+                        if active["action"] == "rename":
+                            rf1, rf2, rf3 = st.columns([3.5, 0.7, 0.7])
+                            new_desc_val = rf1.text_input(
+                                "Nova descrição",
+                                value=di["description"],
+                                key=f"rnew_{cat['id']}_{idx}",
+                            )
+                            rf2.markdown("<br>", unsafe_allow_html=True)
+                            if rf2.button(
+                                "💾", key=f"rsave_{cat['id']}_{idx}", type="primary"
+                            ):
+                                trimmed = new_desc_val.strip()
+                                if not trimmed:
+                                    st.error("Digite um nome.")
+                                elif trimmed == di["description"]:
+                                    st.error("Digite um nome diferente.")
+                                else:
+                                    updated = TransactionsRepository.rename_description(
+                                        user_id, cat["id"], di["description"], trimmed
+                                    )
+                                    st.session_state.pop(active_key, None)
+                                    st.session_state[
+                                        "cat_success_msg"
+                                    ] = f"{updated} transação(ões) renomeada(s)."
+                                    st.rerun()
+                            rf3.markdown("<br>", unsafe_allow_html=True)
+                            if rf3.button("❌", key=f"rcancel_{cat['id']}_{idx}"):
+                                st.session_state.pop(active_key, None)
+                                st.rerun()
+
+                        elif active["action"] == "migrate":
+                            mf1, mf2, mf3, mf4 = st.columns([2, 2, 0.7, 0.7])
+                            tgt_cat = mf1.selectbox(
+                                "Categoria destino",
+                                all_categories,
+                                format_func=lambda c: c["name"],
+                                key=f"mtgtcat_{cat['id']}_{idx}",
+                            )
+                            tgt_descs = (
+                                TransactionsRepository.get_descriptions_with_counts(
+                                    user_id, tgt_cat["id"]
+                                )
+                            )
+                            tgt_desc_list = [d["description"] for d in tgt_descs]
+                            if tgt_desc_list:
+                                tgt_desc = mf2.selectbox(
+                                    "Descrição destino",
+                                    tgt_desc_list,
+                                    key=f"mtgtdesc_{cat['id']}_{idx}_{tgt_cat['id']}",
+                                )
+                            else:
+                                tgt_desc = None
+                                mf2.info("Categoria sem descrições.")
+                            mf3.markdown("<br>", unsafe_allow_html=True)
+                            if mf3.button(
+                                "💾", key=f"msave_{cat['id']}_{idx}", type="primary"
+                            ):
+                                if tgt_desc is None:
+                                    st.error("Selecione uma descrição destino.")
+                                elif (
+                                    tgt_cat["id"] == cat["id"]
+                                    and tgt_desc == di["description"]
+                                ):
+                                    st.error("Selecione um destino diferente.")
+                                else:
+                                    updated = (
+                                        TransactionsRepository.migrate_description(
+                                            user_id,
+                                            cat["id"],
+                                            di["description"],
+                                            tgt_cat["id"],
+                                            tgt_desc,
+                                        )
+                                    )
+                                    st.session_state.pop(active_key, None)
+                                    st.session_state[
+                                        "cat_success_msg"
+                                    ] = f"{updated} transação(ões) migrada(s)."
+                                    st.rerun()
+                            mf4.markdown("<br>", unsafe_allow_html=True)
+                            if mf4.button("❌", key=f"mcancel_{cat['id']}_{idx}"):
+                                st.session_state.pop(active_key, None)
+                                st.rerun()
 
         if st.session_state.get(f"editing_cat_{cat['id']}"):
             with st.container():

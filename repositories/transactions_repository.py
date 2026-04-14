@@ -149,6 +149,97 @@ class TransactionsRepository:
                 descriptions.append(decrypt(transaction.description))
         return sorted(set(descriptions))
 
+    @staticmethod
+    def get_descriptions_with_counts(user_id: int, category_id: int) -> list[dict]:
+        """Retorna descrições únicas com contagem de transações para uma categoria, ordenadas alfabeticamente.
+
+        Args:
+            user_id: ID do usuário.
+            category_id: ID da categoria.
+
+        Returns:
+            Lista de dicts com 'description' e 'count', ordenada por descrição.
+        """
+        with get_session() as session:
+            transactions = (
+                session.query(Transaction)
+                .filter_by(user_id=user_id, category_id=category_id)
+                .all()
+            )
+        counts: dict[str, int] = {}
+        for t in transactions:
+            if t.description:
+                desc = decrypt(t.description)
+                counts[desc] = counts.get(desc, 0) + 1
+        return sorted(
+            [{"description": k, "count": v} for k, v in counts.items()],
+            key=lambda x: x["description"],
+        )
+
+    @staticmethod
+    def rename_description(
+        user_id: int, category_id: int, old_desc: str, new_desc: str
+    ) -> int:
+        """Renomeia a descrição de todas as transações de uma categoria.
+
+        Args:
+            user_id: ID do usuário.
+            category_id: ID da categoria.
+            old_desc: Descrição atual.
+            new_desc: Nova descrição.
+
+        Returns:
+            Quantidade de transações atualizadas.
+        """
+        with get_session() as session:
+            transactions = (
+                session.query(Transaction)
+                .filter_by(user_id=user_id, category_id=category_id)
+                .all()
+            )
+            count = 0
+            for t in transactions:
+                if t.description and decrypt(t.description) == old_desc:
+                    t.description = encrypt(new_desc)
+                    count += 1
+            session.commit()
+        return count
+
+    @staticmethod
+    def migrate_description(
+        user_id: int,
+        from_category_id: int,
+        from_desc: str,
+        to_category_id: int,
+        to_desc: str,
+    ) -> int:
+        """Migra todas as transações de uma categoria+descrição para outra categoria+descrição.
+
+        Args:
+            user_id: ID do usuário.
+            from_category_id: ID da categoria origem.
+            from_desc: Descrição origem.
+            to_category_id: ID da categoria destino.
+            to_desc: Descrição destino.
+
+        Returns:
+            Quantidade de transações atualizadas.
+        """
+        with get_session() as session:
+            transactions = (
+                session.query(Transaction)
+                .filter_by(user_id=user_id, category_id=from_category_id)
+                .all()
+            )
+            count = 0
+            for t in transactions:
+                if t.description and decrypt(t.description) == from_desc:
+                    t.category_id = to_category_id
+                    t.description = encrypt(to_desc)
+                    count += 1
+            session.commit()
+        return count
+
     # ── Agregações para o Dashboard ────────────────────────────────────────────
 
     @staticmethod
