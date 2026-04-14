@@ -214,9 +214,12 @@ else:
 
                         elif active["action"] == "migrate":
                             mf1, mf2, mf3, mf4 = st.columns([2, 2, 0.7, 0.7])
+                            same_type_cats = [
+                                c for c in all_categories if c["type"] == cat["type"]
+                            ]
                             tgt_cat = mf1.selectbox(
                                 "Categoria destino",
-                                all_categories,
+                                same_type_cats,
                                 format_func=lambda c: c["name"],
                                 key=f"mtgtcat_{cat['id']}_{idx}",
                             )
