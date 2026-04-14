@@ -1,4 +1,6 @@
-from models import Category
+from sqlalchemy import func
+
+from models import Category, Transaction
 from utils.crypto import encrypt
 
 from .base_repository import get_session
@@ -76,6 +78,25 @@ class CategoriesRepository:
         """Retorna True se o usuário possui ao menos uma categoria cadastrada."""
         with get_session() as session:
             return session.query(Category).filter_by(user_id=user_id).count() > 0
+
+    @staticmethod
+    def get_transaction_counts_by_category(user_id: int) -> dict[int, int]:
+        """Retorna contagem de transações por category_id para o usuário.
+
+        Returns:
+            Dict mapeando category_id para contagem de transações.
+        """
+        with get_session() as session:
+            rows = (
+                session.query(Transaction.category_id, func.count(Transaction.id))
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.category_id.isnot(None),
+                )
+                .group_by(Transaction.category_id)
+                .all()
+            )
+        return {category_id: count for category_id, count in rows}
 
     @staticmethod
     def delete_category(user_id: int, id: int) -> tuple[bool, str]:

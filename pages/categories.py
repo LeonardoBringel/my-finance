@@ -114,6 +114,7 @@ with st.expander("➕ Nova Categoria", expanded=False):
 
 # ── Lista de Categorias ────────────────────────────────────────────────────────
 categories = CategoriesRepository.list_categories(user_id)
+txn_counts = CategoriesRepository.get_transaction_counts_by_category(user_id)
 
 type_labels = {"entrada": "💰 Entrada", "saida": "💸 Saída", "ambos": "🔄 Ambos"}
 
@@ -132,20 +133,22 @@ st.divider()
 if not categories:
     st.info("Nenhuma categoria encontrada.")
 else:
-    header = st.columns([3, 2, 0.8, 0.8])
-    for h, label in zip(header, ["Nome", "Tipo", "✏️", "🗑️"]):
+    header = st.columns([2.5, 1.5, 1.5, 0.8, 0.8])
+    for h, label in zip(header, ["Nome", "Tipo", "Lançamentos", "✏️", "🗑️"]):
         h.markdown(f"**{label}**")
     st.divider()
 
     for cat in categories:
-        cols = st.columns([3, 2, 0.8, 0.8])
+        cols = st.columns([2.5, 1.5, 1.5, 0.8, 0.8])
         cols[0].markdown(cat["name"])
         cols[1].markdown(type_labels.get(cat["type"], cat["type"]))
+        count = txn_counts.get(cat["id"], 0)
+        cols[2].markdown(f"{count}")
 
-        if cols[2].button("✏️", key=f"edit_cat_{cat['id']}"):
+        if cols[3].button("✏️", key=f"edit_cat_{cat['id']}"):
             st.session_state[f"editing_cat_{cat['id']}"] = True
 
-        if cols[3].button("🗑️", key=f"del_cat_{cat['id']}"):
+        if cols[4].button("🗑️", key=f"del_cat_{cat['id']}"):
             st.session_state["confirm_del_cat_id"] = cat["id"]
             st.session_state["confirm_del_cat_name"] = cat["name"]
 
