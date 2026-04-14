@@ -6,7 +6,7 @@ import streamlit as st
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from components.styles import inject_global_css, inject_subpage_css, page_header
-from repositories import UsersRepository
+from repositories import TransactionsRepository, UsersRepository
 from utils.auth import (
     create_user,
     require_admin,
@@ -50,30 +50,38 @@ with st.expander("➕ Novo Usuário", expanded=False):
 
 # ── Lista de Usuários ──────────────────────────────────────────────────────────
 users = UsersRepository.list_users()
+users_stats = TransactionsRepository.get_all_users_stats()
 st.markdown(f"**{len(users)} usuário(s) cadastrado(s)**")
 st.divider()
 
 if not users:
     st.info("Nenhum usuário encontrado.")
 else:
-    header = st.columns([2.5, 1.5, 2, 1, 1])
-    for h, label in zip(header, ["Usuário", "Perfil", "Criado em", "🔑", "🗑️"]):
+    header = st.columns([2, 1.2, 1.5, 1, 1.5, 0.8, 0.8])
+    for h, label in zip(
+        header,
+        ["Usuário", "Perfil", "Criado em", "Transações", "Última transação", "🔑", "🗑️"],
+    ):
         h.markdown(f"**{label}**")
     st.divider()
 
     for u in users:
-        cols = st.columns([2.5, 1.5, 2, 1, 1])
+        cols = st.columns([2, 1.2, 1.5, 1, 1.5, 0.8, 0.8])
+        stats = users_stats.get(u["id"], {})
         cols[0].markdown(u["username"])
         cols[1].markdown("👑 Admin" if u["is_admin"] else "👤 Usuário")
         cols[2].markdown(
             u["created_at"].strftime("%d/%m/%Y") if u["created_at"] else "—"
         )
+        cols[3].markdown(str(stats.get("count", 0)))
+        last_at = stats.get("last_at")
+        cols[4].markdown(last_at.strftime("%d/%m/%Y") if last_at else "—")
 
-        if cols[3].button("🔑", key=f"reset_{u['id']}"):
+        if cols[5].button("🔑", key=f"reset_{u['id']}"):
             st.session_state[f"resetting_{u['id']}"] = True
 
         if u["id"] != current["id"]:
-            if cols[4].button("🗑️", key=f"del_u_{u['id']}"):
+            if cols[6].button("🗑️", key=f"del_u_{u['id']}"):
                 st.session_state[f"confirm_del_u_{u['id']}"] = True
 
         if st.session_state.get(f"resetting_{u['id']}"):

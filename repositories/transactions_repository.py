@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import func
 
 from models import Category, Transaction
 from repositories.categories_repository import CategoriesRepository
@@ -321,6 +322,28 @@ class TransactionsRepository:
                 }
             )
         return result
+
+    @staticmethod
+    def get_all_users_stats() -> dict[int, dict]:
+        """Retorna contagem de transações e data da última transação por user_id.
+
+        Returns:
+            Dict mapeando user_id para dict com 'count' e 'last_at' (datetime ou None).
+        """
+        with get_session() as session:
+            rows = (
+                session.query(
+                    Transaction.user_id,
+                    func.count(Transaction.id),
+                    func.max(Transaction.created_at),
+                )
+                .group_by(Transaction.user_id)
+                .all()
+            )
+        return {
+            user_id: {"count": count, "last_at": last_at}
+            for user_id, count, last_at in rows
+        }
 
     @staticmethod
     def get_available_years(user_id: int) -> list[int]:
