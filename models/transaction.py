@@ -24,6 +24,9 @@ class Transaction(Base):
         Integer, nullable=True
     )  # ano da transação em texto plano, para filtros SQL
     description = Column(Text, nullable=True)  # criptografado
+    description_hash = Column(
+        Text, nullable=True
+    )  # HMAC-SHA256 da description para lookups indexados
     value = Column(Text, nullable=False)  # float criptografado como string
     installment_group = Column(Text, nullable=True)
     installment_number = Column(Integer, nullable=True)
@@ -41,6 +44,7 @@ class Transaction(Base):
     __table_args__ = (
         Index("ix_transactions_user_year", "user_id", "year"),
         Index("ix_transactions_category_id", "category_id"),
+        Index("ix_transactions_cat_desc_hash", "category_id", "description_hash"),
     )
 
     user = relationship("User", back_populates="transactions")

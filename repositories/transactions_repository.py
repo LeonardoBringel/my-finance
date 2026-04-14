@@ -3,10 +3,11 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import func
+from sqlalchemy import update as sa_update
 
 from models import Category, Transaction
 from repositories.categories_repository import CategoriesRepository
-from utils.crypto import decrypt, encrypt
+from utils.crypto import decrypt, encrypt, hash_for_lookup
 
 from .base_repository import get_session
 
@@ -36,6 +37,9 @@ class TransactionsRepository:
                     date=encrypt(transaction_date.strftime("%Y-%m-%d")),
                     year=transaction_date.year,
                     description=encrypt(description) if description else None,
+                    description_hash=hash_for_lookup(description)
+                    if description
+                    else None,
                     value=encrypt(str(installment_value)),
                     installment_group=installments_group_id,
                     installment_number=i + 1 if installments > 1 else None,
@@ -57,6 +61,9 @@ class TransactionsRepository:
             transaction.date = encrypt(date)
             transaction.year = datetime.strptime(date, "%Y-%m-%d").year
             transaction.description = encrypt(description) if description else None
+            transaction.description_hash = (
+                hash_for_lookup(description) if description else None
+            )
             transaction.value = encrypt(str(value))
             session.commit()
 
@@ -153,6 +160,9 @@ class TransactionsRepository:
     def get_descriptions_with_counts(user_id: int, category_id: int) -> list[dict]:
         """Retorna descrições únicas com contagem de transações para uma categoria, ordenadas alfabeticamente.
 
+        Usa GROUP BY description_hash para evitar decrypt de todas as transações —
+        apenas uma amostra por descrição única é descriptografada.
+
         Args:
             user_id: ID do usuário.
             category_id: ID da categoria.
@@ -161,49 +171,59 @@ class TransactionsRepository:
             Lista de dicts com 'description' e 'count', ordenada por descrição.
         """
         with get_session() as session:
-            transactions = (
-                session.query(Transaction)
-                .filter_by(user_id=user_id, category_id=category_id)
+            rows = (
+                session.query(
+                    Transaction.description_hash,
+                    func.min(Transaction.description).label("description"),
+                    func.count(Transaction.id).label("count"),
+                )
+                .filter(
+                    Transaction.user_id == user_id,
+                    Transaction.category_id == category_id,
+                    Transaction.description_hash.isnot(None),
+                    Transaction.description_hash != "",
+                )
+                .group_by(Transaction.description_hash)
                 .all()
             )
-        counts: dict[str, int] = {}
-        for t in transactions:
-            if t.description:
-                desc = decrypt(t.description)
-                counts[desc] = counts.get(desc, 0) + 1
         return sorted(
-            [{"description": k, "count": v} for k, v in counts.items()],
-            key=lambda x: x["description"],
+            [
+                {"description": decrypt(row.description), "count": row.count}
+                for row in rows
+            ],
+            key=lambda x: x["description"] or "",
         )
 
     @staticmethod
     def rename_description(
         user_id: int, category_id: int, old_desc: str, new_desc: str
     ) -> int:
-        """Renomeia a descrição de todas as transações de uma categoria.
+        """Renomeia a descrição de todas as transações de uma categoria via bulk UPDATE.
 
         Args:
             user_id: ID do usuário.
             category_id: ID da categoria.
-            old_desc: Descrição atual.
-            new_desc: Nova descrição.
+            old_desc: Descrição atual em texto plano.
+            new_desc: Nova descrição em texto plano.
 
         Returns:
             Quantidade de transações atualizadas.
         """
         with get_session() as session:
-            transactions = (
-                session.query(Transaction)
-                .filter_by(user_id=user_id, category_id=category_id)
-                .all()
+            result = session.execute(
+                sa_update(Transaction)
+                .where(
+                    Transaction.user_id == user_id,
+                    Transaction.category_id == category_id,
+                    Transaction.description_hash == hash_for_lookup(old_desc),
+                )
+                .values(
+                    description=encrypt(new_desc),
+                    description_hash=hash_for_lookup(new_desc),
+                )
             )
-            count = 0
-            for t in transactions:
-                if t.description and decrypt(t.description) == old_desc:
-                    t.description = encrypt(new_desc)
-                    count += 1
             session.commit()
-        return count
+        return result.rowcount
 
     @staticmethod
     def migrate_description(
@@ -213,32 +233,34 @@ class TransactionsRepository:
         to_category_id: int,
         to_desc: str,
     ) -> int:
-        """Migra todas as transações de uma categoria+descrição para outra categoria+descrição.
+        """Migra todas as transações de uma categoria+descrição para outra via bulk UPDATE.
 
         Args:
             user_id: ID do usuário.
             from_category_id: ID da categoria origem.
-            from_desc: Descrição origem.
+            from_desc: Descrição origem em texto plano.
             to_category_id: ID da categoria destino.
-            to_desc: Descrição destino.
+            to_desc: Descrição destino em texto plano.
 
         Returns:
             Quantidade de transações atualizadas.
         """
         with get_session() as session:
-            transactions = (
-                session.query(Transaction)
-                .filter_by(user_id=user_id, category_id=from_category_id)
-                .all()
+            result = session.execute(
+                sa_update(Transaction)
+                .where(
+                    Transaction.user_id == user_id,
+                    Transaction.category_id == from_category_id,
+                    Transaction.description_hash == hash_for_lookup(from_desc),
+                )
+                .values(
+                    category_id=to_category_id,
+                    description=encrypt(to_desc),
+                    description_hash=hash_for_lookup(to_desc),
+                )
             )
-            count = 0
-            for t in transactions:
-                if t.description and decrypt(t.description) == from_desc:
-                    t.category_id = to_category_id
-                    t.description = encrypt(to_desc)
-                    count += 1
             session.commit()
-        return count
+        return result.rowcount
 
     # ── Agregações para o Dashboard ────────────────────────────────────────────
 
