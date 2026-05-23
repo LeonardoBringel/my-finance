@@ -744,6 +744,15 @@ class TransactionsRepository:
                 else 0.0,
             }
 
+        # ── Gastos por categoria por dia ──────────────────────────────────────
+        exp_by_day: dict[str, dict[int, float]] = {}
+        for t in saida_txns:
+            day = datetime.strptime(t["date"], "%Y-%m-%d").day
+            cat = t["category"]
+            if cat not in exp_by_day:
+                exp_by_day[cat] = {}
+            exp_by_day[cat][day] = exp_by_day[cat].get(day, 0.0) + t["value"]
+
         # ── Evolução anual ────────────────────────────────────────────────────
         month_labels = [
             "Jan",
@@ -791,4 +800,5 @@ class TransactionsRepository:
             "income_by_cat": income_by_cat,
             "descriptions_by_cat": descriptions_by_cat,
             "annual": annual,
+            "expenses_by_day_cat": exp_by_day,
         }

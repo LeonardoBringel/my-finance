@@ -1,3 +1,5 @@
+import calendar
+
 import plotly.express as px
 import plotly.graph_objects as go
 
@@ -191,6 +193,73 @@ def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Sal
             tickfont=dict(color=TEXT_COLOR),
             showgrid=False,
         ),
+    )
+    return fig
+
+
+def expenses_by_day_chart(
+    data: dict[str, dict[int, float]], title: str, year: int, month: int
+):
+    """Stacked bar chart de gastos por categoria por dia do mês.
+
+    Args:
+        data: { categoria: { dia: valor } }
+        title: Título do gráfico.
+        year: Ano selecionado (para calcular dias do mês).
+        month: Mês selecionado (1–12).
+
+    Returns:
+        go.Figure com barras empilhadas.
+    """
+    if not data:
+        fig = go.Figure()
+        fig.add_annotation(
+            text="Sem dados",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(color=TEXT_COLOR, size=16),
+        )
+        fig.update_layout(**_base_layout(title))
+        return fig
+
+    days_in_month = calendar.monthrange(year, month)[1]
+    days = list(range(1, days_in_month + 1))
+
+    fig = go.Figure()
+    for i, (cat, day_totals) in enumerate(data.items()):
+        values = [day_totals.get(d, 0.0) for d in days]
+        color = EXPENSE_COLORS[i % len(EXPENSE_COLORS)]
+        fig.add_trace(
+            go.Bar(
+                name=cat,
+                x=days,
+                y=values,
+                marker_color=color,
+                hovertemplate=f"<b>{cat}</b><br>Dia %{{x}}<br>R$ %{{y:,.2f}}<extra></extra>",
+            )
+        )
+
+    fig.update_layout(
+        **_base_layout(title, showlegend=True),
+        barmode="stack",
+        legend=dict(
+            font=dict(color=TEXT_COLOR), bgcolor=BG_COLOR, orientation="h", y=-0.15
+        ),
+        xaxis=dict(
+            showgrid=False,
+            tickfont=dict(color=TEXT_COLOR),
+            tickmode="linear",
+            dtick=1,
+            title=dict(text="Dia do mês", font=dict(color=TEXT_COLOR)),
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor=GRID_COLOR,
+            tickprefix="R$",
+            tickfont=dict(color=TEXT_COLOR),
+        ),
+        bargap=0.15,
     )
     return fig
 

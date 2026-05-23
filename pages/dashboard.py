@@ -10,6 +10,7 @@ from components.charts import (
     annual_evolution_chart,
     bar_chart_expenses,
     donut_chart,
+    expenses_by_day_chart,
 )
 from components.new_transaction import new_transaction_dialog
 from components.styles import init_onboarding, inject_global_css
@@ -171,6 +172,7 @@ expenses_by_cat = _dash["expenses_by_cat"]
 income_by_cat = _dash["income_by_cat"]
 desc_by_cat = _dash["descriptions_by_cat"]
 annual_data = _dash["annual"]
+expenses_by_day_cat = _dash["expenses_by_day_cat"]
 
 # ── Dashboard Header ───────────────────────────────────────────────────────────
 st.markdown(f"### 📊 Dashboard — {selected_month_name} / {selected_year}")
@@ -286,3 +288,16 @@ else:
                     values = [i["total"] for i in items]
                     fig = donut_chart(labels, values, "")
                 st.plotly_chart(fig, width="stretch", key=f"donut_cat_{cat_name}")
+
+# ── Gastos por Categoria por Dia ───────────────────────────────────────────────
+st.divider()
+st.plotly_chart(
+    expenses_by_day_chart(
+        expenses_by_day_cat,
+        f"📅 Gastos por Categoria por Dia — {selected_month_name} / {selected_year}",
+        selected_year,
+        selected_month,
+    ),
+    width="stretch",
+    key="expenses_by_day",
+)
