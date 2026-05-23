@@ -19,7 +19,9 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     reset_key = st.session_state.get("form_reset_counter", 0)
 
     # ── Tipo ──────────────────────────────────────────────────────────────────
-    default_tipo = txn["type"] if is_edit else "saida"
+    default_tipo = (
+        txn["type"] if is_edit else st.session_state.get("last_tipo", "saida")
+    )
     col1, col2 = st.columns(2)
     with col1:
         tipo = st.selectbox(
@@ -163,6 +165,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                         installments=int(parcelas),
                     )
                     st.success("✅ Registro salvo! Preencha o próximo ou feche.")
+                    st.session_state["last_tipo"] = tipo
                     st.session_state["form_reset_counter"] = reset_key + 1
                     st.rerun(scope="fragment")
 
@@ -171,6 +174,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
             st.session_state.pop("show_form", None)
             st.session_state.pop("form_reset_counter", None)
             st.session_state.pop("edit_txn", None)
+            st.session_state.pop("last_tipo", None)
             st.rerun()
 
 
