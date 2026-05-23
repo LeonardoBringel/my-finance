@@ -22,7 +22,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pre-commit>4.3.0"
+    "pre-commit>4.3.0",
+    "pytest>=9.0.3",
+    "pytest-xdist>=3.8.0",
+    "testcontainers>=4.14.2",
 ]
 
 [tool.back]
@@ -31,3 +34,9 @@ line-length = 80
 [tool.isort]
 profile = "black"
 line_length = 80
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: tests that require a real Postgres (Testcontainers + Docker); auto-skipped when Docker is unavailable",
+]
