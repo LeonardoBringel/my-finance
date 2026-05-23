@@ -226,6 +226,34 @@ class TransactionsRepository:
         return result.rowcount
 
     @staticmethod
+    def delete_description(user_id: int, category_id: int, desc: str) -> int:
+        """Remove a descrição de todas as transações de uma categoria via bulk UPDATE.
+
+        Args:
+            user_id: ID do usuário.
+            category_id: ID da categoria.
+            desc: Descrição a ser removida em texto plano.
+
+        Returns:
+            Quantidade de transações atualizadas.
+        """
+        with get_session() as session:
+            result = session.execute(
+                sa_update(Transaction)
+                .where(
+                    Transaction.user_id == user_id,
+                    Transaction.category_id == category_id,
+                    Transaction.description_hash == hash_for_lookup(desc),
+                )
+                .values(
+                    description=None,
+                    description_hash=None,
+                )
+            )
+            session.commit()
+        return result.rowcount
+
+    @staticmethod
     def migrate_description(
         user_id: int,
         from_category_id: int,

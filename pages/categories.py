@@ -161,14 +161,15 @@ else:
             if not descs:
                 st.info("Nenhuma descrição cadastrada para esta categoria.")
             else:
-                dh = st.columns([3.5, 0.8, 0.7, 0.7])
+                dh = st.columns([3.5, 0.8, 0.7, 0.7, 0.7])
                 dh[0].markdown("**Descrição**")
                 dh[1].markdown("**Qtd**")
                 dh[2].markdown("**✏️**")
                 dh[3].markdown("**↗️**")
+                dh[4].markdown("**🗑️**")
 
                 for idx, di in enumerate(descs):
-                    dc = st.columns([3.5, 0.8, 0.7, 0.7])
+                    dc = st.columns([3.5, 0.8, 0.7, 0.7, 0.7])
                     dc[0].markdown(di["description"])
                     dc[1].markdown(str(di["count"]))
 
@@ -178,6 +179,10 @@ else:
 
                     if dc[3].button("↗️", key=f"dmigrate_{cat['id']}_{idx}"):
                         st.session_state[active_key] = {"idx": idx, "action": "migrate"}
+                        st.rerun()
+
+                    if dc[4].button("🗑️", key=f"ddelete_{cat['id']}_{idx}"):
+                        st.session_state[active_key] = {"idx": idx, "action": "delete"}
                         st.rerun()
 
                     active = st.session_state.get(active_key)
@@ -273,6 +278,28 @@ else:
                                     st.rerun()
                             mf4.markdown("<br>", unsafe_allow_html=True)
                             if mf4.button("❌", key=f"mcancel_{cat['id']}_{idx}"):
+                                st.session_state.pop(active_key, None)
+                                st.rerun()
+
+                        elif active["action"] == "delete":
+                            df1, df2, df3 = st.columns([3.5, 0.7, 0.7])
+                            df1.markdown(
+                                f"Remover descrição de {di['count']} transações?"
+                            )
+                            df2.markdown("<br>", unsafe_allow_html=True)
+                            if df2.button(
+                                "💾", key=f"ddsave_{cat['id']}_{idx}", type="primary"
+                            ):
+                                updated = TransactionsRepository.delete_description(
+                                    user_id, cat["id"], di["description"]
+                                )
+                                st.session_state.pop(active_key, None)
+                                st.session_state[
+                                    "cat_success_msg"
+                                ] = f"{updated} transação(ões) atualizada(s)."
+                                st.rerun()
+                            df3.markdown("<br>", unsafe_allow_html=True)
+                            if df3.button("❌", key=f"ddcancel_{cat['id']}_{idx}"):
                                 st.session_state.pop(active_key, None)
                                 st.rerun()
 
