@@ -22,6 +22,12 @@ os.environ["FERNET_KEY"] = base64.urlsafe_b64encode(
     b"my_finance_test_fernet_key_32byt"
 ).decode()
 
+# Disable the Testcontainers Ryuk reaper. Under pytest-xdist each worker is a
+# separate process and they race to start the singleton Ryuk container (port
+# 8080), which fails. Our `with PostgresContainer(...)` context manager stops
+# each container explicitly at session teardown, so the reaper is unnecessary.
+os.environ.setdefault("TESTCONTAINERS_RYUK_DISABLED", "true")
+
 import pytest  # noqa: E402
 from sqlalchemy import create_engine  # noqa: E402
 from sqlalchemy.orm import sessionmaker  # noqa: E402
@@ -79,14 +85,24 @@ def pg_engine():
             f"@{os.environ['DB_HOST']}:{os.environ['DB_PORT']}/{postgres.dbname}"
         )
 
-        # Apply the real schema. alembic/env.py builds its URL from the DB_*
-        # env vars set above, so just invoke upgrade head.
-        from alembic import command
-        from alembic.config import Config
-
-        alembic_cfg = Config(str(_ROOT / "alembic.ini"))
-        alembic_cfg.set_main_option("script_location", str(_ROOT / "alembic"))
-        command.upgrade(alembic_cfg, "head")
+        # Apply the real schema via the Alembic CLI. The console script must be
+        # used (not `from alembic import command`) because the project's local
+        # `alembic/` migrations package shadows the installed alembic library on
+        # sys.path. alembic/env.py builds its URL from the DB_* env vars above.
+        alembic_bin = shutil.which("alembic") or str(
+            pathlib.Path(sys.executable).parent / "alembic"
+        )
+        result = subprocess.run(
+            [alembic_bin, "upgrade", "head"],
+            cwd=str(_ROOT),
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(
+                "alembic upgrade head failed:\n" f"{result.stdout}\n{result.stderr}"
+            )
 
         engine = create_engine(url, pool_pre_ping=True)
         try:
