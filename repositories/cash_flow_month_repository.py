@@ -1,4 +1,5 @@
 from models import CashFlowEntry, CashFlowMonth, CashFlowTemplate
+from utils.crypto import decrypt, decrypt_float
 
 from .base_repository import get_session
 
@@ -56,6 +57,7 @@ class CashFlowMonthRepository:
             tmpl = s.query(CashFlowTemplate).filter_by(user_id=user_id).first()
             if tmpl:
                 for item in tmpl.items:
+                    # name/value já são ciphertext no template; copiados como tal
                     s.add(
                         CashFlowEntry(
                             month_id=m.id,
@@ -88,9 +90,9 @@ class CashFlowMonthRepository:
             "entries": [
                 {
                     "id": e.id,
-                    "name": e.name,
+                    "name": decrypt(e.name),
                     "day": e.day,
-                    "value": float(e.value),
+                    "value": decrypt_float(e.value),
                     "type": e.type,
                 }
                 for e in sorted(m.entries, key=lambda x: (x.day, x.type))

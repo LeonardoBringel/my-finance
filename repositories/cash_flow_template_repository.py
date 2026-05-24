@@ -1,5 +1,5 @@
 from models import CashFlowTemplate, CashFlowTemplateItem
-from utils.crypto import encrypt
+from utils.crypto import decrypt, decrypt_float, encrypt
 
 from .base_repository import get_session
 
@@ -19,9 +19,9 @@ class CashFlowTemplateRepository:
                 "items": [
                     {
                         "id": i.id,
-                        "name": i.name,
+                        "name": decrypt(i.name),
                         "day": i.day,
-                        "value": float(i.value),
+                        "value": decrypt_float(i.value),
                         "type": i.type,
                     }
                     for i in sorted(tmpl.items, key=lambda x: (x.type, x.day))
