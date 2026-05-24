@@ -20,7 +20,14 @@ class UsersRepository:
 
     @staticmethod
     def create_user(username: str, password: str) -> dict:
-        """Cria um novo usuário. O primeiro usuário cadastrado recebe permissão de administrador."""
+        """Cria um novo usuário. O primeiro usuário cadastrado recebe permissão de administrador.
+
+        Raises:
+            ValueError: se a senha não atender à política compartilhada.
+        """
+        ok, msg = password_utils.validate_password(password)
+        if not ok:
+            raise ValueError(msg)
         with get_session() as session:
             is_first_user = session.query(User).count() == 0
             user = User(
@@ -41,6 +48,9 @@ class UsersRepository:
         force_as_admin: bool = False,
     ) -> tuple[bool, str]:
         """Atualiza a senha do usuário. Verifica a senha atual, exceto quando force_as_admin=True."""
+        ok, msg = password_utils.validate_password(new_password)
+        if not ok:
+            return (False, msg)
         with get_session() as session:
             user = session.get(User, user_id)
             if not user:

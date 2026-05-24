@@ -11,7 +11,7 @@ pytestmark = pytest.mark.integration
 
 def _seed_user_and_category(name="Compras", type_="saida"):
     """Cria um usuário e uma categoria, retornando (user_id, category_id)."""
-    user = UsersRepository.create_user("alice", "pw")
+    user = UsersRepository.create_user("alice", "password")
     CategoriesRepository.create_category(user["id"], name, type_)
     cat = next(
         c for c in CategoriesRepository.list_categories(user["id"]) if c["name"] == name

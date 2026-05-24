@@ -18,18 +18,18 @@ pytestmark = pytest.mark.integration
 
 def test_first_user_is_admin(db_session):
     """O primeiro usuário criado é admin; os subsequentes não."""
-    alice = UsersRepository.create_user("alice", "pw")
+    alice = UsersRepository.create_user("alice", "password")
     assert alice["is_admin"] is True
 
-    bob = UsersRepository.create_user("bob", "pw")
+    bob = UsersRepository.create_user("bob", "password")
     assert bob["is_admin"] is False
 
 
 def test_login_by_username(db_session):
     """login autentica por username e rejeita senha ou usuário inválidos."""
-    created = UsersRepository.create_user("alice", "secret")
+    created = UsersRepository.create_user("alice", "secret12")
 
-    ok = UsersRepository.login("alice", "secret")
+    ok = UsersRepository.login("alice", "secret12")
     assert ok is not None
     assert ok["id"] == created["id"]
     assert ok["username"] == "alice"
@@ -40,7 +40,7 @@ def test_login_by_username(db_session):
 
 def test_category_dedup_and_ownership(db_session):
     """Categorias deduplicam por nome (case-insensitive) e respeitam ownership na exclusão."""
-    uid1 = UsersRepository.create_user("alice", "pw")["id"]
+    uid1 = UsersRepository.create_user("alice", "password")["id"]
 
     ok, _ = CategoriesRepository.create_category(uid1, "Casa", "saida")
     assert ok is True
@@ -54,7 +54,7 @@ def test_category_dedup_and_ownership(db_session):
         if c["name"] == "Casa"
     )
 
-    uid2 = UsersRepository.create_user("bob", "pw")["id"]
+    uid2 = UsersRepository.create_user("bob", "password")["id"]
     del_ok, _ = CategoriesRepository.delete_category(uid2, cat_id)
     assert del_ok is False
 
@@ -64,7 +64,7 @@ def test_category_dedup_and_ownership(db_session):
 
 def test_template_to_month_clamps_day(db_session):
     """create_month copia os itens do template e faz clamp do dia em 28."""
-    uid = UsersRepository.create_user("alice", "pw")["id"]
+    uid = UsersRepository.create_user("alice", "password")["id"]
 
     CashFlowTemplateRepository.save_template(
         uid,

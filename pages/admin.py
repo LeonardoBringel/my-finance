@@ -12,6 +12,7 @@ from utils.auth import (
     require_admin,
     require_login,
 )
+from utils.password_utils import validate_password
 
 inject_global_css()
 
@@ -102,6 +103,8 @@ else:
                             st.error("Digite a nova senha.")
                         elif new_pass != confirm_pass:
                             st.error("Senhas não conferem.")
+                        elif not validate_password(new_pass)[0]:
+                            st.error(validate_password(new_pass)[1])
                         else:
                             ok, msg = UsersRepository.admin_update_user_password(
                                 u["id"], new_pass

@@ -11,7 +11,7 @@ pytestmark = pytest.mark.integration
 
 def _seed():
     """Cria um usuário 'alice' com categorias Salario (entrada) e Mercado (saida)."""
-    uid = UsersRepository.create_user("alice", "pw")["id"]
+    uid = UsersRepository.create_user("alice", "password")["id"]
     CategoriesRepository.create_category(uid, "Salario", "entrada")
     CategoriesRepository.create_category(uid, "Mercado", "saida")
     cats = {c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)}

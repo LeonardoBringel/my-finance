@@ -5,6 +5,7 @@ import streamlit as st
 from streamlit_cookies_controller import CookieController
 
 from repositories import UsersRepository
+from utils.password_utils import validate_password
 from utils.session import (
     COOKIE_NAME,
     TOKEN_EXPIRY_DAYS,
@@ -158,6 +159,9 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
     Returns:
         Tupla (sucesso, mensagem).
     """
+    ok, msg = validate_password(password)
+    if not ok:
+        return False, msg
     if not UsersRepository.is_username_available(username):
         return False, "Usuário já existe."
     user = UsersRepository.create_user(username, password)

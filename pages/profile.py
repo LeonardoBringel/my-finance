@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from components.styles import inject_global_css, page_header
 from repositories import UsersRepository
 from utils.auth import logout, require_login
+from utils.password_utils import validate_password
 
 inject_global_css()
 
@@ -46,8 +47,8 @@ if st.button("💾 Salvar", type="primary", use_container_width=True):
         st.error("Preencha todos os campos.")
     elif new_pass != confirm_pass:
         st.error("Nova senha e confirmação não conferem.")
-    elif len(new_pass) < 4:
-        st.error("A nova senha deve ter ao menos 4 caracteres.")
+    elif not validate_password(new_pass)[0]:
+        st.error(validate_password(new_pass)[1])
     else:
         ok, msg = UsersRepository.update_user_password(
             current["id"], current_pass, new_pass

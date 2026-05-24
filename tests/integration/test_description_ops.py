@@ -18,7 +18,7 @@ pytestmark = pytest.mark.integration
 
 def _seed_user(username="alice"):
     """Cria um usuário e retorna seu id."""
-    return UsersRepository.create_user(username, "pw")["id"]
+    return UsersRepository.create_user(username, "password")["id"]
 
 
 def _make_category(uid, name, type_="saida"):
