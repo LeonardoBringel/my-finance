@@ -76,3 +76,24 @@ streamlit run app.py
 ```
 
 The app will be available at `http://localhost:8501`.
+
+## 🧪 Tests
+
+The suite is built with **pytest**. Unit tests cover the pure helpers in `utils/` and need no database. Integration tests exercise the `repositories/` layer against a real, throwaway PostgreSQL provisioned by **Testcontainers**, so they require **Docker** to be running — when Docker is unavailable they are skipped automatically.
+
+```bash
+# Unit tests only (no Docker required)
+uv run pytest tests/unit
+
+# Full suite — unit + integration (Docker required for integration)
+uv run pytest
+
+# Run in parallel (one container per worker)
+uv run pytest -n auto
+```
+
+A `pytest-unit` pre-commit hook runs the unit suite on every commit. The full quality gate is:
+
+```bash
+uv run pre-commit run --all-files && uv run pytest
+```
