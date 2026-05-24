@@ -1,4 +1,5 @@
 from models import CashFlowTemplate, CashFlowTemplateItem
+from utils.crypto import encrypt
 
 from .base_repository import get_session
 
@@ -42,9 +43,9 @@ class CashFlowTemplateRepository:
                 s.add(
                     CashFlowTemplateItem(
                         template_id=tmpl.id,
-                        name=item["name"],
+                        name=encrypt(item["name"]),
                         day=int(item["day"]),
-                        value=item["value"],
+                        value=encrypt(str(item["value"])),
                         type=item["type"],
                     )
                 )

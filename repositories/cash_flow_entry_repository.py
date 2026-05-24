@@ -1,4 +1,5 @@
 from models import CashFlowEntry
+from utils.crypto import encrypt
 
 from .base_repository import get_session
 
@@ -12,7 +13,11 @@ class CashFlowEntryRepository:
         with get_session() as s:
             s.add(
                 CashFlowEntry(
-                    month_id=month_id, name=name, day=day, value=value, type=type_
+                    month_id=month_id,
+                    name=encrypt(name),
+                    day=day,
+                    value=encrypt(str(value)),
+                    type=type_,
                 )
             )
             s.commit()
@@ -26,9 +31,9 @@ class CashFlowEntryRepository:
             e = s.get(CashFlowEntry, entry_id)
             if not e:
                 return
-            e.name = name
+            e.name = encrypt(name)
             e.day = day
-            e.value = value
+            e.value = encrypt(str(value))
             e.type = type_
             s.commit()
 
