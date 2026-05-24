@@ -22,6 +22,10 @@ os.environ["FERNET_KEY"] = base64.urlsafe_b64encode(
     b"my_finance_test_fernet_key_32byt"
 ).decode()
 
+# Dedicated JWT signing secret, distinct from FERNET_KEY. utils.session reads
+# JWT_SECRET at import time and raises if it is missing.
+os.environ["JWT_SECRET"] = "my_finance_test_jwt_secret_distinct_from_fernet"
+
 # Disable the Testcontainers Ryuk reaper. Under pytest-xdist each worker is a
 # separate process and they race to start the singleton Ryuk container (port
 # 8080), which fails. Our `with PostgresContainer(...)` context manager stops

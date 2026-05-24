@@ -60,6 +60,7 @@ DB_PORT=5432
 DB_NAME=my_finance
 
 FERNET_KEY=your_fernet_key   # generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+JWT_SECRET=your_jwt_secret   # separate from FERNET_KEY; generate with: python -c "import secrets; print(secrets.token_urlsafe(48))"
 
 ENABLE_FAIL2BAN_LOGGING=false # enable this to add fail2ban integration
 FAIL2BAN_LOG_PATH=/var/log/my-finance/auth.log

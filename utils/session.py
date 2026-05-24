@@ -6,7 +6,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-_SECRET = os.getenv("FERNET_KEY", "missing-secret")
+_SECRET = os.getenv("JWT_SECRET")
+if not _SECRET:
+    raise RuntimeError("JWT_SECRET not set in environment. Check your .env file.")
+
 _ALGORITHM = "HS256"
 
 COOKIE_NAME = "finance_session"
