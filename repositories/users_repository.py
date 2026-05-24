@@ -61,6 +61,8 @@ class UsersRepository:
                 ):
                     return (False, "Senha atual incorreta.")
             user.password_hash = password_utils.hash_password(new_password)
+            # Incrementa a versão de sessão para invalidar tokens já emitidos.
+            user.token_version = (user.token_version or 0) + 1
             session.commit()
         return (True, "Senha alterada com sucesso!")
 
@@ -109,7 +111,7 @@ class UsersRepository:
         """Retorna o dict do usuário pelo ID, ou None se não encontrado.
 
         Returns:
-            Dict com id, username e is_admin, ou None.
+            Dict com id, username, is_admin e token_version, ou None.
         """
         with get_session() as session:
             user = session.get(User, user_id)
@@ -119,6 +121,7 @@ class UsersRepository:
                 "id": user.id,
                 "username": user.get_username(),
                 "is_admin": user.is_admin,
+                "token_version": user.token_version,
             }
 
     @staticmethod
@@ -126,7 +129,8 @@ class UsersRepository:
         """Autentica o usuário verificando nome e senha.
 
         Returns:
-            Dict com id, username e is_admin em caso de sucesso, ou None.
+            Dict com id, username, is_admin e token_version em caso de sucesso,
+            ou None.
         """
         with get_session() as session:
             user = (
@@ -138,4 +142,9 @@ class UsersRepository:
                 return None
             if not password_utils.verify_password(password, user.password_hash):
                 return None
-            return {"id": user.id, "username": username, "is_admin": user.is_admin}
+            return {
+                "id": user.id,
+                "username": username,
+                "is_admin": user.is_admin,
+                "token_version": user.token_version,
+            }

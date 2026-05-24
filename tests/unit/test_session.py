@@ -12,9 +12,23 @@ from utils.session import _SECRET, create_session_token, decode_session_token
 
 
 def test_token_round_trip():
-    """decode_session_token(create_session_token(id)) recupera o user_id original."""
-    token = create_session_token(42)
-    assert decode_session_token(token) == 42
+    """decode_session_token(create_session_token(...)) recupera user_id e token_version."""
+    token = create_session_token(42, 3)
+    payload = decode_session_token(token)
+    assert payload["user_id"] == 42
+    assert payload["token_version"] == 3
+
+
+def test_decode_token_without_version_claim():
+    """Token sem o claim token_version decodifica com token_version None (tratado como inválido)."""
+    legacy = jwt.encode(
+        {"user_id": 1, "exp": datetime.now(timezone.utc) + timedelta(days=1)},
+        _SECRET,
+        algorithm="HS256",
+    )
+    payload = decode_session_token(legacy)
+    assert payload["user_id"] == 1
+    assert payload["token_version"] is None
 
 
 def test_expired_token_returns_none():

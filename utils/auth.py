@@ -104,10 +104,11 @@ def require_login() -> None:
 
     token = st.context.cookies.get(COOKIE_NAME)
     if token:
-        user_id = decode_session_token(token)
-        if user_id:
-            user = UsersRepository.get_user_by_id(user_id)
-            if user:
+        payload = decode_session_token(token)
+        # Tokens sem o claim token_version (antigos) são tratados como inválidos.
+        if payload and payload.get("token_version") is not None:
+            user = UsersRepository.get_user_by_id(payload["user_id"])
+            if user and user["token_version"] == payload["token_version"]:
                 st.session_state["current_user"] = user
                 return
 
@@ -137,7 +138,7 @@ def login(username: str, password: str) -> tuple[bool, str]:
         return False, "Usuário ou senha inválidos."
     st.session_state["current_user"] = current_user
     st.session_state.pop("_logged_out", None)
-    token = create_session_token(current_user["id"])
+    token = create_session_token(current_user["id"], current_user["token_version"])
     _set_session_cookie(token)
     return True, "Login realizado com sucesso!"
 
