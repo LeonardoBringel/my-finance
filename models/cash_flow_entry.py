@@ -4,7 +4,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    Numeric,
     String,
     Text,
 )
@@ -23,9 +22,9 @@ class CashFlowEntry(Base):
     month_id = Column(
         Integer, ForeignKey("cash_flow_months.id", ondelete="CASCADE"), nullable=False
     )
-    name = Column(Text, nullable=False)
+    name = Column(Text, nullable=False)  # criptografado
     day = Column(Integer, nullable=False)
-    value = Column(Numeric(12, 2), nullable=False)
+    value = Column(Text, nullable=False)  # float criptografado como string
     type = Column(String(10), nullable=False)  # 'entrada' | 'saida'
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
