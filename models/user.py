@@ -18,6 +18,9 @@ class User(Base):
         Text, nullable=True
     )  # HMAC-SHA256 do username para lookups indexados
     password_hash = Column(Text, nullable=False)  # hash bcrypt
+    token_version = Column(
+        Integer, nullable=False, server_default="0"
+    )  # incrementado para revogar sessões existentes
     is_admin = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
