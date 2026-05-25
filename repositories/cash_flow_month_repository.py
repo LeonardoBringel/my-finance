@@ -1,3 +1,5 @@
+from sqlalchemy.orm import selectinload
+
 from models import CashFlowEntry, CashFlowMonth, CashFlowTemplate
 from utils.crypto import decrypt, decrypt_float
 
@@ -24,6 +26,32 @@ class CashFlowMonthRepository:
                 .all()
             )
             return [{"id": m.id, "year": m.year, "month": m.month} for m in months]
+
+    @staticmethod
+    def list_months_with_entries(user_id: int, year: int) -> list[dict]:
+        """Retorna todos os meses do ano com seus lançamentos em uma única consulta.
+
+        Carrega os lançamentos via eager loading (selectinload), evitando o N+1
+        de uma consulta por mês. O formato de cada mês é idêntico ao de
+        get_month_with_entries (_month_to_dict), com os campos descriptografados.
+
+        Args:
+            user_id: ID do usuário.
+            year: Ano do fluxo de caixa.
+
+        Returns:
+            Lista de dicts (um por mês, ordenada por mês) com id, year, month e
+            entries. Lista vazia quando o ano não possui meses.
+        """
+        with get_session() as s:
+            months = (
+                s.query(CashFlowMonth)
+                .filter_by(user_id=user_id, year=year)
+                .order_by(CashFlowMonth.month)
+                .options(selectinload(CashFlowMonth.entries))
+                .all()
+            )
+            return [CashFlowMonthRepository._month_to_dict(m) for m in months]
 
     @staticmethod
     def get_month_with_entries(user_id: int, year: int, month: int) -> dict | None:

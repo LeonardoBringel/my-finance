@@ -49,7 +49,10 @@ st.divider()
 st.session_state.pop("cf_edit_month", None)
 
 # ── Carregar dados ─────────────────────────────────────────────────────────────
-existing_months = CashFlowMonthRepository.list_months(user_id, selected_year)
+# Uma única consulta traz todos os meses do ano com seus lançamentos (sem N+1).
+existing_months = CashFlowMonthRepository.list_months_with_entries(
+    user_id, selected_year
+)
 existing_month_nums = {m["month"] for m in existing_months}
 
 init_onboarding("cf", not CashFlowMonthRepository.has_any_month(user_id))
@@ -447,13 +450,7 @@ if not existing_months:
         "Nenhum mês criado para este ano. Clique em **Cadastrar Novo Mês** para começar."
     )
 else:
-    months_data = {}
-    for m in existing_months:
-        full = CashFlowMonthRepository.get_month_with_entries(
-            user_id, selected_year, m["month"]
-        )
-        if full:
-            months_data[m["month"]] = full
+    months_data = {m["month"]: m for m in existing_months}
 
     name_days: dict[str, list[int]] = {}
     for m_num in sorted(months_data.keys()):
