@@ -90,12 +90,18 @@ class TransactionsRepository:
             Lista de dicts com as transações, ordenadas por data decrescente.
         """
         with get_session() as session:
-            rows = (
+            query = (
                 session.query(Transaction, Category)
                 .outerjoin(Category, Transaction.category_id == Category.id)
                 .filter(Transaction.user_id == user_id)
-                .all()
             )
+            # Filtro de ano empurrado para o SQL via índice ix_transactions_user_year.
+            # Linhas com year NULL são legados de data não-parseável (backfill 0004 as
+            # ignorou) e já eram excluídas das visões por ano pelo guard de strptime
+            # abaixo — o predicado SQL preserva esse comportamento. Ver AD em STATE.md.
+            if year is not None:
+                query = query.filter(Transaction.year == year)
+            rows = query.all()
 
         results = []
         for transaction, category in rows:
@@ -103,8 +109,6 @@ class TransactionsRepository:
             try:
                 txn_date = datetime.strptime(result["date"], "%Y-%m-%d")
             except (ValueError, TypeError):
-                continue
-            if year and txn_date.year != year:
                 continue
             if month and txn_date.month != month:
                 continue
