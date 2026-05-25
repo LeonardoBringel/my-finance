@@ -4,6 +4,7 @@ Revision ID: 0001
 Revises:
 Create Date: 2026-01-01 00:00:00.000000
 """
+
 import sqlalchemy as sa
 
 from alembic import op
@@ -20,9 +21,13 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("username", sa.Text(), nullable=False, unique=True),
         sa.Column("password_hash", sa.Text(), nullable=False),
-        sa.Column("is_admin", sa.Boolean(), nullable=False, server_default="false"),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+            "is_admin", sa.Boolean(), nullable=False, server_default="false"
+        ),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
         ),
     )
 
@@ -62,11 +67,15 @@ def upgrade() -> None:
         sa.Column("installment_number", sa.Integer(), nullable=True),
         sa.Column("installment_total", sa.Integer(), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.func.now()
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.func.now(),
         ),
     )
     op.create_index("ix_transactions_user_id", "transactions", ["user_id"])
-    op.create_index("ix_transactions_category_id", "transactions", ["category_id"])
+    op.create_index(
+        "ix_transactions_category_id", "transactions", ["category_id"]
+    )
 
 
 def downgrade() -> None:

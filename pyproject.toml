@@ -28,7 +28,7 @@ dev = [
     "testcontainers>=4.14.2",
 ]
 
-[tool.back]
+[tool.black]
 line-length = 80
 
 [tool.isort]

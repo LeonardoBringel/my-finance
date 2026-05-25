@@ -32,7 +32,9 @@ class User(Base):
         nullable=False,
     )
 
-    __table_args__ = (Index("ix_users_username_hash", "username_hash", unique=True),)
+    __table_args__ = (
+        Index("ix_users_username_hash", "username_hash", unique=True),
+    )
 
     categories = relationship(
         "Category", back_populates="user", cascade="all, delete-orphan"

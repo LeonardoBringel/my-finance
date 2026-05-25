@@ -8,7 +8,9 @@ load_dotenv()
 
 _SECRET = os.getenv("JWT_SECRET")
 if not _SECRET:
-    raise RuntimeError("JWT_SECRET not set in environment. Check your .env file.")
+    raise RuntimeError(
+        "JWT_SECRET not set in environment. Check your .env file."
+    )
 
 _ALGORITHM = "HS256"
 

@@ -30,7 +30,9 @@ def test_password_change_revokes_old_token(db_session):
     old_token = create_session_token(uid, tv0)
     assert decode_session_token(old_token)["token_version"] == tv0
 
-    ok, _ = UsersRepository.update_user_password(uid, "password", "password-new")
+    ok, _ = UsersRepository.update_user_password(
+        uid, "password", "password-new"
+    )
     assert ok is True
 
     current = UsersRepository.get_user_by_id(uid)["token_version"]

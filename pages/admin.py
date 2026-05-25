@@ -25,7 +25,9 @@ require_admin()
 
 current = st.session_state["current_user"]
 
-page_header("👥 Gerenciar Usuários", cleanup_keys=["show_form", "form_reset_counter"])
+page_header(
+    "👥 Gerenciar Usuários", cleanup_keys=["show_form", "form_reset_counter"]
+)
 
 st.divider()
 
@@ -35,7 +37,9 @@ with st.expander("➕ Novo Usuário", expanded=False):
     with col1:
         new_username = st.text_input("Usuário", key="new_user_name")
     with col2:
-        new_password = st.text_input("Senha", type="password", key="new_user_pass")
+        new_password = st.text_input(
+            "Senha", type="password", key="new_user_pass"
+        )
     with col3:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("💾 Criar", type="primary", use_container_width=True):
@@ -61,7 +65,15 @@ else:
     header = st.columns([2, 1.2, 1.5, 1, 1.5, 0.8, 0.8])
     for h, label in zip(
         header,
-        ["Usuário", "Perfil", "Criado em", "Transações", "Última transação", "🔑", "🗑️"],
+        [
+            "Usuário",
+            "Perfil",
+            "Criado em",
+            "Transações",
+            "Última transação",
+            "🔑",
+            "🗑️",
+        ],
     ):
         h.markdown(f"**{label}**")
     st.divider()
@@ -98,7 +110,9 @@ else:
                     )
                 with r3:
                     st.markdown("<br>", unsafe_allow_html=True)
-                    if st.button("💾", key=f"save_pass_{u['id']}", type="primary"):
+                    if st.button(
+                        "💾", key=f"save_pass_{u['id']}", type="primary"
+                    ):
                         if not new_pass:
                             st.error("Digite a nova senha.")
                         elif new_pass != confirm_pass:
@@ -106,12 +120,16 @@ else:
                         elif not validate_password(new_pass)[0]:
                             st.error(validate_password(new_pass)[1])
                         else:
-                            ok, msg = UsersRepository.admin_update_user_password(
-                                u["id"], new_pass
+                            ok, msg = (
+                                UsersRepository.admin_update_user_password(
+                                    u["id"], new_pass
+                                )
                             )
                             if ok:
                                 st.success(msg)
-                                st.session_state.pop(f"resetting_{u['id']}", None)
+                                st.session_state.pop(
+                                    f"resetting_{u['id']}", None
+                                )
                                 st.rerun()
                             else:
                                 st.error(msg)
@@ -120,9 +138,13 @@ else:
                         st.rerun()
 
         if st.session_state.get(f"confirm_del_u_{u['id']}"):
-            st.warning(f"⚠️ Excluir usuário **{u['username']}** e todos os seus dados?")
+            st.warning(
+                f"⚠️ Excluir usuário **{u['username']}** e todos os seus dados?"
+            )
             c1, c2, _ = st.columns([1, 1, 4])
-            if c1.button("✅ Confirmar", key=f"conf_del_u_{u['id']}", type="primary"):
+            if c1.button(
+                "✅ Confirmar", key=f"conf_del_u_{u['id']}", type="primary"
+            ):
                 UsersRepository.delete_user(u["id"])
                 st.session_state.pop(f"confirm_del_u_{u['id']}", None)
                 st.rerun()

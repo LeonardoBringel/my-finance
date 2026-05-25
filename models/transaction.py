@@ -44,7 +44,9 @@ class Transaction(Base):
     __table_args__ = (
         Index("ix_transactions_user_year", "user_id", "year"),
         Index("ix_transactions_category_id", "category_id"),
-        Index("ix_transactions_cat_desc_hash", "category_id", "description_hash"),
+        Index(
+            "ix_transactions_cat_desc_hash", "category_id", "description_hash"
+        ),
     )
 
     user = relationship("User", back_populates="transactions")
@@ -63,5 +65,7 @@ class Transaction(Base):
             "installment_group": self.installment_group,
             "installment_number": self.installment_number,
             "installment_total": self.installment_total,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "created_at": (
+                self.created_at.isoformat() if self.created_at else None
+            ),
         }

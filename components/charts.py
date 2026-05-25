@@ -68,7 +68,9 @@ def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
     return fig
 
 
-def bar_chart_expenses(categories, planned, actual, title="Detalhamento Despesas"):
+def bar_chart_expenses(
+    categories, planned, actual, title="Detalhamento Despesas"
+):
     if not categories:
         fig = go.Figure()
         fig.add_annotation(
@@ -116,7 +118,9 @@ def bar_chart_expenses(categories, planned, actual, title="Detalhamento Despesas
     return fig
 
 
-def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Saldo"):
+def annual_evolution_chart(
+    data: list[dict], title="📈 Evolução Anual do Saldo"
+):
     """
     Combo chart: bars for entrada/saida, line for cumulative saldo.
     data: list of { month_label, entrada, saida, saldo_acumulado }
@@ -177,7 +181,10 @@ def annual_evolution_chart(data: list[dict], title="📈 Evolução Anual do Sal
         **_base_layout(title, showlegend=True),
         barmode="group",
         legend=dict(
-            font=dict(color=TEXT_COLOR), bgcolor=BG_COLOR, orientation="h", y=-0.15
+            font=dict(color=TEXT_COLOR),
+            bgcolor=BG_COLOR,
+            orientation="h",
+            y=-0.15,
         ),
         xaxis=dict(showgrid=False, tickfont=dict(color=TEXT_COLOR)),
         yaxis=dict(
@@ -244,7 +251,10 @@ def expenses_by_day_chart(
         **_base_layout(title, showlegend=True),
         barmode="stack",
         legend=dict(
-            font=dict(color=TEXT_COLOR), bgcolor=BG_COLOR, orientation="h", y=-0.15
+            font=dict(color=TEXT_COLOR),
+            bgcolor=BG_COLOR,
+            orientation="h",
+            y=-0.15,
         ),
         xaxis=dict(
             showgrid=False,

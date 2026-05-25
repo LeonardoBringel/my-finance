@@ -107,7 +107,9 @@ def _seed_user_month_template(conn) -> dict:
         {"uid": uid},
     ).scalar()
     tmpl_id = conn.execute(
-        text("INSERT INTO cash_flow_templates (user_id) VALUES (:uid) RETURNING id"),
+        text(
+            "INSERT INTO cash_flow_templates (user_id) VALUES (:uid) RETURNING id"
+        ),
         {"uid": uid},
     ).scalar()
     return {"uid": uid, "month_id": month_id, "tmpl_id": tmpl_id}
@@ -143,7 +145,9 @@ def test_upgrade_encrypts_and_repository_reads_originals():
 
         # Ciphertext em repouso
         with engine.connect() as conn:
-            e = conn.execute(text("SELECT name, value FROM cash_flow_entries")).one()
+            e = conn.execute(
+                text("SELECT name, value FROM cash_flow_entries")
+            ).one()
             assert e.name != "Aluguel"
             assert decrypt(e.name) == "Aluguel"
             assert decrypt_float(e.value) == pytest.approx(1500.0)
@@ -157,7 +161,9 @@ def test_upgrade_encrypts_and_repository_reads_originals():
 
         # Leitura via repositório devolve os valores originais
         with _repositories_bound_to(engine):
-            month = CashFlowMonthRepository.get_month_with_entries(ids["uid"], 2026, 7)
+            month = CashFlowMonthRepository.get_month_with_entries(
+                ids["uid"], 2026, 7
+            )
             assert month["entries"][0]["name"] == "Aluguel"
             assert month["entries"][0]["value"] == pytest.approx(1500.0)
 
@@ -182,7 +188,9 @@ def test_upgrade_is_idempotent_for_already_encrypted_name():
         _run_alembic("upgrade head", env)
 
         with engine.connect() as conn:
-            name = conn.execute(text("SELECT name FROM cash_flow_entries")).scalar()
+            name = conn.execute(
+                text("SELECT name FROM cash_flow_entries")
+            ).scalar()
             # Uma única descriptografia recupera o original (sem dupla encriptação)
             assert decrypt(name) == "Aluguel"
 
@@ -204,7 +212,9 @@ def test_downgrade_restores_plaintext_and_numeric():
         _run_alembic("downgrade 0007", env)
 
         with engine.connect() as conn:
-            row = conn.execute(text("SELECT name, value FROM cash_flow_entries")).one()
+            row = conn.execute(
+                text("SELECT name, value FROM cash_flow_entries")
+            ).one()
             assert row.name == "Aluguel"
             assert float(row.value) == pytest.approx(1500.0)
             col_type = conn.execute(

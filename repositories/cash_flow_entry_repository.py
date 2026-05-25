@@ -8,7 +8,9 @@ class CashFlowEntryRepository:
     """Repositório para operações de leitura e escrita de lançamentos do fluxo de caixa."""
 
     @staticmethod
-    def add_entry(month_id: int, name: str, day: int, value: float, type_: str) -> None:
+    def add_entry(
+        month_id: int, name: str, day: int, value: float, type_: str
+    ) -> None:
         """Adiciona um novo lançamento a um mês do fluxo de caixa."""
         with get_session() as s:
             s.add(

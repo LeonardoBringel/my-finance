@@ -138,7 +138,9 @@ def login(username: str, password: str) -> tuple[bool, str]:
         return False, "Usuário ou senha inválidos."
     st.session_state["current_user"] = current_user
     st.session_state.pop("_logged_out", None)
-    token = create_session_token(current_user["id"], current_user["token_version"])
+    token = create_session_token(
+        current_user["id"], current_user["token_version"]
+    )
     _set_session_cookie(token)
     return True, "Login realizado com sucesso!"
 

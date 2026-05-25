@@ -17,7 +17,9 @@ depends_on = None
 
 def upgrade():
     op.add_column("users", sa.Column("username_hash", sa.Text(), nullable=True))
-    op.create_index("ix_users_username_hash", "users", ["username_hash"], unique=True)
+    op.create_index(
+        "ix_users_username_hash", "users", ["username_hash"], unique=True
+    )
 
     # Backfill hash for all existing users
     from utils.crypto import decrypt, hash_for_lookup

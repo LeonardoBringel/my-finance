@@ -15,7 +15,9 @@ st.set_page_config(page_title="Login", page_icon="🔐", layout="centered")
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 version_file = os.path.join(root_dir, ".version")
 app_version = (
-    open(version_file).read().strip() if os.path.exists(version_file) else "latest"
+    open(version_file).read().strip()
+    if os.path.exists(version_file)
+    else "latest"
 )
 if "-" in app_version:
     app_version = app_version.split("-")[0]
@@ -43,7 +45,10 @@ st.divider()
 logging_in = st.session_state.get("logging_in", False)
 
 username = st.text_input(
-    "Usuário", placeholder="seu usuário", key="login_username", disabled=logging_in
+    "Usuário",
+    placeholder="seu usuário",
+    key="login_username",
+    disabled=logging_in,
 )
 password = st.text_input(
     "Senha",
@@ -53,7 +58,9 @@ password = st.text_input(
     disabled=logging_in,
 )
 
-if st.button("Entrar", type="primary", use_container_width=True, disabled=logging_in):
+if st.button(
+    "Entrar", type="primary", use_container_width=True, disabled=logging_in
+):
     if not username or not password:
         st.error("Preencha usuário e senha.")
     else:

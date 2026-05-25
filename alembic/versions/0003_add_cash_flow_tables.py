@@ -4,6 +4,7 @@ Revision ID: 0003
 Revises: 0002
 Create Date: 2026-01-01 00:00:00.000000
 """
+
 import sqlalchemy as sa
 
 from alembic import op
@@ -74,7 +75,10 @@ def upgrade() -> None:
         ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.UniqueConstraint(
-            "user_id", "year", "month", name="uq_cash_flow_month_user_year_month"
+            "user_id",
+            "year",
+            "month",
+            name="uq_cash_flow_month_user_year_month",
         ),
     )
 

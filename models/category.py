@@ -17,7 +17,9 @@ class Category(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     name = Column(Text, nullable=False)  # criptografado
-    type = Column(Text, nullable=False)  # criptografado ('entrada'|'saida'|'ambos')
+    type = Column(
+        Text, nullable=False
+    )  # criptografado ('entrada'|'saida'|'ambos')
     created_at = Column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

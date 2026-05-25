@@ -28,8 +28,10 @@ def _render_step_1(user_id: int) -> None:
 
     st.divider()
 
-    groups = TransactionsRepository.list_installment_groups_with_future_installments(
-        user_id
+    groups = (
+        TransactionsRepository.list_installment_groups_with_future_installments(
+            user_id
+        )
     )
 
     if not groups:
@@ -63,7 +65,9 @@ def _render_step_1(user_id: int) -> None:
         cols[2].markdown(f"{current}/{total}")
         cols[3].markdown(format_currency(group["installment_value"]))
         cols[4].markdown(format_currency(group["future_total_value"]))
-        if cols[5].button("Selecionar", key=f"sel_{group['installment_group']}"):
+        if cols[5].button(
+            "Selecionar", key=f"sel_{group['installment_group']}"
+        ):
             st.session_state["advance_selected_group"] = group
             st.session_state["advance_step"] = 2
             st.rerun(scope="fragment")
@@ -89,7 +93,9 @@ def _render_step_2(user_id: int) -> None:
 
     st.markdown(f"**{desc}** — {category}")
     col_info1, col_info2, col_info3 = st.columns(3)
-    col_info1.metric("Parcela atual", f"{current_installment}/{installment_total}")
+    col_info1.metric(
+        "Parcela atual", f"{current_installment}/{installment_total}"
+    )
     col_info2.metric("Valor da parcela", format_currency(installment_value))
     col_info3.metric("Total futuro", format_currency(future_total_value))
     st.info(

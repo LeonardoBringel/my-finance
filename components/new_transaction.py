@@ -37,21 +37,31 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
         }
         current_cat = txn["category"] if is_edit else ""
         cat_list = [""] + list(cats_filtered.keys())
-        cat_index = cat_list.index(current_cat) if current_cat in cat_list else 0
+        cat_index = (
+            cat_list.index(current_cat) if current_cat in cat_list else 0
+        )
         categoria_nome = st.selectbox(
             "Categoria *", cat_list, index=cat_index, key=f"cat_{reset_key}"
         )
 
     # ── Descrição ─────────────────────────────────────────────────────────────
-    selected_cat_id = cats_filtered.get(categoria_nome) if categoria_nome else None
+    selected_cat_id = (
+        cats_filtered.get(categoria_nome) if categoria_nome else None
+    )
     desc_options = (
-        TransactionsRepository.list_descriptions_by_category(user_id, selected_cat_id)
+        TransactionsRepository.list_descriptions_by_category(
+            user_id, selected_cat_id
+        )
         if categoria_nome
         else []
     )
-    current_desc = txn["description"] if is_edit and txn.get("description") else None
+    current_desc = (
+        txn["description"] if is_edit and txn.get("description") else None
+    )
     desc_index = (
-        desc_options.index(current_desc) if current_desc in desc_options else None
+        desc_options.index(current_desc)
+        if current_desc in desc_options
+        else None
     )
     descricao_final = (
         st.selectbox(
@@ -59,9 +69,11 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
             options=desc_options,
             index=desc_index,
             accept_new_options=True,
-            placeholder="Selecione uma categoria primeiro..."
-            if not categoria_nome
-            else "Digite ou selecione uma descrição...",
+            placeholder=(
+                "Selecione uma categoria primeiro..."
+                if not categoria_nome
+                else "Digite ou selecione uma descrição..."
+            ),
             key=f"desc_{reset_key}",
             disabled=not categoria_nome,
         )
@@ -69,12 +81,16 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     )
 
     # ── Data ──────────────────────────────────────────────────────────────────
-    default_date = date.fromisoformat(txn["date"]) if is_edit else datetime.today()
+    default_date = (
+        date.fromisoformat(txn["date"]) if is_edit else datetime.today()
+    )
     data = st.date_input("Data *", value=default_date, format="DD/MM/YYYY")
 
     # ── Valor ─────────────────────────────────────────────────────────────────
     default_valor = (
-        f"{txn['value']:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        f"{txn['value']:,.2f}".replace(",", "X")
+        .replace(".", ",")
+        .replace("X", ".")
         if is_edit
         else ""
     )
@@ -106,9 +122,11 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
             "Parcelado?",
             key=f"parcelado_{reset_key}",
             disabled=tipo == "entrada",
-            help="Parcelamento disponível apenas para saídas"
-            if tipo == "entrada"
-            else None,
+            help=(
+                "Parcelamento disponível apenas para saídas"
+                if tipo == "entrada"
+                else None
+            ),
         )
         if parcelado and tipo == "saida":
             parcelas = st.number_input(
@@ -164,7 +182,9 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                         value=valor_parsed,
                         installments=int(parcelas),
                     )
-                    st.success("✅ Registro salvo! Preencha o próximo ou feche.")
+                    st.success(
+                        "✅ Registro salvo! Preencha o próximo ou feche."
+                    )
                     st.session_state["last_tipo"] = tipo
                     st.session_state["form_reset_counter"] = reset_key + 1
                     st.rerun(scope="fragment")

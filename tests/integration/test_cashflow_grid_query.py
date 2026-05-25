@@ -42,8 +42,12 @@ def test_single_query_returns_all_months_with_entries(db_session, pg_engine):
     uid = _seed_user()
     for m in range(1, 13):
         month = CashFlowMonthRepository.create_month(uid, 2026, m)
-        CashFlowEntryRepository.add_entry(month["id"], "Salario", 5, 4000.0, "entrada")
-        CashFlowEntryRepository.add_entry(month["id"], "Aluguel", 10, 1500.0, "saida")
+        CashFlowEntryRepository.add_entry(
+            month["id"], "Salario", 5, 4000.0, "entrada"
+        )
+        CashFlowEntryRepository.add_entry(
+            month["id"], "Aluguel", 10, 1500.0, "saida"
+        )
 
     months, n_queries = _count_cashflow_selects(
         pg_engine,

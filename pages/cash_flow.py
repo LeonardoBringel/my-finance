@@ -64,7 +64,9 @@ init_onboarding("cf", not CashFlowMonthRepository.has_any_month(user_id))
 @st.dialog("📋 Gerenciar Template", width="large")
 def template_dialog():
     """Dialog para configurar os lançamentos padrão do template de fluxo de caixa."""
-    st.markdown("Configure os lançamentos padrão aplicados ao criar um novo mês.")
+    st.markdown(
+        "Configure os lançamentos padrão aplicados ao criar um novo mês."
+    )
     tmpl = CashFlowTemplateRepository.get_template(user_id)
     items = tmpl["items"] if tmpl else []
 
@@ -138,7 +140,9 @@ def template_dialog():
     st.divider()
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("💾 Salvar Template", type="primary", use_container_width=True):
+        if st.button(
+            "💾 Salvar Template", type="primary", use_container_width=True
+        ):
             valid = [
                 i
                 for i in st.session_state[tmpl_items_key]
@@ -176,18 +180,24 @@ def new_month_dialog():
         [MONTH_NAMES[m - 1] for m in available],
         key="new_month_sel",
     )
-    selected_m = available[[MONTH_NAMES[m - 1] for m in available].index(month_name)]
+    selected_m = available[
+        [MONTH_NAMES[m - 1] for m in available].index(month_name)
+    ]
 
     tmpl = CashFlowTemplateRepository.get_template(user_id)
     if tmpl and tmpl["items"]:
-        st.info(f"✅ Template aplicado automaticamente ({len(tmpl['items'])} item(ns))")
+        st.info(
+            f"✅ Template aplicado automaticamente ({len(tmpl['items'])} item(ns))"
+        )
     else:
         st.warning("Nenhum template configurado. O mês será criado vazio.")
 
     c1, c2 = st.columns(2)
     with c1:
         if st.button("✅ Criar Mês", type="primary", use_container_width=True):
-            CashFlowMonthRepository.create_month(user_id, selected_year, selected_m)
+            CashFlowMonthRepository.create_month(
+                user_id, selected_year, selected_m
+            )
             st.rerun()
     with c2:
         if st.button("Cancelar", use_container_width=True):
@@ -249,10 +259,10 @@ def edit_month_dialog(month_data: dict):
                 type_=new_type,
             )
             st.session_state["cf_add_entry_key"] = add_key + 1
-            st.session_state[
-                "cf_edit_month"
-            ] = CashFlowMonthRepository.get_month_with_entries(
-                user_id, month_data["year"], month_data["month"]
+            st.session_state["cf_edit_month"] = (
+                CashFlowMonthRepository.get_month_with_entries(
+                    user_id, month_data["year"], month_data["month"]
+                )
             )
             st.rerun(scope="fragment")
     st.divider()
@@ -262,7 +272,9 @@ def edit_month_dialog(month_data: dict):
         st.info("Nenhum lançamento cadastrado neste mês.")
     else:
         header = st.columns([3, 1, 2, 1.5, 0.7, 0.7])
-        for h, label in zip(header, ["Nome", "Dia", "Valor", "Tipo", "✏️", "🗑️"]):
+        for h, label in zip(
+            header, ["Nome", "Dia", "Valor", "Tipo", "✏️", "🗑️"]
+        ):
             h.markdown(f"**{label}**")
         st.divider()
 
@@ -297,7 +309,9 @@ def edit_month_dialog(month_data: dict):
                     "Tipo",
                     ["saida", "entrada"],
                     index=0 if e["type"] == "saida" else 1,
-                    format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada",
+                    format_func=lambda x: (
+                        "💸 Saída" if x == "saida" else "💰 Entrada"
+                    ),
                     key=f"ee_type_{e['id']}",
                     label_visibility="collapsed",
                 )
@@ -309,10 +323,10 @@ def edit_month_dialog(month_data: dict):
                             e["id"], e_name.strip(), int(e_day), e_value, e_type
                         )
                         st.session_state.pop(f"editing_entry_{e['id']}", None)
-                        st.session_state[
-                            "cf_edit_month"
-                        ] = CashFlowMonthRepository.get_month_with_entries(
-                            user_id, month_data["year"], month_data["month"]
+                        st.session_state["cf_edit_month"] = (
+                            CashFlowMonthRepository.get_month_with_entries(
+                                user_id, month_data["year"], month_data["month"]
+                            )
                         )
                         st.rerun(scope="fragment")
                 if ec[5].button("❌", key=f"ee_cancel_{e['id']}"):
@@ -324,16 +338,18 @@ def edit_month_dialog(month_data: dict):
                 row[1].markdown(str(e["day"]))
                 val_color = "green" if e["type"] == "entrada" else "red"
                 row[2].markdown(f":{val_color}[{format_currency(e['value'])}]")
-                row[3].markdown("💰 Entrada" if e["type"] == "entrada" else "💸 Saída")
+                row[3].markdown(
+                    "💰 Entrada" if e["type"] == "entrada" else "💸 Saída"
+                )
                 if row[4].button("✏️", key=f"edit_entry_{e['id']}"):
                     st.session_state[f"editing_entry_{e['id']}"] = True
                     st.rerun(scope="fragment")
                 if row[5].button("🗑️", key=f"del_entry_{e['id']}"):
                     CashFlowEntryRepository.delete_entry(e["id"])
-                    st.session_state[
-                        "cf_edit_month"
-                    ] = CashFlowMonthRepository.get_month_with_entries(
-                        user_id, month_data["year"], month_data["month"]
+                    st.session_state["cf_edit_month"] = (
+                        CashFlowMonthRepository.get_month_with_entries(
+                            user_id, month_data["year"], month_data["month"]
+                        )
                     )
                     st.rerun(scope="fragment")
 
@@ -348,7 +364,10 @@ def edit_month_dialog(month_data: dict):
         s2.metric("💸 Saídas", format_currency(total_out))
         saldo_delta_color = "normal" if saldo >= 0 else "inverse"
         s3.metric(
-            "📈 Saldo", "", delta=format_currency(saldo), delta_color=saldo_delta_color
+            "📈 Saldo",
+            "",
+            delta=format_currency(saldo),
+            delta_color=saldo_delta_color,
         )
 
     st.divider()
@@ -378,7 +397,9 @@ def edit_month_dialog(month_data: dict):
             st.session_state.pop("cf_edit_month", None)
             st.session_state.pop("cf_confirm_delete_month", None)
             st.rerun()
-        if cc2.button("Cancelar", use_container_width=True, key="cancel_del_month"):
+        if cc2.button(
+            "Cancelar", use_container_width=True, key="cancel_del_month"
+        ):
             st.session_state.pop("cf_confirm_delete_month", None)
             st.rerun(scope="fragment")
 
@@ -386,8 +407,7 @@ def edit_month_dialog(month_data: dict):
 @st.dialog("👋 Bem-vindo ao Fluxo de Caixa", width="large")
 def onboarding_dialog():
     """Dialog de boas-vindas com explicação sobre o funcionamento do fluxo de caixa."""
-    st.markdown(
-        """
+    st.markdown("""
 ### O que é o Fluxo de Caixa?
 
 O **Fluxo de Caixa** é uma visão planejada das suas finanças, onde você define antecipadamente
@@ -416,13 +436,14 @@ quais entradas e saídas espera ter em cada mês do ano.
 ---
 
 💡 **Dica:** Comece configurando o template com seus lançamentos recorrentes — assim criar novos meses será muito mais rápido.
-    """
-    )
+    """)
 
     st.divider()
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("📋 Configurar Template", type="primary", use_container_width=True):
+        if st.button(
+            "📋 Configurar Template", type="primary", use_container_width=True
+        ):
             st.session_state["cf_onboarding_done"] = True
             st.session_state["cf_show_template"] = True
             st.rerun()
@@ -436,7 +457,9 @@ quais entradas e saídas espera ter em cada mês do ano.
 # ── Botões de ação ─────────────────────────────────────────────────────────────
 col_a, col_b, col_c = st.columns([2, 2, 6])
 with col_a:
-    if st.button("➕ Cadastrar Novo Mês", type="primary", use_container_width=True):
+    if st.button(
+        "➕ Cadastrar Novo Mês", type="primary", use_container_width=True
+    ):
         st.session_state["cf_show_new_month"] = True
 with col_b:
     if st.button("📋 Gerenciar Template", use_container_width=True):
@@ -457,7 +480,9 @@ else:
         for e in months_data[m_num]["entries"]:
             name_days.setdefault(e["name"], []).append(e["day"])
 
-    all_names = sorted(name_days.keys(), key=lambda n: (min(name_days[n]), n.lower()))
+    all_names = sorted(
+        name_days.keys(), key=lambda n: (min(name_days[n]), n.lower())
+    )
 
     sorted_months = sorted(months_data.keys())
     col_headers = [MONTH_NAMES[m - 1][:3] for m in sorted_months]
@@ -476,7 +501,9 @@ else:
     for name in all_names:
         days = name_days[name]
         min_day, max_day = min(days), max(days)
-        day_label = str(min_day) if min_day == max_day else f"{min_day}–{max_day}"
+        day_label = (
+            str(min_day) if min_day == max_day else f"{min_day}–{max_day}"
+        )
 
         row_cols = st.columns(col_widths)
         row_cols[0].markdown(day_label)
@@ -486,7 +513,9 @@ else:
             match = next((e for e in entries if e["name"] == name), None)
             if match:
                 color = "green" if match["type"] == "entrada" else "red"
-                row_cols[i + 2].markdown(f":{color}[{format_currency(match['value'])}]")
+                row_cols[i + 2].markdown(
+                    f":{color}[{format_currency(match['value'])}]"
+                )
             else:
                 row_cols[i + 2].markdown("—")
 

@@ -51,15 +51,16 @@ clear_advance_dialog_states()
 user_id = st.session_state["current_user"]["id"]
 today = date.today()
 first_day_of_month = today.replace(day=1)
-last_day_of_month = today.replace(day=calendar.monthrange(today.year, today.month)[1])
+last_day_of_month = today.replace(
+    day=calendar.monthrange(today.year, today.month)[1]
+)
 
 
 # ── Onboarding ─────────────────────────────────────────────────────────────────
 @st.dialog("📋 Bem-vindo aos Lançamentos", width="large")
 def onboarding_dialog():
     """Dialog de boas-vindas com instruções sobre o registro de lançamentos."""
-    st.markdown(
-        """
+    st.markdown("""
 ### O que são Lançamentos?
 
 Os **Lançamentos** são o registro real das suas movimentações financeiras — o que você
@@ -85,13 +86,14 @@ efetivamente recebeu ou gastou.
 
 💡 **Antes de começar:** Certifique-se de ter criado suas **Categorias** — elas são
 necessárias para registrar lançamentos.
-    """
-    )
+    """)
     st.divider()
     c1, c2 = st.columns(2)
     with c1:
         if st.button(
-            "➕ Criar Primeiro Lançamento", type="primary", use_container_width=True
+            "➕ Criar Primeiro Lançamento",
+            type="primary",
+            use_container_width=True,
         ):
             st.session_state["show_form"] = True
             st.session_state.setdefault("form_reset_counter", 0)
@@ -127,19 +129,27 @@ with st.expander("🔍 Filtros", expanded=True):
         f_type = st.selectbox(
             "Tipo",
             ["Todos", "entrada", "saida"],
-            format_func=lambda x: "Todos"
-            if x == "Todos"
-            else ("💰 Entrada" if x == "entrada" else "💸 Saída"),
+            format_func=lambda x: (
+                "Todos"
+                if x == "Todos"
+                else ("💰 Entrada" if x == "entrada" else "💸 Saída")
+            ),
             key=f"f_type_{v}",
         )
 
     col3, col4 = st.columns(2)
     with col3:
         cat_type_filter = None if f_type == "Todos" else f_type
-        all_cats = CategoriesRepository.list_categories(user_id, type_=cat_type_filter)
+        all_cats = CategoriesRepository.list_categories(
+            user_id, type_=cat_type_filter
+        )
         cat_options = ["Todas"] + [c["name"] for c in all_cats]
-        f_cat_name = st.selectbox("Categoria", cat_options, key=f"f_cat_{v}_{f_type}")
-        f_cat_id = next((c["id"] for c in all_cats if c["name"] == f_cat_name), None)
+        f_cat_name = st.selectbox(
+            "Categoria", cat_options, key=f"f_cat_{v}_{f_type}"
+        )
+        f_cat_id = next(
+            (c["id"] for c in all_cats if c["name"] == f_cat_name), None
+        )
 
     with col4:
         desc_options = TransactionsRepository.list_descriptions_by_category(
@@ -191,7 +201,9 @@ if f_desc != "Todas":
 
 # ── Métricas de resumo ─────────────────────────────────────────────────────────
 total_in = sum(t["value"] for t in transactions if t["type"] == "entrada")
-total_out = sum(t["value"] for t in transactions if t["type"] in ("saida", "ambos"))
+total_out = sum(
+    t["value"] for t in transactions if t["type"] in ("saida", "ambos")
+)
 
 col1, col2, col3 = st.columns(3)
 col1.metric("💰 Total Entradas", format_currency(total_in))
@@ -211,7 +223,16 @@ def render_txn_table(txns: list[dict]) -> None:
     header = st.columns([1.2, 1.5, 1.8, 2.5, 1.5, 1.2, 0.8, 0.8])
     for h, label in zip(
         header,
-        ["Tipo", "Data", "Categoria", "Descrição", "Valor", "Parcela", "✏️", "🗑️"],
+        [
+            "Tipo",
+            "Data",
+            "Categoria",
+            "Descrição",
+            "Valor",
+            "Parcela",
+            "✏️",
+            "🗑️",
+        ],
     ):
         h.markdown(f"**{label}**")
     st.divider()
@@ -242,16 +263,18 @@ def render_txn_table(txns: list[dict]) -> None:
 
         if cols[7].button("🗑️", key=f"del_{txn['id']}"):
             st.session_state["confirm_del_id"] = txn["id"]
-            st.session_state[
-                "confirm_del_label"
-            ] = f"{txn['category']} — {format_currency(txn['value'])}"
+            st.session_state["confirm_del_label"] = (
+                f"{txn['category']} — {format_currency(txn['value'])}"
+            )
 
         if st.session_state.get("confirm_del_id") == txn["id"]:
             st.warning(
                 f"⚠️ Confirmar exclusão de **{st.session_state['confirm_del_label']}**?"
             )
             c1, c2, _ = st.columns([1, 1, 4])
-            if c1.button("✅ Confirmar", key=f"conf_{txn['id']}", type="primary"):
+            if c1.button(
+                "✅ Confirmar", key=f"conf_{txn['id']}", type="primary"
+            ):
                 TransactionsRepository.delete_transaction(user_id, txn["id"])
                 st.session_state.pop("confirm_del_id", None)
                 st.session_state.pop("confirm_del_label", None)

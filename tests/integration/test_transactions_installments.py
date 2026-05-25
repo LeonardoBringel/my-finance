@@ -14,7 +14,9 @@ def _seed_user_and_category(name="Compras", type_="saida"):
     user = UsersRepository.create_user("alice", "password")
     CategoriesRepository.create_category(user["id"], name, type_)
     cat = next(
-        c for c in CategoriesRepository.list_categories(user["id"]) if c["name"] == name
+        c
+        for c in CategoriesRepository.list_categories(user["id"])
+        if c["name"] == name
     )
     return user["id"], cat["id"]
 
@@ -34,7 +36,11 @@ def test_installments_create_n_rows(db_session):
     assert None not in groups
     assert {r["installment_number"] for r in rows} == {1, 2, 3}
     assert all(r["installment_total"] == 3 for r in rows)
-    assert {r["date"] for r in rows} == {"2026-01-15", "2026-02-15", "2026-03-15"}
+    assert {r["date"] for r in rows} == {
+        "2026-01-15",
+        "2026-02-15",
+        "2026-03-15",
+    }
     assert all(r["value"] == 400.0 for r in rows)
     assert sum(r["value"] for r in rows) == pytest.approx(1200.0)
 
@@ -52,7 +58,11 @@ def test_installments_rounding(db_session):
     assert all(r["value"] == 33.33 for r in rows)
     assert sum(r["value"] for r in rows) == pytest.approx(99.99)
     # relativedelta fixa para o último dia válido: 2026-02 tem 28 dias.
-    assert {r["date"] for r in rows} == {"2026-01-31", "2026-02-28", "2026-03-31"}
+    assert {r["date"] for r in rows} == {
+        "2026-01-31",
+        "2026-02-28",
+        "2026-03-31",
+    }
 
 
 def test_single_transaction_has_null_installment_fields(db_session):

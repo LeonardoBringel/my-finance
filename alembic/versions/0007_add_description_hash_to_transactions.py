@@ -39,7 +39,9 @@ def upgrade():
         plain = decrypt(row.description)
         if plain:
             conn.execute(
-                sa.text("UPDATE transactions SET description_hash = :h WHERE id = :id"),
+                sa.text(
+                    "UPDATE transactions SET description_hash = :h WHERE id = :id"
+                ),
                 {"h": hash_for_lookup(plain), "id": row.id},
             )
 

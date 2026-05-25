@@ -14,7 +14,9 @@ def _seed():
     uid = UsersRepository.create_user("alice", "password")["id"]
     CategoriesRepository.create_category(uid, "Salario", "entrada")
     CategoriesRepository.create_category(uid, "Mercado", "saida")
-    cats = {c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)}
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
     return uid, cats
 
 
@@ -68,7 +70,9 @@ def test_expenses_and_income_by_cat(db_session):
     """Totais por categoria ordenados desc; saidas separadas de entradas."""
     uid, cats = _seed()
     CategoriesRepository.create_category(uid, "Lazer", "saida")
-    cats = {c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)}
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
 
     TransactionsRepository.create_transaction(
         uid, cats["Mercado"], "2026-04-01", "Compra A", 400.0
@@ -107,5 +111,9 @@ def test_january_uses_prev_december(db_session):
     data = TransactionsRepository.get_dashboard_data(uid, 2026, 1)
 
     assert data["summary"]["saidas"] == pytest.approx(100.0)
-    assert data["descriptions_by_cat"]["Mercado"]["total"] == pytest.approx(100.0)
-    assert data["descriptions_by_cat"]["Mercado"]["total_prev"] == pytest.approx(800.0)
+    assert data["descriptions_by_cat"]["Mercado"]["total"] == pytest.approx(
+        100.0
+    )
+    assert data["descriptions_by_cat"]["Mercado"][
+        "total_prev"
+    ] == pytest.approx(800.0)

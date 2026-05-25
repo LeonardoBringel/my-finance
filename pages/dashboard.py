@@ -111,8 +111,7 @@ with st.sidebar:
 @st.dialog("👋 Bem-vindo à Gestão Financeira", width="large")
 def onboarding_dialog():
     """Dialog de boas-vindas com instruções para novos usuários do dashboard."""
-    st.markdown(
-        """
+    st.markdown("""
 Esta é sua central de **Gestão Financeira**. Aqui você acompanha entradas, saídas,
 saldo e a evolução das suas finanças ao longo do ano.
 
@@ -136,12 +135,13 @@ Use os filtros de **Ano** e **Mês** no menu lateral para navegar pelo históric
 
 💡 **Dica:** Também há um **Fluxo de Caixa** para planejamento — defina um template
 com seus lançamentos recorrentes e projete os meses do ano antecipadamente.
-    """
-    )
+    """)
     st.divider()
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("🏷️ Criar Categorias", type="primary", use_container_width=True):
+        if st.button(
+            "🏷️ Criar Categorias", type="primary", use_container_width=True
+        ):
             st.switch_page("pages/categories.py")
     with c2:
         if st.button("Explorar o Dashboard", use_container_width=True):
@@ -287,7 +287,9 @@ else:
                     labels = [i["description"] for i in items]
                     values = [i["total"] for i in items]
                     fig = donut_chart(labels, values, "")
-                st.plotly_chart(fig, width="stretch", key=f"donut_cat_{cat_name}")
+                st.plotly_chart(
+                    fig, width="stretch", key=f"donut_cat_{cat_name}"
+                )
 
 # ── Gastos por Categoria por Dia ───────────────────────────────────────────────
 st.divider()

@@ -18,7 +18,9 @@ MONTH_NAMES = [
 
 def format_currency(value: float) -> str:
     """Formata um valor numérico como moeda brasileira (R$ 1.234,56)."""
-    return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return (
+        f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    )
 
 
 def format_date(date: str) -> str:

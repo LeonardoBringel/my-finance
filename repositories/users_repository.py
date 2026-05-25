@@ -38,7 +38,11 @@ class UsersRepository:
             )
             session.add(user)
             session.commit()
-            return {"id": user.id, "username": username, "is_admin": user.is_admin}
+            return {
+                "id": user.id,
+                "username": username,
+                "is_admin": user.is_admin,
+            }
 
     @staticmethod
     def _update_user_password(
@@ -78,7 +82,9 @@ class UsersRepository:
         )
 
     @staticmethod
-    def admin_update_user_password(user_id: int, new_password: str) -> tuple[bool, str]:
+    def admin_update_user_password(
+        user_id: int, new_password: str
+    ) -> tuple[bool, str]:
         """Altera a senha de qualquer usuário sem exigir a senha atual (uso exclusivo de admins)."""
         return UsersRepository._update_user_password(
             user_id=user_id, new_password=new_password, force_as_admin=True

@@ -37,20 +37,27 @@ class TransactionsRepository:
                     date=encrypt(transaction_date.strftime("%Y-%m-%d")),
                     year=transaction_date.year,
                     description=encrypt(description) if description else None,
-                    description_hash=hash_for_lookup(description)
-                    if description
-                    else None,
+                    description_hash=(
+                        hash_for_lookup(description) if description else None
+                    ),
                     value=encrypt(str(installment_value)),
                     installment_group=installments_group_id,
                     installment_number=i + 1 if installments > 1 else None,
-                    installment_total=installments if installments > 1 else None,
+                    installment_total=(
+                        installments if installments > 1 else None
+                    ),
                 )
                 session.add(transaction)
             session.commit()
 
     @staticmethod
     def update_transaction(
-        user_id: int, id: int, category_id: int, date: str, description: str, value: str
+        user_id: int,
+        id: int,
+        category_id: int,
+        date: str,
+        description: str,
+        value: str,
     ) -> None:
         """Atualiza os campos de uma transação existente pertencente ao usuário."""
         with get_session() as session:
@@ -60,7 +67,9 @@ class TransactionsRepository:
             transaction.category_id = category_id
             transaction.date = encrypt(date)
             transaction.year = datetime.strptime(date, "%Y-%m-%d").year
-            transaction.description = encrypt(description) if description else None
+            transaction.description = (
+                encrypt(description) if description else None
+            )
             transaction.description_hash = (
                 hash_for_lookup(description) if description else None
             )
@@ -125,14 +134,19 @@ class TransactionsRepository:
             results.append(result)
 
         return sorted(
-            results, key=lambda x: (x["date"], x["created_at"] or ""), reverse=True
+            results,
+            key=lambda x: (x["date"], x["created_at"] or ""),
+            reverse=True,
         )
 
     @staticmethod
     def has_any_transaction(user_id: int) -> bool:
         """Retorna True se o usuário possui ao menos uma transação cadastrada."""
         with get_session() as session:
-            return session.query(Transaction).filter_by(user_id=user_id).count() > 0
+            return (
+                session.query(Transaction).filter_by(user_id=user_id).count()
+                > 0
+            )
 
     @staticmethod
     def delete_transaction(user_id: int, id: int) -> None:
@@ -150,7 +164,9 @@ class TransactionsRepository:
     ) -> list[str]:
         """Retorna lista ordenada e única de descrições de transações, opcionalmente filtrada por categoria."""
         with get_session() as session:
-            transactions = session.query(Transaction).filter_by(user_id=user_id).all()
+            transactions = (
+                session.query(Transaction).filter_by(user_id=user_id).all()
+            )
 
         descriptions = []
         for transaction in transactions:
@@ -161,7 +177,9 @@ class TransactionsRepository:
         return sorted(set(descriptions))
 
     @staticmethod
-    def get_descriptions_with_counts(user_id: int, category_id: int) -> list[dict]:
+    def get_descriptions_with_counts(
+        user_id: int, category_id: int
+    ) -> list[dict]:
         """Retorna descrições únicas com contagem de transações para uma categoria, ordenadas alfabeticamente.
 
         Usa GROUP BY description_hash para evitar decrypt de todas as transações —
@@ -334,7 +352,9 @@ class TransactionsRepository:
         return sorted(years)
 
     @staticmethod
-    def list_installment_groups_with_future_installments(user_id: int) -> list[dict]:
+    def list_installment_groups_with_future_installments(
+        user_id: int,
+    ) -> list[dict]:
         """Retorna grupos de parcelas que possuem ao menos uma parcela futura.
 
         Considera como futura qualquer parcela cujo mês/ano seja posterior ao mês atual.
@@ -359,7 +379,9 @@ class TransactionsRepository:
             data = []
             for t, cat in rows:
                 t_dict = t.to_json()
-                t_dict["category"] = decrypt(cat.name) if cat else "(sem categoria)"
+                t_dict["category"] = (
+                    decrypt(cat.name) if cat else "(sem categoria)"
+                )
                 data.append(t_dict)
 
         groups: dict[str, dict] = {}
@@ -392,13 +414,17 @@ class TransactionsRepository:
         result = []
         for g in groups.values():
             if g["future_count"] > 0:
-                g["current_installment"] = g["installment_total"] - g["future_count"]
+                g["current_installment"] = (
+                    g["installment_total"] - g["future_count"]
+                )
                 result.append(g)
 
         return sorted(result, key=lambda x: x["description"] or "")
 
     @staticmethod
-    def advance_installments(user_id: int, installment_group: str, count: int) -> None:
+    def advance_installments(
+        user_id: int, installment_group: str, count: int
+    ) -> None:
         """Adianta as últimas N parcelas futuras de um grupo para o mês atual.
 
         As parcelas são selecionadas pelas maiores installment_number (as últimas).
@@ -427,7 +453,9 @@ class TransactionsRepository:
             future_txns = []
             for t in transactions:
                 try:
-                    txn_date = datetime.strptime(decrypt(t.date), "%Y-%m-%d").date()
+                    txn_date = datetime.strptime(
+                        decrypt(t.date), "%Y-%m-%d"
+                    ).date()
                 except (ValueError, TypeError):
                     continue
                 is_future = txn_date.year > today.year or (
@@ -439,7 +467,9 @@ class TransactionsRepository:
             if not future_txns:
                 return
 
-            future_txns.sort(key=lambda x: x[0].installment_number or 0, reverse=True)
+            future_txns.sort(
+                key=lambda x: x[0].installment_number or 0, reverse=True
+            )
             to_advance = future_txns[:count]
 
             original_day = to_advance[0][1].day
@@ -491,7 +521,9 @@ class TransactionsRepository:
 
         # ── Resumo mensal ──────────────────────────────────────────────────────
         entradas = sum(t["value"] for t in curr_month if t["type"] == "entrada")
-        saidas = sum(t["value"] for t in curr_month if t["type"] in ("saida", "ambos"))
+        saidas = sum(
+            t["value"] for t in curr_month if t["type"] in ("saida", "ambos")
+        )
         installment_saidas = sum(
             t["value"]
             for t in curr_month
@@ -499,7 +531,9 @@ class TransactionsRepository:
             and t.get("installment_number")
             and t["installment_number"] > 1
         )
-        pct_installments = (installment_saidas / saidas * 100) if saidas > 0 else 0.0
+        pct_installments = (
+            (installment_saidas / saidas * 100) if saidas > 0 else 0.0
+        )
         acc_in = sum(
             t["value"]
             for t in all_year
@@ -548,7 +582,9 @@ class TransactionsRepository:
         saida_cats = [c for c in all_cats if c["type"] in ("saida", "ambos")]
         saida_txns = [t for t in curr_month if t["type"] in ("saida", "ambos")]
         total_month = sum(t["value"] for t in saida_txns)
-        prev_saida = [t for t in prev_month_txns if t["type"] in ("saida", "ambos")]
+        prev_saida = [
+            t for t in prev_month_txns if t["type"] in ("saida", "ambos")
+        ]
 
         descriptions_by_cat = {}
         for cat in saida_cats:
@@ -569,9 +605,9 @@ class TransactionsRepository:
                 ),
                 "total": cat_total,
                 "total_prev": prev_cat_total,
-                "pct_of_month": (cat_total / total_month * 100)
-                if total_month > 0
-                else 0.0,
+                "pct_of_month": (
+                    (cat_total / total_month * 100) if total_month > 0 else 0.0
+                ),
             }
 
         # ── Gastos por categoria por dia ──────────────────────────────────────
@@ -598,7 +634,9 @@ class TransactionsRepository:
             "Nov",
             "Dez",
         ]
-        months_agg = {f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)}
+        months_agg = {
+            f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)
+        }
         for t in all_year:
             try:
                 m = datetime.strptime(t["date"], "%Y-%m-%d").strftime("%m")

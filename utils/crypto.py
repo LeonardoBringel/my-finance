@@ -9,7 +9,9 @@ load_dotenv()
 
 _key = os.getenv("FERNET_KEY")
 if not _key:
-    raise RuntimeError("FERNET_KEY not set in environment. Check your .env file.")
+    raise RuntimeError(
+        "FERNET_KEY not set in environment. Check your .env file."
+    )
 
 _fernet = Fernet(_key.encode() if isinstance(_key, str) else _key)
 

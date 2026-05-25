@@ -54,10 +54,14 @@ def upgrade():
     # 2) Encripta name e value de todas as linhas (idempotente)
     conn = op.get_bind()
     for table in _TABLES:
-        rows = conn.execute(sa.text(f"SELECT id, name, value FROM {table}")).fetchall()
+        rows = conn.execute(
+            sa.text(f"SELECT id, name, value FROM {table}")
+        ).fetchall()
         for row in rows:
             conn.execute(
-                sa.text(f"UPDATE {table} SET name = :n, value = :v WHERE id = :id"),
+                sa.text(
+                    f"UPDATE {table} SET name = :n, value = :v WHERE id = :id"
+                ),
                 {"n": _enc(row.name), "v": _enc(row.value), "id": row.id},
             )
 
@@ -66,10 +70,14 @@ def downgrade():
     # 1) Descriptografa name e value de volta para texto plano
     conn = op.get_bind()
     for table in _TABLES:
-        rows = conn.execute(sa.text(f"SELECT id, name, value FROM {table}")).fetchall()
+        rows = conn.execute(
+            sa.text(f"SELECT id, name, value FROM {table}")
+        ).fetchall()
         for row in rows:
             conn.execute(
-                sa.text(f"UPDATE {table} SET name = :n, value = :v WHERE id = :id"),
+                sa.text(
+                    f"UPDATE {table} SET name = :n, value = :v WHERE id = :id"
+                ),
                 {"n": _dec(row.name), "v": _dec(row.value), "id": row.id},
             )
 

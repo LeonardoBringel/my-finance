@@ -44,7 +44,9 @@ def test_rename_description_updates_rows_and_hash(db_session):
         uid, cat_id, "2026-05-03", "Farmacia", 30.0
     )
 
-    count = TransactionsRepository.rename_description(uid, cat_id, "Padaria", "Pão")
+    count = TransactionsRepository.rename_description(
+        uid, cat_id, "Padaria", "Pão"
+    )
     assert count == 2
 
     txns = TransactionsRepository.list_transactions(uid)
@@ -54,7 +56,9 @@ def test_rename_description_updates_rows_and_hash(db_session):
     assert descriptions.count("Farmacia") == 1
 
     rows = db_session.query(Transaction).filter_by(user_id=uid).all()
-    renamed = [r for r in rows if r.description and decrypt(r.description) == "Pão"]
+    renamed = [
+        r for r in rows if r.description and decrypt(r.description) == "Pão"
+    ]
     assert len(renamed) == 2
     for row in renamed:
         assert row.description_hash == hash_for_lookup("Pão")
@@ -66,8 +70,12 @@ def test_delete_description_nulls_rows(db_session):
     uid = _seed_user()
     cat_id = _make_category(uid, "Transporte", "saida")
 
-    TransactionsRepository.create_transaction(uid, cat_id, "2026-05-01", "Uber", 15.0)
-    TransactionsRepository.create_transaction(uid, cat_id, "2026-05-02", "Uber", 25.0)
+    TransactionsRepository.create_transaction(
+        uid, cat_id, "2026-05-01", "Uber", 15.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cat_id, "2026-05-02", "Uber", 25.0
+    )
 
     count = TransactionsRepository.delete_description(uid, cat_id, "Uber")
     assert count == 2
@@ -88,7 +96,9 @@ def test_migrate_description_moves_category_and_desc(db_session):
     TransactionsRepository.create_transaction(uid, a_id, "2026-05-01", "X", 5.0)
     TransactionsRepository.create_transaction(uid, a_id, "2026-05-02", "X", 7.0)
 
-    count = TransactionsRepository.migrate_description(uid, a_id, "X", b_id, "Y")
+    count = TransactionsRepository.migrate_description(
+        uid, a_id, "X", b_id, "Y"
+    )
     assert count == 2
 
     rows = db_session.query(Transaction).filter_by(user_id=uid).all()

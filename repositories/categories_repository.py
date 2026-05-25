@@ -23,7 +23,9 @@ class CategoriesRepository:
         ):
             return (False, "Categoria já existe")
         with get_session() as session:
-            category = Category(name=encrypt(name), type=encrypt(type), user_id=user_id)
+            category = Category(
+                name=encrypt(name), type=encrypt(type), user_id=user_id
+            )
             session.add(category)
             session.commit()
         return (True, "Categoria adicionada!")
@@ -39,12 +41,17 @@ class CategoriesRepository:
         """
         user_categories = CategoriesRepository.list_categories(user_id)
         if any(
-            user_category["name"].lower() == name.lower() and user_category["id"] != id
+            user_category["name"].lower() == name.lower()
+            and user_category["id"] != id
             for user_category in user_categories
         ):
             return (False, "Nome já existe.")
         with get_session() as session:
-            category = session.query(Category).filter_by(user_id=user_id, id=id).first()
+            category = (
+                session.query(Category)
+                .filter_by(user_id=user_id, id=id)
+                .first()
+            )
             if not category:
                 return (False, "Categoria não encontrada.")
             category.name = encrypt(name)
@@ -64,7 +71,9 @@ class CategoriesRepository:
             Lista de dicts representando as categorias.
         """
         with get_session() as session:
-            categories = session.query(Category).filter_by(user_id=user_id).all()
+            categories = (
+                session.query(Category).filter_by(user_id=user_id).all()
+            )
             result = sorted(
                 [category.to_json() for category in categories],
                 key=lambda x: x["name"],
@@ -77,7 +86,9 @@ class CategoriesRepository:
     def has_any_category(user_id: int) -> bool:
         """Retorna True se o usuário possui ao menos uma categoria cadastrada."""
         with get_session() as session:
-            return session.query(Category).filter_by(user_id=user_id).count() > 0
+            return (
+                session.query(Category).filter_by(user_id=user_id).count() > 0
+            )
 
     @staticmethod
     def get_transaction_counts_by_category(user_id: int) -> dict[int, int]:
@@ -88,7 +99,9 @@ class CategoriesRepository:
         """
         with get_session() as session:
             rows = (
-                session.query(Transaction.category_id, func.count(Transaction.id))
+                session.query(
+                    Transaction.category_id, func.count(Transaction.id)
+                )
                 .filter(
                     Transaction.user_id == user_id,
                     Transaction.category_id.isnot(None),

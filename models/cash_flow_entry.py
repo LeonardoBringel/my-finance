@@ -20,7 +20,9 @@ class CashFlowEntry(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     month_id = Column(
-        Integer, ForeignKey("cash_flow_months.id", ondelete="CASCADE"), nullable=False
+        Integer,
+        ForeignKey("cash_flow_months.id", ondelete="CASCADE"),
+        nullable=False,
     )
     name = Column(Text, nullable=False)  # criptografado
     day = Column(Integer, nullable=False)

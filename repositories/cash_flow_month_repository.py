@@ -25,7 +25,9 @@ class CashFlowMonthRepository:
                 .order_by(CashFlowMonth.month)
                 .all()
             )
-            return [{"id": m.id, "year": m.year, "month": m.month} for m in months]
+            return [
+                {"id": m.id, "year": m.year, "month": m.month} for m in months
+            ]
 
     @staticmethod
     def list_months_with_entries(user_id: int, year: int) -> list[dict]:
@@ -54,7 +56,9 @@ class CashFlowMonthRepository:
             return [CashFlowMonthRepository._month_to_dict(m) for m in months]
 
     @staticmethod
-    def get_month_with_entries(user_id: int, year: int, month: int) -> dict | None:
+    def get_month_with_entries(
+        user_id: int, year: int, month: int
+    ) -> dict | None:
         """Retorna um mês com todos os seus lançamentos, ou None se não existir."""
         with get_session() as s:
             m = (

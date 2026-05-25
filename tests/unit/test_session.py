@@ -34,7 +34,10 @@ def test_decode_token_without_version_claim():
 def test_expired_token_returns_none():
     """Token com exp no passado é considerado inválido e retorna None."""
     expired = jwt.encode(
-        {"user_id": 1, "exp": datetime.now(timezone.utc) - timedelta(seconds=1)},
+        {
+            "user_id": 1,
+            "exp": datetime.now(timezone.utc) - timedelta(seconds=1),
+        },
         _SECRET,
         algorithm="HS256",
     )

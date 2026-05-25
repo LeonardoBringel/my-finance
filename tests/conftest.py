@@ -60,7 +60,9 @@ def pytest_collection_modifyitems(config, items):
     """Auto-skip integration-marked tests when Docker is unavailable."""
     if DOCKER_AVAILABLE:
         return
-    skip = pytest.mark.skip(reason="Docker unavailable; integration suite skipped")
+    skip = pytest.mark.skip(
+        reason="Docker unavailable; integration suite skipped"
+    )
     for item in items:
         if "integration" in item.keywords:
             item.add_marker(skip)
@@ -105,7 +107,8 @@ def pg_engine():
         )
         if result.returncode != 0:
             raise RuntimeError(
-                "alembic upgrade head failed:\n" f"{result.stdout}\n{result.stderr}"
+                "alembic upgrade head failed:\n"
+                f"{result.stdout}\n{result.stderr}"
             )
 
         engine = create_engine(url, pool_pre_ping=True)

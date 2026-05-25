@@ -30,7 +30,9 @@ def test_add_entry_stores_ciphertext_and_reads_plaintext(db_session):
     uid = _seed_user()
     month = CashFlowMonthRepository.create_month(uid, 2026, 3)
 
-    CashFlowEntryRepository.add_entry(month["id"], "Aluguel", 10, 1500.0, "saida")
+    CashFlowEntryRepository.add_entry(
+        month["id"], "Aluguel", 10, 1500.0, "saida"
+    )
 
     row = db_session.query(CashFlowEntry).filter_by(month_id=month["id"]).one()
     assert row.name != "Aluguel"

@@ -36,7 +36,10 @@ class CashFlowMonth(Base):
     __table_args__ = (
         Index("ix_cash_flow_months_user_year", "user_id", "year"),
         UniqueConstraint(
-            "user_id", "year", "month", name="uq_cash_flow_months_user_year_month"
+            "user_id",
+            "year",
+            "month",
+            name="uq_cash_flow_months_user_year_month",
         ),
     )
 

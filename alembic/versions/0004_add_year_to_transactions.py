@@ -16,8 +16,12 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column("transactions", sa.Column("year", sa.Integer(), nullable=True))
-    op.create_index("ix_transactions_user_year", "transactions", ["user_id", "year"])
+    op.add_column(
+        "transactions", sa.Column("year", sa.Integer(), nullable=True)
+    )
+    op.create_index(
+        "ix_transactions_user_year", "transactions", ["user_id", "year"]
+    )
 
     # Backfill year for all existing transactions
     from utils.crypto import decrypt

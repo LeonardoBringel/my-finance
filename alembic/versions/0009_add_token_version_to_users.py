@@ -18,7 +18,9 @@ depends_on = None
 def upgrade():
     op.add_column(
         "users",
-        sa.Column("token_version", sa.Integer(), nullable=False, server_default="0"),
+        sa.Column(
+            "token_version", sa.Integer(), nullable=False, server_default="0"
+        ),
     )
 
 

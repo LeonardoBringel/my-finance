@@ -38,7 +38,9 @@ class CashFlowTemplateRepository:
                 s.add(tmpl)
                 s.flush()
             else:
-                s.query(CashFlowTemplateItem).filter_by(template_id=tmpl.id).delete()
+                s.query(CashFlowTemplateItem).filter_by(
+                    template_id=tmpl.id
+                ).delete()
             for item in items:
                 s.add(
                     CashFlowTemplateItem(

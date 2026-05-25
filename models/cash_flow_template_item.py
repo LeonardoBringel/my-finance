@@ -32,6 +32,8 @@ class CashFlowTemplateItem(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    __table_args__ = (Index("ix_cash_flow_template_items_template_id", "template_id"),)
+    __table_args__ = (
+        Index("ix_cash_flow_template_items_template_id", "template_id"),
+    )
 
     template = relationship("CashFlowTemplate", back_populates="items")

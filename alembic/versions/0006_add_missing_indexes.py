@@ -25,7 +25,9 @@ def upgrade():
         "cash_flow_months",
         ["user_id", "year", "month"],
     )
-    op.create_index("ix_cash_flow_entries_month_id", "cash_flow_entries", ["month_id"])
+    op.create_index(
+        "ix_cash_flow_entries_month_id", "cash_flow_entries", ["month_id"]
+    )
     op.create_index(
         "ix_cash_flow_template_items_template_id",
         "cash_flow_template_items",
@@ -38,8 +40,14 @@ def downgrade():
         "ix_cash_flow_template_items_template_id",
         table_name="cash_flow_template_items",
     )
-    op.drop_index("ix_cash_flow_entries_month_id", table_name="cash_flow_entries")
-    op.drop_constraint(
-        "uq_cash_flow_months_user_year_month", "cash_flow_months", type_="unique"
+    op.drop_index(
+        "ix_cash_flow_entries_month_id", table_name="cash_flow_entries"
     )
-    op.drop_index("ix_cash_flow_months_user_year", table_name="cash_flow_months")
+    op.drop_constraint(
+        "uq_cash_flow_months_user_year_month",
+        "cash_flow_months",
+        type_="unique",
+    )
+    op.drop_index(
+        "ix_cash_flow_months_user_year", table_name="cash_flow_months"
+    )

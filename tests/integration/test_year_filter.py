@@ -24,7 +24,9 @@ def _seed_multi_year(db_session):
     uid = UsersRepository.create_user("alice", "password")["id"]
     CategoriesRepository.create_category(uid, "Salario", "entrada")
     CategoriesRepository.create_category(uid, "Mercado", "saida")
-    cats = {c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)}
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
 
     TransactionsRepository.create_transaction(
         uid, cats["Salario"], "2024-05-10", "2024 A", 1000.0
@@ -50,7 +52,9 @@ def test_year_filter_matches_python_filter(db_session):
 
     all_txns = TransactionsRepository.list_transactions(uid)
     expected = [
-        t for t in all_txns if datetime.strptime(t["date"], "%Y-%m-%d").year == 2026
+        t
+        for t in all_txns
+        if datetime.strptime(t["date"], "%Y-%m-%d").year == 2026
     ]
 
     got = TransactionsRepository.list_transactions(uid, year=2026)
