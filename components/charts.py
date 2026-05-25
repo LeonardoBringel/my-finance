@@ -262,21 +262,3 @@ def expenses_by_day_chart(
         bargap=0.15,
     )
     return fig
-
-
-def saldo_gauge(saldo, max_val):
-    color = GREEN_MAIN if saldo >= 0 else RED_MAIN
-    ratio = max(0, min(1, saldo / max_val)) if max_val else 0
-
-    fig = go.Figure(
-        go.Pie(
-            values=[ratio, 1 - ratio],
-            hole=0.6,
-            marker=dict(colors=[color, GRID_COLOR]),
-            textinfo="none",
-            hoverinfo="skip",
-            sort=False,
-        )
-    )
-    fig.update_layout(**_base_layout())
-    return fig
