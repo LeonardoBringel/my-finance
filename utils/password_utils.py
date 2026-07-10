@@ -1,5 +1,7 @@
 import bcrypt
 
+from utils.i18n import t
+
 MIN_PASSWORD_LENGTH = 8
 
 
@@ -18,7 +20,7 @@ def validate_password(password: str) -> tuple[bool, str]:
     if not password or len(password) < MIN_PASSWORD_LENGTH:
         return (
             False,
-            f"A senha deve ter ao menos {MIN_PASSWORD_LENGTH} caracteres.",
+            t("messages.password.too_short", min_length=MIN_PASSWORD_LENGTH),
         )
     return True, ""
 

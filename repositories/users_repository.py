@@ -1,6 +1,7 @@
 from models import User
 from utils import password_utils
 from utils.crypto import encrypt, hash_for_lookup
+from utils.i18n import t
 
 from .base_repository import get_session
 
@@ -58,17 +59,17 @@ class UsersRepository:
         with get_session() as session:
             user = session.get(User, user_id)
             if not user:
-                return (False, "Usuário não encontrado.")
+                return (False, t("messages.users.not_found"))
             if not force_as_admin:
                 if not password_utils.verify_password(
                     current_password, user.password_hash
                 ):
-                    return (False, "Senha atual incorreta.")
+                    return (False, t("messages.password.current_incorrect"))
             user.password_hash = password_utils.hash_password(new_password)
             # Incrementa a versão de sessão para invalidar tokens já emitidos.
             user.token_version = (user.token_version or 0) + 1
             session.commit()
-        return (True, "Senha alterada com sucesso!")
+        return (True, t("messages.password.changed"))
 
     @staticmethod
     def update_user_password(
@@ -107,10 +108,10 @@ class UsersRepository:
         with get_session() as session:
             user = session.get(User, user_id)
             if not user:
-                return False, "Usuário não encontrado."
+                return False, t("messages.users.not_found")
             session.delete(user)
             session.commit()
-        return True, "Usuário removido."
+        return True, t("messages.users.removed")
 
     @staticmethod
     def get_user_by_id(user_id: int) -> dict | None:

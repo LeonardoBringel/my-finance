@@ -14,6 +14,33 @@
       "ambos": "🔄 Ambos"
     }
   },
+  "messages": {
+    "auth": {
+      "invalid_credentials": "Usuário ou senha inválidos.",
+      "login_success": "Login realizado com sucesso!",
+      "username_taken": "Usuário já existe.",
+      "user_created": "Usuário '{username}' criado!",
+      "user_created_admin": "Usuário '{username}' criado! (admin)"
+    },
+    "password": {
+      "too_short": "A senha deve ter ao menos {min_length} caracteres.",
+      "current_incorrect": "Senha atual incorreta.",
+      "changed": "Senha alterada com sucesso!"
+    },
+    "categories": {
+      "already_exists": "Categoria já existe",
+      "name_taken": "Nome já existe.",
+      "not_found": "Categoria não encontrada.",
+      "not_found_on_delete": "Categoria não encontrada",
+      "added": "Categoria adicionada!",
+      "updated": "Categoria atualizada!",
+      "removed": "Categoria removida"
+    },
+    "users": {
+      "not_found": "Usuário não encontrado.",
+      "removed": "Usuário removido."
+    }
+  },
   "charts": {
     "expenses_bar_title": "Detalhamento Despesas",
     "annual_evolution_title": "📈 Evolução Anual do Saldo",

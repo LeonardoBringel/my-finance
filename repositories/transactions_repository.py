@@ -7,6 +7,7 @@ from sqlalchemy import update as sa_update
 
 from models import Category, Transaction
 from repositories.categories_repository import CategoriesRepository
+from utils import i18n
 from utils.category_types import (
     EXPENSE,
     is_expense,
@@ -16,6 +17,10 @@ from utils.category_types import (
 from utils.crypto import decrypt, encrypt, hash_for_lookup
 
 from .base_repository import get_session
+
+# Resolvido no import: `t` é nome de variável de transação em todo este módulo,
+# então a função `t()` do i18n não pode ser importada diretamente aqui.
+_NO_DESCRIPTION = i18n.t("common.no_description")
 
 
 class TransactionsRepository:
@@ -606,7 +611,7 @@ class TransactionsRepository:
             cat_txns = [t for t in detail_txns if t["category"] == cat["name"]]
             totals: dict[str, float] = {}
             for t in cat_txns:
-                desc = t["description"] or "(sem descrição)"
+                desc = t["description"] or _NO_DESCRIPTION
                 totals[desc] = totals.get(desc, 0) + t["value"]
             cat_total = sum(totals.values())
             # total_prev olha o mês anterior no mesmo tipo da categoria.

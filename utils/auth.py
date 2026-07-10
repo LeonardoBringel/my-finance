@@ -5,6 +5,7 @@ import streamlit as st
 from streamlit_cookies_controller import CookieController
 
 from repositories import UsersRepository
+from utils.i18n import t
 from utils.password_utils import validate_password
 from utils.session import (
     COOKIE_NAME,
@@ -135,14 +136,14 @@ def login(username: str, password: str) -> tuple[bool, str]:
     current_user = UsersRepository.login(username, password)
     if not current_user:
         _log_failed_login(_get_client_ip())
-        return False, "Usuário ou senha inválidos."
+        return False, t("messages.auth.invalid_credentials")
     st.session_state["current_user"] = current_user
     st.session_state.pop("_logged_out", None)
     token = create_session_token(
         current_user["id"], current_user["token_version"]
     )
     _set_session_cookie(token)
-    return True, "Login realizado com sucesso!"
+    return True, t("messages.auth.login_success")
 
 
 def logout() -> None:
@@ -166,8 +167,8 @@ def create_user(username: str, password: str) -> tuple[bool, str]:
     if not ok:
         return False, msg
     if not UsersRepository.is_username_available(username):
-        return False, "Usuário já existe."
+        return False, t("messages.auth.username_taken")
     user = UsersRepository.create_user(username, password)
-    return True, f"Usuário '{username}' criado!" + (
-        " (admin)" if user["is_admin"] else ""
-    )
+    if user["is_admin"]:
+        return True, t("messages.auth.user_created_admin", username=username)
+    return True, t("messages.auth.user_created", username=username)

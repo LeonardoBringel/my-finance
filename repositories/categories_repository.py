@@ -2,6 +2,7 @@ from sqlalchemy import func
 
 from models import Category, Transaction
 from utils.crypto import encrypt
+from utils.i18n import t
 
 from .base_repository import get_session
 
@@ -21,14 +22,14 @@ class CategoriesRepository:
             user_category["name"].lower() == name.lower()
             for user_category in user_categories
         ):
-            return (False, "Categoria já existe")
+            return (False, t("messages.categories.already_exists"))
         with get_session() as session:
             category = Category(
                 name=encrypt(name), type=encrypt(type), user_id=user_id
             )
             session.add(category)
             session.commit()
-        return (True, "Categoria adicionada!")
+        return (True, t("messages.categories.added"))
 
     @staticmethod
     def update_category(
@@ -45,7 +46,7 @@ class CategoriesRepository:
             and user_category["id"] != id
             for user_category in user_categories
         ):
-            return (False, "Nome já existe.")
+            return (False, t("messages.categories.name_taken"))
         with get_session() as session:
             category = (
                 session.query(Category)
@@ -53,11 +54,11 @@ class CategoriesRepository:
                 .first()
             )
             if not category:
-                return (False, "Categoria não encontrada.")
+                return (False, t("messages.categories.not_found"))
             category.name = encrypt(name)
             category.type = encrypt(type)
             session.commit()
-        return (True, "Categoria atualizada!")
+        return (True, t("messages.categories.updated"))
 
     @staticmethod
     def list_categories(user_id: int, type_: str | None = None) -> list[dict]:
@@ -121,7 +122,7 @@ class CategoriesRepository:
         with get_session() as session:
             category = session.get(Category, id)
             if not category or category.user_id != user_id:
-                return False, "Categoria não encontrada"
+                return False, t("messages.categories.not_found_on_delete")
             session.delete(category)
             session.commit()
-        return (True, "Categoria removida")
+        return (True, t("messages.categories.removed"))
