@@ -241,12 +241,7 @@ with col_right:
         cats.append(INVESTMENT_BAR_LABEL)
         vals.append(summary["investimentos"])
     st.plotly_chart(
-        bar_chart_expenses(
-            cats,
-            vals,
-            "📊 Detalhamento Despesas",
-            investment_label=INVESTMENT_BAR_LABEL,
-        ),
+        bar_chart_expenses(cats, vals, "📊 Detalhamento Despesas"),
         width="stretch",
         key="bar_exp",
     )
@@ -264,20 +259,30 @@ st.markdown("### 🔍 Detalhamento por Categoria")
 
 MAX_COLS = 4
 cat_names = list(desc_by_cat.keys())
+expense_cats = [
+    c for c in cat_names if not is_investment(desc_by_cat[c]["type"])
+]
+investment_cats = [
+    c for c in cat_names if is_investment(desc_by_cat[c]["type"])
+]
 
-if not cat_names:
-    st.info("Nenhuma categoria de saída ou investimento cadastrada.")
-else:
-    for row_start in range(0, len(cat_names), MAX_COLS):
-        row_cats = cat_names[row_start : row_start + MAX_COLS]
+
+def render_cat_donuts(names: list[str]) -> None:
+    """Renderiza uma grade de donuts de descrições, um por categoria.
+
+    Args:
+        names: Nomes das categorias a exibir, na ordem desejada.
+    """
+    for row_start in range(0, len(names), MAX_COLS):
+        row_cats = names[row_start : row_start + MAX_COLS]
         cols = st.columns(MAX_COLS)
-        for i in range(MAX_COLS):
-            with cols[i]:
-                if i >= len(row_cats):
+        for col_idx in range(MAX_COLS):
+            with cols[col_idx]:
+                if col_idx >= len(row_cats):
                     st.empty()
                     continue
 
-                cat_name = row_cats[i]
+                cat_name = row_cats[col_idx]
                 data = desc_by_cat[cat_name]
                 total = data["total"]
                 pct = data["pct_of_month"]
@@ -308,12 +313,23 @@ else:
                 if not items:
                     fig = donut_chart([], [], "")
                 else:
-                    labels = [i["description"] for i in items]
-                    values = [i["total"] for i in items]
+                    labels = [it["description"] for it in items]
+                    values = [it["total"] for it in items]
                     fig = donut_chart(labels, values, "")
                 st.plotly_chart(
                     fig, width="stretch", key=f"donut_cat_{cat_name}"
                 )
+
+
+if not cat_names:
+    st.info("Nenhuma categoria de saída ou investimento cadastrada.")
+else:
+    if expense_cats:
+        st.markdown("#### 💸 Despesas")
+        render_cat_donuts(expense_cats)
+    if investment_cats:
+        st.markdown("#### 📈 Investimentos")
+        render_cat_donuts(investment_cats)
 
 # ── Gastos por Categoria por Dia ───────────────────────────────────────────────
 st.divider()
