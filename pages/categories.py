@@ -13,7 +13,8 @@ from components.styles import (
 )
 from repositories import CategoriesRepository, TransactionsRepository
 from utils.auth import require_login
-from utils.category_types import ALL_TYPES, TYPE_LABELS, migration_targets
+from utils.category_types import ALL_TYPES, TYPE_LABELS
+from utils.filters import ALL_FILTER, migration_targets
 
 inject_global_css()
 
@@ -116,12 +117,12 @@ txn_counts = CategoriesRepository.get_transaction_counts_by_category(user_id)
 
 f_type = st.selectbox(
     "Filtrar por tipo",
-    ["Todos", *ALL_TYPES],
-    format_func=lambda x: "Todos" if x == "Todos" else TYPE_LABELS[x],
+    [ALL_FILTER, *ALL_TYPES],
+    format_func=lambda x: "Todos" if x == ALL_FILTER else TYPE_LABELS[x],
 )
 
 categories = all_categories
-if f_type != "Todos":
+if f_type != ALL_FILTER:
     categories = [c for c in all_categories if c["type"] == f_type]
 
 st.markdown(f"**{len(categories)} categoria(s)**")

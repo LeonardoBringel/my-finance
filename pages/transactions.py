@@ -30,6 +30,7 @@ from utils.category_types import (
     is_income,
     is_investment,
 )
+from utils.filters import ALL_FILTER
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
@@ -135,20 +136,25 @@ with st.expander("🔍 Filtros", expanded=True):
     with col2:
         f_type = st.selectbox(
             "Tipo",
-            ["Todos", *TRANSACTION_TYPES],
-            format_func=lambda x: "Todos" if x == "Todos" else TYPE_LABELS[x],
+            [ALL_FILTER, *TRANSACTION_TYPES],
+            format_func=lambda x: (
+                "Todos" if x == ALL_FILTER else TYPE_LABELS[x]
+            ),
             key=f"f_type_{v}",
         )
 
     col3, col4 = st.columns(2)
     with col3:
-        cat_type_filter = None if f_type == "Todos" else f_type
+        cat_type_filter = None if f_type == ALL_FILTER else f_type
         all_cats = CategoriesRepository.list_categories(
             user_id, type_=cat_type_filter
         )
-        cat_options = ["Todas"] + [c["name"] for c in all_cats]
+        cat_options = [ALL_FILTER] + [c["name"] for c in all_cats]
         f_cat_name = st.selectbox(
-            "Categoria", cat_options, key=f"f_cat_{v}_{f_type}"
+            "Categoria",
+            cat_options,
+            format_func=lambda x: "Todas" if x == ALL_FILTER else x,
+            key=f"f_cat_{v}_{f_type}",
         )
         f_cat_id = next(
             (c["id"] for c in all_cats if c["name"] == f_cat_name), None
@@ -160,7 +166,8 @@ with st.expander("🔍 Filtros", expanded=True):
         )
         f_desc = st.selectbox(
             "Descrição",
-            ["Todas"] + desc_options,
+            [ALL_FILTER] + desc_options,
+            format_func=lambda x: "Todas" if x == ALL_FILTER else x,
             disabled=not f_cat_id,
             help="Selecione uma categoria primeiro" if not f_cat_id else None,
             key=f"f_desc_{v}",
@@ -193,13 +200,13 @@ transactions = TransactionsRepository.list_transactions(
     user_id, date_from=f_date_from, date_to=f_date_to
 )
 
-if f_type != "Todos":
+if f_type != ALL_FILTER:
     transactions = [t for t in transactions if t["type"] == f_type]
 
-if f_cat_name != "Todas":
+if f_cat_name != ALL_FILTER:
     transactions = [t for t in transactions if t["category"] == f_cat_name]
 
-if f_desc != "Todas":
+if f_desc != ALL_FILTER:
     transactions = [t for t in transactions if t["description"] == f_desc]
 
 # ── Métricas de resumo ─────────────────────────────────────────────────────────
