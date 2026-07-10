@@ -3,6 +3,8 @@ import calendar
 import plotly.express as px
 import plotly.graph_objects as go
 
+from utils.i18n import t
+
 # ── Color palette ──────────────────────────────────────────────────────────────
 GREEN_MAIN = "#4CAF50"
 GREEN_LIGHT = "#81C784"
@@ -49,7 +51,7 @@ def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
     if not values or sum(values) == 0:
         fig = go.Figure()
         fig.add_annotation(
-            text="Sem dados",
+            text=t("common.no_data"),
             x=0.5,
             y=0.5,
             showarrow=False,
@@ -65,14 +67,14 @@ def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
             hole=0.6,
             marker=dict(colors=colors or EXPENSE_COLORS),
             textinfo="percent",
-            hovertemplate="<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
+            hovertemplate=t("charts.hover.donut"),
         )
     )
     fig.update_layout(**_base_layout(title))
     return fig
 
 
-def bar_chart_expenses(categories, values, title="Detalhamento Despesas"):
+def bar_chart_expenses(categories, values, title: str | None = None):
     """Barras de detalhamento de despesas (+ barra agregada de investimento).
 
     Args:
@@ -82,16 +84,17 @@ def bar_chart_expenses(categories, values, title="Detalhamento Despesas"):
             denominador dos percentuais é ``sum(values)``, de modo que anexar a
             barra de investimento a ``values`` já produz o denominador
             "despesas + investimentos".
-        title: Título do gráfico.
+        title: Título do gráfico; usa o padrão do mapping quando omitido.
 
     Returns:
         go.Figure com uma barra por categoria.
     """
+    title = t("charts.expenses_bar_title") if title is None else title
     total = sum(values) if values else 0
     if not categories or total == 0:
         fig = go.Figure()
         fig.add_annotation(
-            text="Sem dados",
+            text=t("common.no_data"),
             x=0.5,
             y=0.5,
             showarrow=False,
@@ -105,7 +108,7 @@ def bar_chart_expenses(categories, values, title="Detalhamento Despesas"):
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
-            name="Total",
+            name=t("charts.series.total"),
             x=categories,
             y=values,
             marker_color=GREEN_MAIN,
@@ -113,7 +116,7 @@ def bar_chart_expenses(categories, values, title="Detalhamento Despesas"):
             textposition="outside",
             textfont=dict(color=TEXT_COLOR, size=11),
             customdata=pct,
-            hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<br>%{customdata:.1f}% do mês<extra></extra>",
+            hovertemplate=t("charts.hover.expenses_bar"),
         )
     )
     fig.update_layout(
@@ -134,9 +137,7 @@ def bar_chart_expenses(categories, values, title="Detalhamento Despesas"):
     return fig
 
 
-def annual_evolution_chart(
-    data: list[dict], title="📈 Evolução Anual do Saldo"
-):
+def annual_evolution_chart(data: list[dict], title: str | None = None):
     """
     Combo chart: bars for entrada/saida, line for cumulative saldo.
 
@@ -148,13 +149,14 @@ def annual_evolution_chart(
 
     data: list of { month_label, entrada, saida, investimento, saldo_acumulado }
     """
+    title = t("charts.annual_evolution_title") if title is None else title
     if not data or all(
         d["entrada"] == 0 and d["saida"] == 0 and d["investimento"] == 0
         for d in data
     ):
         fig = go.Figure()
         fig.add_annotation(
-            text="Sem dados",
+            text=t("common.no_data"),
             x=0.5,
             y=0.5,
             showarrow=False,
@@ -186,7 +188,7 @@ def annual_evolution_chart(
 
     fig.add_trace(
         go.Bar(
-            name="Entradas",
+            name=t("charts.series.income"),
             x=idx,
             y=pintada,
             offsetgroup="in",
@@ -195,14 +197,14 @@ def annual_evolution_chart(
             marker_color=GREEN_LIGHT,
             opacity=0.85,
             customdata=list(zip(labels, entradas)),
-            hovertemplate="<b>%{customdata[0]}</b><br>Entradas: R$ %{customdata[1]:,.2f}<extra></extra>",
+            hovertemplate=t("charts.hover.income"),
         )
     )
     # Barra invisível: empilha sobre a pintada e serve o tooltip. O visual dela
     # são os shapes tracejados adicionados abaixo (go.Bar não aceita line.dash).
     fig.add_trace(
         go.Bar(
-            name="Investido",
+            name=t("charts.series.invested"),
             x=idx,
             y=investimentos,
             offsetgroup="in",
@@ -211,13 +213,13 @@ def annual_evolution_chart(
             marker=dict(color="rgba(0,0,0,0)"),
             showlegend=False,
             customdata=list(zip(labels, invest_pct)),
-            hovertemplate="<b>%{customdata[0]}</b><br>Investido: R$ %{y:,.2f}<br>%{customdata[1]:.1f}% da entrada<extra></extra>",
+            hovertemplate=t("charts.hover.invested"),
         )
     )
     # Trace fantasma: rende apenas o item tracejado na legenda.
     fig.add_trace(
         go.Scatter(
-            name="Investido",
+            name=t("charts.series.invested"),
             x=[None],
             y=[None],
             mode="lines",
@@ -227,7 +229,7 @@ def annual_evolution_chart(
     )
     fig.add_trace(
         go.Bar(
-            name="Saídas",
+            name=t("charts.series.expenses"),
             x=idx,
             y=saidas,
             offsetgroup="out",
@@ -236,12 +238,12 @@ def annual_evolution_chart(
             marker_color=RED_MAIN,
             opacity=0.85,
             customdata=labels,
-            hovertemplate="<b>%{customdata}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
+            hovertemplate=t("charts.hover.expenses"),
         )
     )
     fig.add_trace(
         go.Scatter(
-            name="Saldo Acumulado",
+            name=t("charts.series.cumulative_balance"),
             x=idx,
             y=saldos,
             mode="lines+markers",
@@ -249,7 +251,7 @@ def annual_evolution_chart(
             marker=dict(size=7),
             yaxis="y2",
             customdata=labels,
-            hovertemplate="<b>%{customdata}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
+            hovertemplate=t("charts.hover.cumulative_balance"),
         )
     )
 
@@ -322,7 +324,7 @@ def expenses_by_day_chart(
     if not data:
         fig = go.Figure()
         fig.add_annotation(
-            text="Sem dados",
+            text=t("common.no_data"),
             x=0.5,
             y=0.5,
             showarrow=False,
@@ -344,7 +346,7 @@ def expenses_by_day_chart(
                 x=days,
                 y=values,
                 marker_color=color,
-                hovertemplate=f"<b>{cat}</b><br>Dia %{{x}}<br>R$ %{{y:,.2f}}<extra></extra>",
+                hovertemplate=t("charts.hover.by_day", category=cat),
             )
         )
 
@@ -362,7 +364,10 @@ def expenses_by_day_chart(
             tickfont=dict(color=TEXT_COLOR),
             tickmode="linear",
             dtick=1,
-            title=dict(text="Dia do mês", font=dict(color=TEXT_COLOR)),
+            title=dict(
+                text=t("charts.axis.day_of_month"),
+                font=dict(color=TEXT_COLOR),
+            ),
         ),
         yaxis=dict(
             showgrid=True,
