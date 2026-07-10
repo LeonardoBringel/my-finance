@@ -19,7 +19,11 @@ from repositories import (
     TransactionsRepository,
 )
 from utils.auth import logout, require_login
+from utils.category_types import is_investment
 from utils.data_format_utils import MONTH_NAMES, format_currency
+
+# Rótulo da barra que agrega todas as categorias de investimento do mês.
+INVESTMENT_BAR_LABEL = "Investimentos"
 
 st.set_page_config(
     page_title="Gestão Financeira",
@@ -179,20 +183,27 @@ st.markdown(f"### 📊 Dashboard — {selected_month_name} / {selected_year}")
 st.divider()
 
 # ── KPI Cards ──────────────────────────────────────────────────────────────────
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6 = st.columns(6)
 with col1:
     st.metric("💰 Entradas do Mês", format_currency(summary["entradas"]))
 with col2:
     st.metric("💸 Despesas do Mês", format_currency(summary["saidas"]))
 with col3:
+    st.metric(
+        "📈 Investido no Mês",
+        format_currency(summary["investimentos"]),
+        help="Aportes do mês. Não contam como despesa e não afetam o saldo",
+    )
+with col4:
     saldo = summary["saldo"]
     st.metric(
-        "📈 Saldo do Mês",
+        "⚖️ Saldo do Mês",
         "",
         delta=format_currency(saldo),
         delta_color="normal" if saldo >= 0 else "inverse",
+        help="Entradas menos despesas. Investimentos não são descontados",
     )
-with col4:
+with col5:
     sacc = summary["saldo_acumulado"]
     st.metric(
         "🏦 Saldo Acumulado",
@@ -200,7 +211,7 @@ with col4:
         delta=format_currency(sacc),
         delta_color="normal" if sacc >= 0 else "inverse",
     )
-with col5:
+with col6:
     pct_inst = summary["pct_installments"]
     st.metric(
         "🔄 Parcelas (meses ant.)",
@@ -224,8 +235,18 @@ with col_left:
 with col_right:
     cats = [r["category"] for r in expenses_by_cat]
     vals = [r["total"] for r in expenses_by_cat]
+    # A barra agregada de investimento entra no mesmo gráfico para que o
+    # denominador dos percentuais vire "despesas + investimentos".
+    if summary["investimentos"] > 0:
+        cats.append(INVESTMENT_BAR_LABEL)
+        vals.append(summary["investimentos"])
     st.plotly_chart(
-        bar_chart_expenses(cats, vals, vals, "📊 Detalhamento Despesas"),
+        bar_chart_expenses(
+            cats,
+            vals,
+            "📊 Detalhamento Despesas",
+            investment_label=INVESTMENT_BAR_LABEL,
+        ),
         width="stretch",
         key="bar_exp",
     )
@@ -245,7 +266,7 @@ MAX_COLS = 4
 cat_names = list(desc_by_cat.keys())
 
 if not cat_names:
-    st.info("Nenhuma categoria de saída cadastrada.")
+    st.info("Nenhuma categoria de saída ou investimento cadastrada.")
 else:
     for row_start in range(0, len(cat_names), MAX_COLS):
         row_cats = cat_names[row_start : row_start + MAX_COLS]
@@ -261,16 +282,19 @@ else:
                 total = data["total"]
                 pct = data["pct_of_month"]
                 prev = data["total_prev"]
+                # Para investimento, crescer é bom: a leitura do delta inverte.
+                investing = is_investment(data["type"])
 
                 if prev > 0:
                     delta_pct = ((total - prev) / prev) * 100
                     delta_str = f"{delta_pct:+.1f}% vs mês anterior"
-                    delta_color = "green" if delta_pct <= 0 else "red"
+                    grew = delta_pct > 0
+                    delta_color = "green" if grew == investing else "red"
                 elif total > 0:
                     delta_str = "Novo este mês"
                     delta_color = "green"
                 else:
-                    delta_str = "Sem gastos"
+                    delta_str = "Sem aportes" if investing else "Sem gastos"
                     delta_color = "gray"
 
                 st.markdown(
