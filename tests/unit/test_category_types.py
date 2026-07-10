@@ -10,6 +10,7 @@ from utils.category_types import (
     is_expense,
     is_income,
     is_investment,
+    migration_targets,
     selectable_type,
 )
 
@@ -55,6 +56,26 @@ def test_selectable_type_mapeia_ambos_para_saida():
     assert selectable_type("inexistente") == EXPENSE
     for type_ in TRANSACTION_TYPES:
         assert selectable_type(type_) == type_
+
+
+def test_migration_targets_permite_despesa_virar_investimento():
+    """Saída, ambos e investimento migram entre si: é a mesma direção do dinheiro."""
+    for source in (EXPENSE, BOTH, INVESTMENT):
+        targets = migration_targets(source)
+        assert set(targets) == {EXPENSE, BOTH, INVESTMENT}
+        assert INCOME not in targets
+
+
+def test_migration_targets_isola_entrada():
+    """Entrada nunca aceita destino de saída/investimento (inverteria o saldo)."""
+    targets = migration_targets(INCOME)
+    assert set(targets) == {INCOME, BOTH}
+    assert EXPENSE not in targets and INVESTMENT not in targets
+
+
+def test_migration_targets_tipo_desconhecido_cai_na_direcao_de_saida():
+    """Tipo desconhecido é tratado como saída, nunca como entrada."""
+    assert set(migration_targets("inexistente")) == {EXPENSE, BOTH, INVESTMENT}
 
 
 def test_todos_os_tipos_tem_label():

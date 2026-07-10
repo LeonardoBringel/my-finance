@@ -60,6 +60,25 @@ def categories_for(type_: str) -> tuple[str, ...]:
     return ()
 
 
+def migration_targets(source_type: str) -> tuple[str, ...]:
+    """Tipos de categoria válidos como destino ao migrar uma descrição.
+
+    A regra é a direção do dinheiro: o que sai da conta pode ser gasto ou
+    investido, então esses tipos migram entre si (é o que permite reclassificar
+    um aporte lançado como despesa). O que entra fica isolado, para que uma
+    despesa não vire entrada por acidente e inverta o sinal do saldo.
+
+    Args:
+        source_type: Tipo da categoria de origem.
+
+    Returns:
+        Tupla de tipos de categoria aceitos como destino.
+    """
+    if is_income(source_type):
+        return (INCOME, BOTH)
+    return (EXPENSE, BOTH, INVESTMENT)
+
+
 def selectable_type(type_: str) -> str:
     """Converte um tipo de categoria no tipo de lançamento correspondente.
 
