@@ -8,10 +8,13 @@ GREEN_MAIN = "#4CAF50"
 GREEN_LIGHT = "#81C784"
 GREEN_DARK = "#388E3C"
 RED_MAIN = "#EF5350"
-INVEST_MAIN = "#42A5F5"
 BG_COLOR = "rgba(0,0,0,0)"
 TEXT_COLOR = "#FAFAFA"
 GRID_COLOR = "rgba(255,255,255,0.08)"
+
+# Largura de cada barra do gráfico anual, em unidades do eixo X numérico.
+# Dois grupos (entrada/saída) por mês → cada um ocupa metade do slot útil.
+_BAR_WIDTH = 0.4
 EXPENSE_COLORS = [
     "#1B5E20",
     "#2E7D32",
@@ -69,12 +72,7 @@ def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
     return fig
 
 
-def bar_chart_expenses(
-    categories,
-    values,
-    title="Detalhamento Despesas",
-    investment_label: str | None = None,
-):
+def bar_chart_expenses(categories, values, title="Detalhamento Despesas"):
     """Barras de detalhamento de despesas (+ barra agregada de investimento).
 
     Args:
@@ -85,9 +83,6 @@ def bar_chart_expenses(
             barra de investimento a ``values`` já produz o denominador
             "despesas + investimentos".
         title: Título do gráfico.
-        investment_label: Rótulo da barra de investimento; essa barra recebe a
-            cor ``INVEST_MAIN`` e as demais ``GREEN_MAIN``. ``None`` pinta tudo
-            de verde.
 
     Returns:
         go.Figure com uma barra por categoria.
@@ -106,9 +101,6 @@ def bar_chart_expenses(
         return fig
 
     pct = [v / total * 100 for v in values]
-    colors = [
-        INVEST_MAIN if c == investment_label else GREEN_MAIN for c in categories
-    ]
 
     fig = go.Figure()
     fig.add_trace(
@@ -116,7 +108,7 @@ def bar_chart_expenses(
             name="Total",
             x=categories,
             y=values,
-            marker_color=colors,
+            marker_color=GREEN_MAIN,
             text=[f"{p:.1f}%" for p in pct],
             textposition="outside",
             textfont=dict(color=TEXT_COLOR, size=11),
@@ -150,8 +142,9 @@ def annual_evolution_chart(
 
     A barra de entrada é dividida em duas partes empilhadas no mesmo
     ``offsetgroup`` ("in"): a parte pintada ``max(entrada - investimento, 0)`` e
-    a parte pontilhada ``investimento`` (sobreposta acima). A barra de saídas
-    fica em ``offsetgroup`` próprio ("out"), agrupada ao lado — não empilhada.
+    a parte investida ``investimento`` (sobreposta acima), desenhada como um
+    contorno tracejado de interior vazado. A barra de saídas fica em
+    ``offsetgroup`` próprio ("out"), agrupada ao lado — não empilhada.
 
     data: list of { month_label, entrada, saida, investimento, saldo_acumulado }
     """
@@ -176,72 +169,106 @@ def annual_evolution_chart(
     investimentos = [d["investimento"] for d in data]
     saldos = [d["saldo_acumulado"] for d in data]
 
-    # D-04: pintada estoura para 0 quando investimento > entrada; a pontilhada
-    # desenha o valor cheio do investimento (sem min()).
+    # D-04: pintada estoura para 0 quando investimento > entrada; a parte
+    # investida desenha o valor cheio do investimento (sem min()).
     pintada = [max(e - i, 0) for e, i in zip(entradas, investimentos)]
     # % do investimento sobre a entrada do mês, com guarda para entrada == 0.
     invest_pct = [
         (i / e * 100) if e > 0 else 0.0 for e, i in zip(entradas, investimentos)
     ]
 
+    # Eixo X numérico com offset/width explícitos: o contorno tracejado da parte
+    # investida é desenhado como shape, e shape precisa das coordenadas exatas
+    # da barra. Num eixo categórico o Plotly só as resolve no render (JS).
+    idx = list(range(len(data)))
+
     fig = go.Figure()
 
     fig.add_trace(
         go.Bar(
             name="Entradas",
-            x=labels,
+            x=idx,
             y=pintada,
             offsetgroup="in",
+            offset=-_BAR_WIDTH,
+            width=_BAR_WIDTH,
             marker_color=GREEN_LIGHT,
             opacity=0.85,
-            customdata=entradas,
-            hovertemplate="<b>%{x}</b><br>Entradas: R$ %{customdata:,.2f}<extra></extra>",
+            customdata=list(zip(labels, entradas)),
+            hovertemplate="<b>%{customdata[0]}</b><br>Entradas: R$ %{customdata[1]:,.2f}<extra></extra>",
         )
     )
+    # Barra invisível: empilha sobre a pintada e serve o tooltip. O visual dela
+    # são os shapes tracejados adicionados abaixo (go.Bar não aceita line.dash).
     fig.add_trace(
         go.Bar(
             name="Investido",
-            x=labels,
+            x=idx,
             y=investimentos,
             offsetgroup="in",
-            marker=dict(
-                color="rgba(0,0,0,0)",
-                line=dict(color=GREEN_LIGHT, width=1.5),
-                pattern=dict(
-                    shape=".",
-                    fgcolor=GREEN_LIGHT,
-                    bgcolor="rgba(0,0,0,0)",
-                    size=3,
-                    solidity=0.3,
-                ),
-            ),
-            customdata=invest_pct,
-            hovertemplate="<b>%{x}</b><br>Investido: R$ %{y:,.2f}<br>%{customdata:.1f}% da entrada<extra></extra>",
+            offset=-_BAR_WIDTH,
+            width=_BAR_WIDTH,
+            marker=dict(color="rgba(0,0,0,0)"),
+            showlegend=False,
+            customdata=list(zip(labels, invest_pct)),
+            hovertemplate="<b>%{customdata[0]}</b><br>Investido: R$ %{y:,.2f}<br>%{customdata[1]:.1f}% da entrada<extra></extra>",
+        )
+    )
+    # Trace fantasma: rende apenas o item tracejado na legenda.
+    fig.add_trace(
+        go.Scatter(
+            name="Investido",
+            x=[None],
+            y=[None],
+            mode="lines",
+            line=dict(color=GREEN_LIGHT, width=1.5, dash="dash"),
+            hoverinfo="skip",
         )
     )
     fig.add_trace(
         go.Bar(
             name="Saídas",
-            x=labels,
+            x=idx,
             y=saidas,
             offsetgroup="out",
+            offset=0,
+            width=_BAR_WIDTH,
             marker_color=RED_MAIN,
             opacity=0.85,
-            hovertemplate="<b>%{x}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
+            customdata=labels,
+            hovertemplate="<b>%{customdata}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
         )
     )
     fig.add_trace(
         go.Scatter(
             name="Saldo Acumulado",
-            x=labels,
+            x=idx,
             y=saldos,
             mode="lines+markers",
             line=dict(color=GREEN_DARK, width=2.5),
             marker=dict(size=7),
             yaxis="y2",
-            hovertemplate="<b>%{x}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
+            customdata=labels,
+            hovertemplate="<b>%{customdata}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
         )
     )
+
+    # Contorno tracejado, interior vazado. Três lados (sobe, atravessa, desce):
+    # a base fica aberta porque se apoia no topo da barra de entrada pintada.
+    for i, (base, invest) in enumerate(zip(pintada, investimentos)):
+        if invest <= 0:
+            continue
+        x0, x1 = i - _BAR_WIDTH, i
+        y0, y1 = base, base + invest
+        fig.add_shape(
+            type="path",
+            path=f"M {x0},{y0} L {x0},{y1} L {x1},{y1} L {x1},{y0}",
+            line=dict(color=GREEN_LIGHT, width=1.5, dash="dash"),
+            fillcolor="rgba(0,0,0,0)",
+            xref="x",
+            yref="y",
+            layer="above",
+        )
 
     fig.update_layout(
         **_base_layout(title, showlegend=True),
@@ -251,8 +278,16 @@ def annual_evolution_chart(
             bgcolor=BG_COLOR,
             orientation="h",
             y=-0.15,
+            # barmode="stack" inverte a ordem da legenda por padrão.
+            traceorder="normal",
         ),
-        xaxis=dict(showgrid=False, tickfont=dict(color=TEXT_COLOR)),
+        xaxis=dict(
+            showgrid=False,
+            tickfont=dict(color=TEXT_COLOR),
+            tickmode="array",
+            tickvals=idx,
+            ticktext=labels,
+        ),
         yaxis=dict(
             showgrid=True,
             gridcolor=GRID_COLOR,
