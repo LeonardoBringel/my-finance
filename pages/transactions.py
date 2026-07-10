@@ -31,11 +31,16 @@ from utils.category_types import (
     is_investment,
 )
 from utils.filters import ALL_FILTER
+from utils.i18n import t
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
 
-st.set_page_config(page_title="Lançamentos", page_icon="📋", layout="wide")
+st.set_page_config(
+    page_title=t("pages.transactions.page_title"),
+    page_icon="📋",
+    layout="wide",
+)
 
 inject_subpage_css()
 st.markdown(
@@ -65,41 +70,15 @@ last_day_of_month = today.replace(
 
 
 # ── Onboarding ─────────────────────────────────────────────────────────────────
-@st.dialog("📋 Bem-vindo aos Lançamentos", width="large")
+@st.dialog(t("pages.transactions.onboarding_title"), width="large")
 def onboarding_dialog():
     """Dialog de boas-vindas com instruções sobre o registro de lançamentos."""
-    st.markdown("""
-### O que são Lançamentos?
-
-Os **Lançamentos** são o registro real das suas movimentações financeiras — o que você
-efetivamente recebeu ou gastou.
-
----
-
-### Como funciona?
-
-1. Clique em **➕ Novo Registro** para registrar uma transação.
-2. Informe a **categoria**, a **data**, o **valor** e uma descrição opcional.
-3. Para compras parceladas, informe o número de parcelas e elas serão criadas automaticamente.
-
----
-
-### Dicas
-
-- Use os **filtros** para encontrar lançamentos por período, categoria ou tipo.
-- As métricas no topo mostram o total de entradas, saídas e saldo do período filtrado.
-- O **Dashboard** consolida todos os lançamentos em gráficos e KPIs mensais.
-
----
-
-💡 **Antes de começar:** Certifique-se de ter criado suas **Categorias** — elas são
-necessárias para registrar lançamentos.
-    """)
+    st.markdown(t("pages.transactions.onboarding_body"))
     st.divider()
     c1, c2 = st.columns(2)
     with c1:
         if st.button(
-            "➕ Criar Primeiro Lançamento",
+            t("pages.transactions.onboarding_create_first"),
             type="primary",
             use_container_width=True,
         ):
@@ -107,13 +86,16 @@ necessárias para registrar lançamentos.
             st.session_state.setdefault("form_reset_counter", 0)
             st.rerun()
     with c2:
-        if st.button("🏷️ Gerenciar Categorias", use_container_width=True):
+        if st.button(
+            t("pages.transactions.onboarding_manage_categories"),
+            use_container_width=True,
+        ):
             st.switch_page("pages/categories.py")
 
 
 init_onboarding("txn", not TransactionsRepository.has_any_transaction(user_id))
 
-page_header("📋 Lançamentos", cleanup_keys=["edit_txn"])
+page_header(t("pages.transactions.header"), cleanup_keys=["edit_txn"])
 
 # ── Filter version — incrementar força re-render de todos os widgets ──────────
 if "filter_v" not in st.session_state:
@@ -122,12 +104,12 @@ if "filter_v" not in st.session_state:
 v = st.session_state["filter_v"]
 
 # ── Filtros ────────────────────────────────────────────────────────────────────
-with st.expander("🔍 Filtros", expanded=True):
+with st.expander(t("pages.transactions.filters"), expanded=True):
     col1, col2 = st.columns([2, 1])
 
     with col1:
         date_range = st.date_input(
-            "Período",
+            t("pages.transactions.period"),
             value=(first_day_of_month, last_day_of_month),
             format="DD/MM/YYYY",
             key=f"f_daterange_{v}",
@@ -135,7 +117,7 @@ with st.expander("🔍 Filtros", expanded=True):
 
     with col2:
         f_type = st.selectbox(
-            "Tipo",
+            t("pages.transactions.type"),
             [ALL_FILTER, *TRANSACTION_TYPES],
             format_func=lambda x: (
                 "Todos" if x == ALL_FILTER else TYPE_LABELS[x]
@@ -151,7 +133,7 @@ with st.expander("🔍 Filtros", expanded=True):
         )
         cat_options = [ALL_FILTER] + [c["name"] for c in all_cats]
         f_cat_name = st.selectbox(
-            "Categoria",
+            t("pages.transactions.category"),
             cat_options,
             format_func=lambda x: "Todas" if x == ALL_FILTER else x,
             key=f"f_cat_{v}_{f_type}",
@@ -165,11 +147,15 @@ with st.expander("🔍 Filtros", expanded=True):
             user_id, f_cat_id
         )
         f_desc = st.selectbox(
-            "Descrição",
+            t("pages.transactions.description"),
             [ALL_FILTER] + desc_options,
             format_func=lambda x: "Todas" if x == ALL_FILTER else x,
             disabled=not f_cat_id,
-            help="Selecione uma categoria primeiro" if not f_cat_id else None,
+            help=(
+                t("pages.transactions.select_category_first")
+                if not f_cat_id
+                else None
+            ),
             key=f"f_desc_{v}",
         )
 
@@ -184,14 +170,22 @@ else:
 # ── Botões de ação ─────────────────────────────────────────────────────────────
 col_new, col_advance, col_clear = st.columns([1, 1, 1])
 with col_new:
-    if st.button("➕ Novo Registro", type="primary", use_container_width=True):
+    if st.button(
+        t("pages.transactions.new_record"),
+        type="primary",
+        use_container_width=True,
+    ):
         st.session_state["show_form"] = True
         st.session_state.setdefault("form_reset_counter", 0)
 with col_advance:
-    if st.button("⏩ Adiantar Parcelas", use_container_width=True):
+    if st.button(
+        t("pages.transactions.advance_installments"), use_container_width=True
+    ):
         st.session_state["show_advance_form"] = True
 with col_clear:
-    if st.button("🔄 Limpar Filtros", use_container_width=True):
+    if st.button(
+        t("pages.transactions.clear_filters"), use_container_width=True
+    ):
         st.session_state["filter_v"] += 1
         st.rerun()
 
@@ -215,10 +209,14 @@ total_out = sum(t["value"] for t in transactions if is_expense(t["type"]))
 total_invest = sum(t["value"] for t in transactions if is_investment(t["type"]))
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("💰 Total Entradas", format_currency(total_in))
-col2.metric("💸 Total Saídas", format_currency(total_out))
-col3.metric("📈 Total Investido", format_currency(total_invest))
-col4.metric("⚖️ Saldo", format_currency(total_in - total_out))
+col1.metric(t("pages.transactions.total_income"), format_currency(total_in))
+col2.metric(t("pages.transactions.total_expenses"), format_currency(total_out))
+col3.metric(
+    t("pages.transactions.total_invested"), format_currency(total_invest)
+)
+col4.metric(
+    t("pages.transactions.balance"), format_currency(total_in - total_out)
+)
 
 st.divider()
 
@@ -234,12 +232,12 @@ def render_txn_table(txns: list[dict]) -> None:
     for h, label in zip(
         header,
         [
-            "Tipo",
-            "Data",
-            "Categoria",
-            "Descrição",
-            "Valor",
-            "Parcela",
+            t("pages.transactions.col_type"),
+            t("pages.transactions.col_date"),
+            t("pages.transactions.col_category"),
+            t("pages.transactions.col_description"),
+            t("pages.transactions.col_value"),
+            t("pages.transactions.col_installment"),
             "✏️",
             "🗑️",
         ],
@@ -280,17 +278,24 @@ def render_txn_table(txns: list[dict]) -> None:
 
         if st.session_state.get("confirm_del_id") == txn["id"]:
             st.warning(
-                f"⚠️ Confirmar exclusão de **{st.session_state['confirm_del_label']}**?"
+                t(
+                    "pages.transactions.confirm_delete",
+                    label=st.session_state["confirm_del_label"],
+                )
             )
             c1, c2, _ = st.columns([1, 1, 4])
             if c1.button(
-                "✅ Confirmar", key=f"conf_{txn['id']}", type="primary"
+                t("pages.transactions.confirm"),
+                key=f"conf_{txn['id']}",
+                type="primary",
             ):
                 TransactionsRepository.delete_transaction(user_id, txn["id"])
                 st.session_state.pop("confirm_del_id", None)
                 st.session_state.pop("confirm_del_label", None)
                 st.rerun()
-            if c2.button("❌ Cancelar", key=f"canc_{txn['id']}"):
+            if c2.button(
+                t("pages.transactions.cancel"), key=f"canc_{txn['id']}"
+            ):
                 st.session_state.pop("confirm_del_id", None)
                 st.session_state.pop("confirm_del_label", None)
                 st.rerun()
@@ -298,7 +303,7 @@ def render_txn_table(txns: list[dict]) -> None:
 
 # ── Tabela de lançamentos ──────────────────────────────────────────────────────
 if not transactions:
-    st.info("Nenhum lançamento encontrado para os filtros selecionados.")
+    st.info(t("pages.transactions.none_found"))
 else:
     past_txns = [
         t
@@ -312,17 +317,17 @@ else:
     ]
 
     if past_txns:
-        st.markdown(f"**{len(past_txns)} lançamento(s) registrado(s)**")
+        st.markdown(t("pages.transactions.past_count", count=len(past_txns)))
         render_txn_table(past_txns)
 
     if future_txns:
         st.divider()
-        st.markdown(f"### 🔮 Lançamentos Futuros")
-        st.caption(f"{len(future_txns)} lançamento(s) agendado(s) após hoje")
+        st.markdown(t("pages.transactions.future_heading"))
+        st.caption(t("pages.transactions.future_count", count=len(future_txns)))
         render_txn_table(future_txns)
 
     if not past_txns and not future_txns:
-        st.info("Nenhum lançamento encontrado para os filtros selecionados.")
+        st.info(t("pages.transactions.none_found"))
 
 # ── Dialogs ────────────────────────────────────────────────────────────────────
 if st.session_state.pop("txn_show_onboarding", False):
