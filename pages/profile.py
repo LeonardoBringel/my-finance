@@ -8,11 +8,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from components.styles import inject_global_css, page_header
 from repositories import UsersRepository
 from utils.auth import logout, require_login
+from utils.i18n import t
 from utils.password_utils import validate_password
 
 inject_global_css()
 
-st.set_page_config(page_title="Perfil", page_icon="👤", layout="centered")
+st.set_page_config(
+    page_title=t("pages.profile.page_title"),
+    page_icon="👤",
+    layout="centered",
+)
 
 st.markdown(
     """
@@ -31,22 +36,26 @@ require_login()
 current = st.session_state["current_user"]
 
 page_header(
-    f"👤 Perfil — {current['username']}",
+    t("pages.profile.header", username=current["username"]),
     cleanup_keys=["show_form", "form_reset_counter"],
 )
 
 st.divider()
-st.markdown("### 🔑 Alterar Senha")
+st.markdown(t("pages.profile.change_password"))
 
-current_pass = st.text_input("Senha atual", type="password")
-new_pass = st.text_input("Nova senha", type="password")
-confirm_pass = st.text_input("Confirmar nova senha", type="password")
+current_pass = st.text_input(
+    t("pages.profile.current_password"), type="password"
+)
+new_pass = st.text_input(t("pages.profile.new_password"), type="password")
+confirm_pass = st.text_input(
+    t("pages.profile.confirm_password"), type="password"
+)
 
-if st.button("💾 Salvar", type="primary", use_container_width=True):
+if st.button(t("pages.profile.save"), type="primary", use_container_width=True):
     if not current_pass or not new_pass or not confirm_pass:
-        st.error("Preencha todos os campos.")
+        st.error(t("pages.profile.empty_fields"))
     elif new_pass != confirm_pass:
-        st.error("Nova senha e confirmação não conferem.")
+        st.error(t("pages.profile.password_mismatch"))
     elif not validate_password(new_pass)[0]:
         st.error(validate_password(new_pass)[1])
     else:
@@ -59,7 +68,7 @@ if st.button("💾 Salvar", type="primary", use_container_width=True):
             st.error(msg)
 
 st.divider()
-if st.button("🚪 Sair", use_container_width=True):
+if st.button(t("pages.profile.logout"), use_container_width=True):
     logout()
     # Sem st.switch_page() — o CookieController aciona o rerun naturalmente após
     # remover o cookie; require_login() redireciona para login nesse rerun.

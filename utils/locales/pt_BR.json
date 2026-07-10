@@ -64,6 +64,37 @@
       "by_day": "<b>{category}</b><br>Dia %{{x}}<br>R$ %{{y:,.2f}}<extra></extra>"
     }
   },
+  "components": {
+    "styles": {
+      "back_to_dashboard": "🏠 Dashboard"
+    }
+  },
+  "pages": {
+    "login": {
+      "page_title": "Login",
+      "heading": "## 💰 Gestão Financeira",
+      "subheading": "##### Faça login para continuar",
+      "username": "Usuário",
+      "username_placeholder": "seu usuário",
+      "password": "Senha",
+      "password_placeholder": "sua senha",
+      "submit": "Entrar",
+      "empty_fields": "Preencha usuário e senha.",
+      "authenticating": "Autenticando..."
+    },
+    "profile": {
+      "page_title": "Perfil",
+      "header": "👤 Perfil — {username}",
+      "change_password": "### 🔑 Alterar Senha",
+      "current_password": "Senha atual",
+      "new_password": "Nova senha",
+      "confirm_password": "Confirmar nova senha",
+      "save": "💾 Salvar",
+      "empty_fields": "Preencha todos os campos.",
+      "password_mismatch": "Nova senha e confirmação não conferem.",
+      "logout": "🚪 Sair"
+    }
+  },
   "months": {
     "full": [
       "Janeiro",

@@ -1,5 +1,7 @@
 import streamlit as st
 
+from utils.i18n import t
+
 
 def inject_global_css() -> None:
     """Injeta o CSS global da aplicação com o tema de botões primários em verde."""
@@ -49,7 +51,9 @@ def page_header(title: str, cleanup_keys: list[str] | None = None) -> None:
         st.markdown(f"## {title}")
     with col_back:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🏠 Dashboard", use_container_width=True):
+        if st.button(
+            t("components.styles.back_to_dashboard"), use_container_width=True
+        ):
             for key in cleanup_keys or []:
                 st.session_state.pop(key, None)
             st.switch_page("pages/dashboard.py")

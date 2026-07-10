@@ -7,10 +7,15 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from components.styles import inject_global_css
 from utils.auth import login
+from utils.i18n import t
 
 inject_global_css()
 
-st.set_page_config(page_title="Login", page_icon="🔐", layout="centered")
+st.set_page_config(
+    page_title=t("pages.login.page_title"),
+    page_icon="🔐",
+    layout="centered",
+)
 
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 version_file = os.path.join(root_dir, ".version")
@@ -38,37 +43,40 @@ st.markdown(
 if st.session_state.get("current_user"):
     st.switch_page("pages/dashboard.py")
 
-st.markdown("## 💰 Gestão Financeira")
-st.markdown("##### Faça login para continuar")
+st.markdown(t("pages.login.heading"))
+st.markdown(t("pages.login.subheading"))
 st.divider()
 
 logging_in = st.session_state.get("logging_in", False)
 
 username = st.text_input(
-    "Usuário",
-    placeholder="seu usuário",
+    t("pages.login.username"),
+    placeholder=t("pages.login.username_placeholder"),
     key="login_username",
     disabled=logging_in,
 )
 password = st.text_input(
-    "Senha",
+    t("pages.login.password"),
     type="password",
-    placeholder="sua senha",
+    placeholder=t("pages.login.password_placeholder"),
     key="login_password",
     disabled=logging_in,
 )
 
 if st.button(
-    "Entrar", type="primary", use_container_width=True, disabled=logging_in
+    t("pages.login.submit"),
+    type="primary",
+    use_container_width=True,
+    disabled=logging_in,
 ):
     if not username or not password:
-        st.error("Preencha usuário e senha.")
+        st.error(t("pages.login.empty_fields"))
     else:
         st.session_state["logging_in"] = True
         st.rerun()
 
 if logging_in:
-    with st.spinner("Autenticando..."):
+    with st.spinner(t("pages.login.authenticating")):
         ok, msg = login(
             st.session_state.get("login_username", ""),
             st.session_state.get("login_password", ""),
