@@ -83,3 +83,11 @@ def test_todos_os_tipos_tem_label():
     assert set(ALL_TYPES) == set(TYPE_LABELS)
     assert ALL_TYPES == (EXPENSE, INCOME, INVESTMENT, BOTH)
     assert BOTH not in TRANSACTION_TYPES
+
+
+def test_type_labels_e_chaveado_pelo_valor_persistido():
+    """As chaves são os valores gravados no banco; só os rótulos vêm do i18n."""
+    assert TYPE_LABELS[EXPENSE] == "💸 Saída"
+    assert TYPE_LABELS[INCOME] == "💰 Entrada"
+    assert TYPE_LABELS[INVESTMENT] == "📈 Investimento"
+    assert TYPE_LABELS[BOTH] == "🔄 Ambos"

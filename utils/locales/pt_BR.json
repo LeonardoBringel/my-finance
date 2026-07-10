@@ -1,9 +1,18 @@
 {
   "common": {
     "all": "Todos",
+    "all_feminine": "Todas",
     "no_data": "Sem dados",
     "no_description": "(sem descrição)",
     "empty_cell": "—"
+  },
+  "domain": {
+    "category_type": {
+      "saida": "💸 Saída",
+      "entrada": "💰 Entrada",
+      "investimento": "📈 Investimento",
+      "ambos": "🔄 Ambos"
+    }
   },
   "months": {
     "full": [

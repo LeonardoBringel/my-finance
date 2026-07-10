@@ -1,10 +1,20 @@
 """Testes unitários para utils/data_format_utils.py (moeda, data, parsing de valores)."""
 
 from utils.data_format_utils import (
+    MONTH_NAMES,
     format_currency,
     format_date,
     parse_value_text,
 )
+
+
+def test_month_names_suporta_os_call_sites():
+    """Os call sites indexam por `mes - 1`, buscam por `.index()` e fatiam `[:3]`."""
+    assert len(MONTH_NAMES) == 12
+    assert MONTH_NAMES[0] == "Janeiro"
+    assert MONTH_NAMES[11] == "Dezembro"
+    assert MONTH_NAMES.index("Março") + 1 == 3
+    assert [m[:3] for m in MONTH_NAMES[:3]] == ["Jan", "Fev", "Mar"]
 
 
 def test_format_currency_brl():

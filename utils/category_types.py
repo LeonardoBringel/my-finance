@@ -4,7 +4,13 @@ O tipo de uma transação não é persistido: ele é derivado do tipo da sua cat
 (ver `TransactionsRepository.list_transactions`). Comparar tipos por string literal
 espalhada pelo código faz um tipo novo escapar silenciosamente de alguma agregação —
 todas as comparações devem passar pelos helpers deste módulo.
+
+As constantes abaixo são **valores persistidos** (criptografados) em
+`categories.type`, não texto de interface: renomeá-las corrompe dados existentes.
+Só os rótulos de exibição (`TYPE_LABELS`) vêm do mapping de i18n.
 """
+
+from utils.i18n import t
 
 INCOME = "entrada"
 EXPENSE = "saida"
@@ -20,12 +26,9 @@ ALL_TYPES = (EXPENSE, INCOME, INVESTMENT, BOTH)
 # Tipos escolhíveis ao lançar uma transação ('ambos' é só uma marcação de categoria).
 TRANSACTION_TYPES = (EXPENSE, INCOME, INVESTMENT)
 
-TYPE_LABELS = {
-    EXPENSE: "💸 Saída",
-    INCOME: "💰 Entrada",
-    INVESTMENT: "📈 Investimento",
-    BOTH: "🔄 Ambos",
-}
+# Rótulos de exibição, chaveados pelo valor persistido. Construído a partir de
+# ALL_TYPES para que um tipo novo sem rótulo estoure no import, não na tela.
+TYPE_LABELS = {type_: t(f"domain.category_type.{type_}") for type_ in ALL_TYPES}
 
 
 def is_expense(type_: str) -> bool:

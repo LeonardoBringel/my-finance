@@ -1,19 +1,9 @@
 from datetime import datetime
 
-MONTH_NAMES = [
-    "Janeiro",
-    "Fevereiro",
-    "Março",
-    "Abril",
-    "Maio",
-    "Junho",
-    "Julho",
-    "Agosto",
-    "Setembro",
-    "Outubro",
-    "Novembro",
-    "Dezembro",
-]
+from utils.i18n import t
+
+# Ordenados de Janeiro a Dezembro: os call sites indexam por `mes - 1`.
+MONTH_NAMES = t("months.full")
 
 
 def format_currency(value: float) -> str:
