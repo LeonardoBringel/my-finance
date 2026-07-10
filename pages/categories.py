@@ -13,7 +13,7 @@ from components.styles import (
 )
 from repositories import CategoriesRepository, TransactionsRepository
 from utils.auth import require_login
-from utils.category_types import ALL_TYPES, TYPE_LABELS
+from utils.category_types import ALL_TYPES, TYPE_LABELS, migration_targets
 
 inject_global_css()
 
@@ -233,15 +233,18 @@ else:
 
                         elif active["action"] == "migrate":
                             mf1, mf2, mf3, mf4 = st.columns([2, 2, 0.7, 0.7])
-                            same_type_cats = [
+                            # Destinos na mesma direção do dinheiro: uma despesa
+                            # pode virar investimento, mas nunca entrada.
+                            allowed = migration_targets(cat["type"])
+                            tgt_cats = [
                                 c
                                 for c in all_categories
-                                if c["type"] == cat["type"]
+                                if c["type"] in allowed
                             ]
                             tgt_cat = mf1.selectbox(
                                 "Categoria destino",
-                                same_type_cats,
-                                format_func=lambda c: c["name"],
+                                tgt_cats,
+                                format_func=lambda c: f"{c['name']} · {TYPE_LABELS[c['type']]}",
                                 key=f"mtgtcat_{cat['id']}_{idx}",
                             )
                             tgt_descs = TransactionsRepository.get_descriptions_with_counts(
@@ -255,10 +258,20 @@ else:
                                     and d["description"] == di["description"]
                                 )
                             ]
+                            # Migrar para outra categoria preserva a descrição por
+                            # padrão — sem isso, um destino vazio não teria opção.
+                            if tgt_cat["id"] != cat["id"]:
+                                tgt_desc_list = [di["description"]] + [
+                                    d
+                                    for d in tgt_desc_list
+                                    if d != di["description"]
+                                ]
                             if tgt_desc_list:
                                 tgt_desc = mf2.selectbox(
                                     "Descrição destino",
                                     tgt_desc_list,
+                                    index=0,
+                                    accept_new_options=True,
                                     key=f"mtgtdesc_{cat['id']}_{idx}_{tgt_cat['id']}",
                                 )
                             else:
@@ -270,8 +283,9 @@ else:
                                 key=f"msave_{cat['id']}_{idx}",
                                 type="primary",
                             ):
-                                if tgt_desc is None:
-                                    st.error("Selecione uma descrição destino.")
+                                tgt_desc = (tgt_desc or "").strip()
+                                if not tgt_desc:
+                                    st.error("Informe uma descrição destino.")
                                 elif (
                                     tgt_cat["id"] == cat["id"]
                                     and tgt_desc == di["description"]

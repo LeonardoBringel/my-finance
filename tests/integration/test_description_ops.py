@@ -107,3 +107,62 @@ def test_migrate_description_moves_category_and_desc(db_session):
         assert row.category_id == b_id
         assert decrypt(row.description) == "Y"
         assert row.description_hash == hash_for_lookup("Y")
+
+
+def test_migrate_expense_description_into_empty_investment_category(db_session):
+    """Migrar uma descrição de despesa para uma categoria de investimento vazia
+    tira o valor das saídas e o joga nos investimentos, sem mexer no saldo."""
+    uid = _seed_user()
+    salario = _make_category(uid, "Salario", "entrada")
+    mercado = _make_category(uid, "Mercado", "saida")
+    # Categoria de investimento recém-criada: nenhuma descrição ainda.
+    tesouro = _make_category(uid, "Tesouro", "investimento")
+
+    TransactionsRepository.create_transaction(
+        uid, salario, "2026-05-01", "Mensal", 1000.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, mercado, "2026-05-02", "Compras", 500.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, mercado, "2026-05-03", "Aporte CDB", 200.0
+    )
+
+    before = TransactionsRepository.get_dashboard_data(uid, 2026, 5)["summary"]
+    assert before["saidas"] == pytest.approx(700.0)
+    assert before["investimentos"] == pytest.approx(0.0)
+    assert before["saldo"] == pytest.approx(300.0)
+
+    # Preserva o nome da descrição — é o padrão da UI ao trocar de categoria.
+    count = TransactionsRepository.migrate_description(
+        uid, mercado, "Aporte CDB", tesouro, "Aporte CDB"
+    )
+    assert count == 1
+
+    after = TransactionsRepository.get_dashboard_data(uid, 2026, 5)["summary"]
+    assert after["saidas"] == pytest.approx(500.0)
+    assert after["investimentos"] == pytest.approx(200.0)
+    # Saldo e acumulado ignoram investimento: sobem porque a despesa diminuiu.
+    assert after["saldo"] == pytest.approx(500.0)
+    assert after["saldo_acumulado"] == pytest.approx(500.0)
+    assert after["entradas"] == pytest.approx(1000.0)
+
+
+def test_migrate_into_investment_category_flips_transaction_type(db_session):
+    """A transação migrada passa a ter o tipo da categoria destino."""
+    uid = _seed_user()
+    mercado = _make_category(uid, "Mercado", "saida")
+    tesouro = _make_category(uid, "Tesouro", "investimento")
+
+    TransactionsRepository.create_transaction(
+        uid, mercado, "2026-05-02", "Aporte", 200.0
+    )
+    assert TransactionsRepository.list_transactions(uid)[0]["type"] == "saida"
+
+    TransactionsRepository.migrate_description(
+        uid, mercado, "Aporte", tesouro, "Aporte"
+    )
+
+    txn = TransactionsRepository.list_transactions(uid)[0]
+    assert txn["type"] == "investimento"
+    assert txn["category"] == "Tesouro"
