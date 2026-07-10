@@ -122,7 +122,7 @@ class CategoriesRepository:
         with get_session() as session:
             category = session.get(Category, id)
             if not category or category.user_id != user_id:
-                return False, t("messages.categories.not_found_on_delete")
+                return False, t("messages.categories.not_found")
             session.delete(category)
             session.commit()
         return (True, t("messages.categories.removed"))

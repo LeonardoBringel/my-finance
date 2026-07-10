@@ -37,6 +37,9 @@ my-finance/
 │   └── categories.py  profile.py  admin.py
 └── utils/                      # Pure-ish helpers
     ├── crypto.py  password_utils.py  data_format_utils.py
+    ├── category_types.py  filters.py
+    ├── i18n.py                 # t() loader; text lives in locales/pt_BR.json
+    ├── locales/pt_BR.json      # single source of all UI text (pt-BR)
     └── auth.py  session.py     # auth.py is the only st.* exception
 ```
 

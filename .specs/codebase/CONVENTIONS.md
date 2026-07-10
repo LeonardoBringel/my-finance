@@ -14,8 +14,16 @@
 
 ## Domain Vocabulary
 
-- Transaction/category **type** is a Portuguese string literal: `"entrada"` (income), `"saida"` (expense), `"ambos"` (both). Compared everywhere as `t["type"] in ("saida", "ambos")`. Stored encrypted for categories.
-- UI text, dialog copy, and docstrings are in **Portuguese (pt-BR)**. Identifiers are a mix of English (functions, columns) and Portuguese (some local vars: `entradas`, `saidas`, `saldo`, `parcelas`).
+- Transaction/category **type** is a Portuguese string literal: `"entrada"` (income), `"saida"` (expense), `"ambos"` (both), `"investimento"` (investment). Compared everywhere via `utils/category_types.py` helpers. Stored encrypted for categories. **These are persisted data values, not UI text** — never routed through i18n.
+- Docstrings and code comments are in **Portuguese (pt-BR)**. Identifiers are a mix of English (functions, columns) and Portuguese (some local vars: `entradas`, `saidas`, `saldo`, `parcelas`).
+
+## i18n / UI Text
+
+- **All user-facing text lives in `utils/locales/pt_BR.json`**, read via `t("dotted.key", **kwargs)` from `utils/i18n.py`. No text literals in `pages/`, `components/`, `repositories/` or `utils/` (including `st.error`/`st.success` messages returned by repositories).
+- Single locale (pt-BR); no language selector. Adding `en_US.json` later requires no changes to `pages/`/`components/`.
+- `t()` interpolates with `str.format`; missing keys raise `KeyError` (no silent fallback). Dynamic keys are forbidden except `f"domain.category_type.{tipo}"`.
+- **Not i18n'd (kept in code):** `page_icon` emojis, `<style>`/CSS blocks, Streamlit color markup (`:green[...]`), and the domain type values above.
+- Enforced by `tests/unit/test_i18n_guard.py` (no literal UI text, every `t()` key exists, no orphan keys).
 
 ## Code Organization
 

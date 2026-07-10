@@ -31,7 +31,6 @@
       "already_exists": "Categoria já existe",
       "name_taken": "Nome já existe.",
       "not_found": "Categoria não encontrada.",
-      "not_found_on_delete": "Categoria não encontrada",
       "added": "Categoria adicionada!",
       "updated": "Categoria atualizada!",
       "removed": "Categoria removida"
@@ -183,7 +182,6 @@
       "col_value_brl": "Valor (R$)",
       "col_value": "Valor",
       "col_type": "Tipo",
-      "col_description": "Descrição",
       "add_item": "➕ Adicionar Item",
       "save_template": "💾 Salvar Template",
       "template_needs_item": "Adicione ao menos um item válido (nome e valor obrigatórios).",

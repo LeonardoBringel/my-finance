@@ -120,7 +120,7 @@ with st.expander(t("pages.transactions.filters"), expanded=True):
             t("pages.transactions.type"),
             [ALL_FILTER, *TRANSACTION_TYPES],
             format_func=lambda x: (
-                "Todos" if x == ALL_FILTER else TYPE_LABELS[x]
+                t("common.all") if x == ALL_FILTER else TYPE_LABELS[x]
             ),
             key=f"f_type_{v}",
         )
@@ -135,7 +135,9 @@ with st.expander(t("pages.transactions.filters"), expanded=True):
         f_cat_name = st.selectbox(
             t("pages.transactions.category"),
             cat_options,
-            format_func=lambda x: "Todas" if x == ALL_FILTER else x,
+            format_func=lambda x: (
+                t("common.all_feminine") if x == ALL_FILTER else x
+            ),
             key=f"f_cat_{v}_{f_type}",
         )
         f_cat_id = next(
@@ -149,7 +151,9 @@ with st.expander(t("pages.transactions.filters"), expanded=True):
         f_desc = st.selectbox(
             t("pages.transactions.description"),
             [ALL_FILTER] + desc_options,
-            format_func=lambda x: "Todas" if x == ALL_FILTER else x,
+            format_func=lambda x: (
+                t("common.all_feminine") if x == ALL_FILTER else x
+            ),
             disabled=not f_cat_id,
             help=(
                 t("pages.transactions.select_category_first")

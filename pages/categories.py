@@ -105,7 +105,9 @@ txn_counts = CategoriesRepository.get_transaction_counts_by_category(user_id)
 f_type = st.selectbox(
     t("pages.categories.filter_by_type"),
     [ALL_FILTER, *ALL_TYPES],
-    format_func=lambda x: "Todos" if x == ALL_FILTER else TYPE_LABELS[x],
+    format_func=lambda x: (
+        t("common.all") if x == ALL_FILTER else TYPE_LABELS[x]
+    ),
 )
 
 categories = all_categories
