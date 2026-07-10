@@ -117,3 +117,139 @@ def test_january_uses_prev_december(db_session):
     assert data["descriptions_by_cat"]["Mercado"][
         "total_prev"
     ] == pytest.approx(800.0)
+
+
+def test_investment_out_of_saidas_and_saldo(db_session):
+    """Aporte soma em investimentos sem tocar saidas, saldo nem saldo_acumulado."""
+    uid, cats = _seed()
+    CategoriesRepository.create_category(uid, "Tesouro", "investimento")
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
+
+    TransactionsRepository.create_transaction(
+        uid, cats["Salario"], "2026-05-05", "Pagamento", 1000.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2026-05-10", "Compra", 500.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Tesouro"], "2026-05-15", "Aporte", 200.0
+    )
+
+    summary = TransactionsRepository.get_dashboard_data(uid, 2026, 5)["summary"]
+
+    assert summary["saidas"] == pytest.approx(500.0)
+    assert summary["investimentos"] == pytest.approx(200.0)
+    assert summary["saldo"] == pytest.approx(500.0)
+    assert summary["saldo_acumulado"] == pytest.approx(500.0)
+
+
+def test_investment_absent_from_income_and_expense_views(db_session):
+    """Aporte não aparece em income_by_cat, expenses_by_cat nem expenses_by_day_cat."""
+    uid, cats = _seed()
+    CategoriesRepository.create_category(uid, "Tesouro", "investimento")
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
+
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2026-05-10", "Compra", 500.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Tesouro"], "2026-05-15", "Aporte", 200.0
+    )
+
+    data = TransactionsRepository.get_dashboard_data(uid, 2026, 5)
+
+    income_cats = {row["category"] for row in data["income_by_cat"]}
+    expense_cats = {row["category"] for row in data["expenses_by_cat"]}
+    assert "Tesouro" not in income_cats
+    assert "Tesouro" not in expense_cats
+    assert "Tesouro" not in data["expenses_by_day_cat"]
+
+
+def test_annual_carries_investment(db_session):
+    """O mês no grid anual traz investimento sem alterar saldo_acumulado."""
+    uid, cats = _seed()
+    CategoriesRepository.create_category(uid, "Tesouro", "investimento")
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
+
+    TransactionsRepository.create_transaction(
+        uid, cats["Salario"], "2026-05-05", "Pagamento", 1000.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2026-05-10", "Compra", 500.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Tesouro"], "2026-05-15", "Aporte", 200.0
+    )
+
+    annual = TransactionsRepository.get_dashboard_data(uid, 2026, 5)["annual"]
+    may = next(m for m in annual if m["month"] == "05")
+
+    assert may["investimento"] == pytest.approx(200.0)
+    assert may["saldo_acumulado"] == pytest.approx(500.0)
+
+
+def test_descriptions_include_investment_with_type(db_session):
+    """descriptions_by_cat inclui a categoria de investimento com type 'investimento'."""
+    uid, cats = _seed()
+    CategoriesRepository.create_category(uid, "Tesouro", "investimento")
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
+
+    TransactionsRepository.create_transaction(
+        uid, cats["Tesouro"], "2026-05-15", "Aporte", 200.0
+    )
+
+    detail = TransactionsRepository.get_dashboard_data(uid, 2026, 5)[
+        "descriptions_by_cat"
+    ]
+
+    assert "Tesouro" in detail
+    assert detail["Tesouro"]["type"] == "investimento"
+    assert detail["Tesouro"]["total"] == pytest.approx(200.0)
+
+
+def test_pct_of_month_investment_only(db_session):
+    """Mês só com aporte: pct_of_month da categoria de investimento é 100%, sem divisão por zero."""
+    uid, cats = _seed()
+    CategoriesRepository.create_category(uid, "Tesouro", "investimento")
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
+
+    TransactionsRepository.create_transaction(
+        uid, cats["Tesouro"], "2026-05-15", "Aporte", 200.0
+    )
+
+    detail = TransactionsRepository.get_dashboard_data(uid, 2026, 5)[
+        "descriptions_by_cat"
+    ]
+
+    assert detail["Tesouro"]["pct_of_month"] == pytest.approx(100.0)
+
+
+def test_pct_of_month_no_expenses_no_investments(db_session):
+    """Mês sem despesas e sem aportes: pct_of_month é 0.0, sem ZeroDivisionError."""
+    uid, cats = _seed()
+    CategoriesRepository.create_category(uid, "Tesouro", "investimento")
+    cats = {
+        c["name"]: c["id"] for c in CategoriesRepository.list_categories(uid)
+    }
+
+    # Apenas uma entrada — nenhum lançamento de despesa ou investimento no mês.
+    TransactionsRepository.create_transaction(
+        uid, cats["Salario"], "2026-05-05", "Pagamento", 1000.0
+    )
+
+    detail = TransactionsRepository.get_dashboard_data(uid, 2026, 5)[
+        "descriptions_by_cat"
+    ]
+
+    assert detail["Mercado"]["pct_of_month"] == pytest.approx(0.0)
+    assert detail["Tesouro"]["pct_of_month"] == pytest.approx(0.0)

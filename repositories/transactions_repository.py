@@ -7,6 +7,12 @@ from sqlalchemy import update as sa_update
 
 from models import Category, Transaction
 from repositories.categories_repository import CategoriesRepository
+from utils.category_types import (
+    EXPENSE,
+    is_expense,
+    is_income,
+    is_investment,
+)
 from utils.crypto import decrypt, encrypt, hash_for_lookup
 
 from .base_repository import get_session
@@ -130,7 +136,7 @@ class TransactionsRepository:
             result["category"] = (
                 decrypt(category.name) if category else "(sem categoria)"
             )
-            result["type"] = decrypt(category.type) if category else "saida"
+            result["type"] = decrypt(category.type) if category else EXPENSE
             results.append(result)
 
         return sorted(
@@ -520,14 +526,16 @@ class TransactionsRepository:
             )
 
         # ── Resumo mensal ──────────────────────────────────────────────────────
-        entradas = sum(t["value"] for t in curr_month if t["type"] == "entrada")
-        saidas = sum(
-            t["value"] for t in curr_month if t["type"] in ("saida", "ambos")
+        entradas = sum(t["value"] for t in curr_month if is_income(t["type"]))
+        saidas = sum(t["value"] for t in curr_month if is_expense(t["type"]))
+        # Investimento fica fora de saidas/saldo/saldo_acumulado (D-01).
+        investimentos = sum(
+            t["value"] for t in curr_month if is_investment(t["type"])
         )
         installment_saidas = sum(
             t["value"]
             for t in curr_month
-            if t["type"] in ("saida", "ambos")
+            if is_expense(t["type"])
             and t.get("installment_number")
             and t["installment_number"] > 1
         )
@@ -537,18 +545,19 @@ class TransactionsRepository:
         acc_in = sum(
             t["value"]
             for t in all_year
-            if t["type"] == "entrada"
+            if is_income(t["type"])
             and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
         )
         acc_out = sum(
             t["value"]
             for t in all_year
-            if t["type"] in ("saida", "ambos")
+            if is_expense(t["type"])
             and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
         )
         summary = {
             "entradas": entradas,
             "saidas": saidas,
+            "investimentos": investimentos,
             "saldo": entradas - saidas,
             "saldo_acumulado": acc_in - acc_out,
             "pct_installments": pct_installments,
@@ -558,11 +567,11 @@ class TransactionsRepository:
         exp_totals: dict[str, float] = {}
         inc_totals: dict[str, float] = {}
         for t in curr_month:
-            if t["type"] in ("saida", "ambos"):
+            if is_expense(t["type"]):
                 exp_totals[t["category"]] = (
                     exp_totals.get(t["category"], 0) + t["value"]
                 )
-            elif t["type"] == "entrada":
+            elif is_income(t["type"]):
                 inc_totals[t["category"]] = (
                     inc_totals.get(t["category"], 0) + t["value"]
                 )
@@ -577,25 +586,35 @@ class TransactionsRepository:
             reverse=True,
         )
 
-        # ── Detalhamento de saídas por categoria ──────────────────────────────
+        # ── Detalhamento de saídas e investimentos por categoria ──────────────
         all_cats = CategoriesRepository.list_categories(user_id)
-        saida_cats = [c for c in all_cats if c["type"] in ("saida", "ambos")]
-        saida_txns = [t for t in curr_month if t["type"] in ("saida", "ambos")]
-        total_month = sum(t["value"] for t in saida_txns)
-        prev_saida = [
-            t for t in prev_month_txns if t["type"] in ("saida", "ambos")
+        detail_cats = [
+            c
+            for c in all_cats
+            if is_expense(c["type"]) or is_investment(c["type"])
         ]
+        saida_txns = [t for t in curr_month if is_expense(t["type"])]
+        invest_txns = [t for t in curr_month if is_investment(t["type"])]
+        detail_txns = saida_txns + invest_txns
+        # Denominador comum a despesas e investimentos: soma dos dois (D-02).
+        total_month = sum(t["value"] for t in detail_txns)
+        prev_saida = [t for t in prev_month_txns if is_expense(t["type"])]
+        prev_invest = [t for t in prev_month_txns if is_investment(t["type"])]
 
         descriptions_by_cat = {}
-        for cat in saida_cats:
-            cat_txns = [t for t in saida_txns if t["category"] == cat["name"]]
+        for cat in detail_cats:
+            cat_txns = [t for t in detail_txns if t["category"] == cat["name"]]
             totals: dict[str, float] = {}
             for t in cat_txns:
                 desc = t["description"] or "(sem descrição)"
                 totals[desc] = totals.get(desc, 0) + t["value"]
             cat_total = sum(totals.values())
+            # total_prev olha o mês anterior no mesmo tipo da categoria.
+            prev_pool = (
+                prev_invest if is_investment(cat["type"]) else prev_saida
+            )
             prev_cat_total = sum(
-                t["value"] for t in prev_saida if t["category"] == cat["name"]
+                t["value"] for t in prev_pool if t["category"] == cat["name"]
             )
             descriptions_by_cat[cat["name"]] = {
                 "descriptions": sorted(
@@ -608,6 +627,7 @@ class TransactionsRepository:
                 "pct_of_month": (
                     (cat_total / total_month * 100) if total_month > 0 else 0.0
                 ),
+                "type": cat["type"],
             }
 
         # ── Gastos por categoria por dia ──────────────────────────────────────
@@ -635,17 +655,20 @@ class TransactionsRepository:
             "Dez",
         ]
         months_agg = {
-            f"{i:02d}": {"entrada": 0.0, "saida": 0.0} for i in range(1, 13)
+            f"{i:02d}": {"entrada": 0.0, "saida": 0.0, "investimento": 0.0}
+            for i in range(1, 13)
         }
         for t in all_year:
             try:
                 m = datetime.strptime(t["date"], "%Y-%m-%d").strftime("%m")
             except (ValueError, TypeError):
                 continue
-            if t["type"] == "entrada":
+            if is_income(t["type"]):
                 months_agg[m]["entrada"] += t["value"]
-            elif t["type"] in ("saida", "ambos"):
+            elif is_expense(t["type"]):
                 months_agg[m]["saida"] += t["value"]
+            elif is_investment(t["type"]):
+                months_agg[m]["investimento"] += t["value"]
         annual = []
         saldo_acc = 0.0
         for i, (m, v) in enumerate(sorted(months_agg.items())):
@@ -657,6 +680,7 @@ class TransactionsRepository:
                     "month_label": month_labels[int(m) - 1],
                     "entrada": v["entrada"],
                     "saida": v["saida"],
+                    "investimento": v["investimento"],
                     "saldo": saldo,
                     "saldo_acumulado": saldo_acc,
                 }
