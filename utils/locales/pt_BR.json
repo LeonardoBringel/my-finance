@@ -67,6 +67,50 @@
   "components": {
     "styles": {
       "back_to_dashboard": "🏠 Dashboard"
+    },
+    "new_transaction": {
+      "dialog_title": "➕ Novo Registro",
+      "type": "Tipo *",
+      "category": "Categoria *",
+      "description": "Descrição",
+      "description_placeholder_no_category": "Selecione uma categoria primeiro...",
+      "description_placeholder": "Digite ou selecione uma descrição...",
+      "date": "Data *",
+      "value": "Valor Total (R$) *",
+      "value_placeholder": "ex: 1.250,00",
+      "installment_check": "Parcelado?",
+      "installment_help": "Parcelamento disponível apenas para saídas",
+      "installment_count": "Número de parcelas",
+      "installment_hint": "💡 Valor por parcela: **{value}** × {count}x",
+      "editing_installment": "⚠️ Parcela {number}/{total} — editar só esta parcela",
+      "save_edit": "💾 Salvar alterações",
+      "save": "💾 Salvar",
+      "empty_category": "Selecione uma categoria.",
+      "invalid_value": "Informe um valor válido (ex: 1.250,00).",
+      "updated": "✅ Lançamento atualizado!",
+      "saved": "✅ Registro salvo! Preencha o próximo ou feche.",
+      "close": "Fechar"
+    },
+    "advance_installments": {
+      "dialog_title": "⏩ Adiantar Parcelas",
+      "step1_caption": "Selecione um grupo de parcelas para adiantar ao mês atual.",
+      "none_found": "Nenhuma transação parcelada com parcelas futuras encontrada.",
+      "close": "Fechar",
+      "col_description": "Descrição",
+      "col_category": "Categoria",
+      "col_current": "Parcela atual",
+      "col_value": "Valor parcela",
+      "col_future_total": "Total futuro",
+      "select": "Selecionar",
+      "summary": "**{desc}** — {category}",
+      "current_installment": "Parcela atual",
+      "installment_value": "Valor da parcela",
+      "future_total": "Total futuro",
+      "explanation": "As parcelas adiantadas serão as **últimas** do grupo (por número de parcela) e receberão a data do mês atual mantendo o mesmo dia.",
+      "how_many": "Quantas parcelas adiantar?",
+      "confirm": "✅ Confirmar",
+      "confirmed": "✅ {count} parcela(s) de **{desc}** adiantada(s) para o mês atual.",
+      "back": "← Voltar"
     }
   },
   "pages": {

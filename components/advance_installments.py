@@ -2,9 +2,10 @@ import streamlit as st
 
 from repositories import TransactionsRepository
 from utils.data_format_utils import format_currency
+from utils.i18n import t
 
 
-@st.dialog("⏩ Adiantar Parcelas", width="large")
+@st.dialog(t("components.advance_installments.dialog_title"), width="large")
 def advance_installments_dialog(user_id: int) -> None:
     """Dialog de 2 etapas para adiantamento de parcelas futuras para o mês atual.
 
@@ -24,7 +25,7 @@ def advance_installments_dialog(user_id: int) -> None:
 
 def _render_step_1(user_id: int) -> None:
     """Renderiza a etapa 1: listagem dos grupos de parcelas com parcelas futuras."""
-    st.caption("Selecione um grupo de parcelas para adiantar ao mês atual.")
+    st.caption(t("components.advance_installments.step1_caption"))
 
     st.divider()
 
@@ -35,8 +36,10 @@ def _render_step_1(user_id: int) -> None:
     )
 
     if not groups:
-        st.info("Nenhuma transação parcelada com parcelas futuras encontrada.")
-        if st.button("Fechar", use_container_width=True):
+        st.info(t("components.advance_installments.none_found"))
+        if st.button(
+            t("components.advance_installments.close"), use_container_width=True
+        ):
             _close_dialog()
         return
 
@@ -44,11 +47,11 @@ def _render_step_1(user_id: int) -> None:
     for col, label in zip(
         header_cols,
         [
-            "Descrição",
-            "Categoria",
-            "Parcela atual",
-            "Valor parcela",
-            "Total futuro",
+            t("components.advance_installments.col_description"),
+            t("components.advance_installments.col_category"),
+            t("components.advance_installments.col_current"),
+            t("components.advance_installments.col_value"),
+            t("components.advance_installments.col_future_total"),
             "",
         ],
     ):
@@ -56,7 +59,7 @@ def _render_step_1(user_id: int) -> None:
             col.markdown(f"**{label}**")
 
     for group in groups:
-        desc = group["description"] or "—"
+        desc = group["description"] or t("common.empty_cell")
         current = group["current_installment"]
         total = group["installment_total"]
         cols = st.columns([3, 2, 1.5, 1.5, 2, 1.5])
@@ -66,14 +69,17 @@ def _render_step_1(user_id: int) -> None:
         cols[3].markdown(format_currency(group["installment_value"]))
         cols[4].markdown(format_currency(group["future_total_value"]))
         if cols[5].button(
-            "Selecionar", key=f"sel_{group['installment_group']}"
+            t("components.advance_installments.select"),
+            key=f"sel_{group['installment_group']}",
         ):
             st.session_state["advance_selected_group"] = group
             st.session_state["advance_step"] = 2
             st.rerun(scope="fragment")
 
     st.divider()
-    if st.button("Fechar", use_container_width=True):
+    if st.button(
+        t("components.advance_installments.close"), use_container_width=True
+    ):
         _close_dialog()
 
 
@@ -81,8 +87,8 @@ def _render_step_2(user_id: int) -> None:
     """Renderiza a etapa 2: seleção da quantidade de parcelas e confirmação."""
     group = st.session_state.get("advance_selected_group", {})
 
-    desc = group.get("description") or "—"
-    category = group.get("category", "—")
+    desc = group.get("description") or t("common.empty_cell")
+    category = group.get("category", t("common.empty_cell"))
     future_count = group.get("future_count", 0)
     installment_total = group.get("installment_total", 0)
     current_installment = group.get(
@@ -91,22 +97,32 @@ def _render_step_2(user_id: int) -> None:
     installment_value = group.get("installment_value", 0.0)
     future_total_value = group.get("future_total_value", 0.0)
 
-    st.markdown(f"**{desc}** — {category}")
+    st.markdown(
+        t(
+            "components.advance_installments.summary",
+            desc=desc,
+            category=category,
+        )
+    )
     col_info1, col_info2, col_info3 = st.columns(3)
     col_info1.metric(
-        "Parcela atual", f"{current_installment}/{installment_total}"
+        t("components.advance_installments.current_installment"),
+        f"{current_installment}/{installment_total}",
     )
-    col_info2.metric("Valor da parcela", format_currency(installment_value))
-    col_info3.metric("Total futuro", format_currency(future_total_value))
-    st.info(
-        "As parcelas adiantadas serão as **últimas** do grupo (por número de parcela) "
-        "e receberão a data do mês atual mantendo o mesmo dia."
+    col_info2.metric(
+        t("components.advance_installments.installment_value"),
+        format_currency(installment_value),
     )
+    col_info3.metric(
+        t("components.advance_installments.future_total"),
+        format_currency(future_total_value),
+    )
+    st.info(t("components.advance_installments.explanation"))
 
     st.divider()
 
     count = st.number_input(
-        "Quantas parcelas adiantar?",
+        t("components.advance_installments.how_many"),
         min_value=1,
         max_value=future_count,
         value=1,
@@ -118,26 +134,38 @@ def _render_step_2(user_id: int) -> None:
     col_confirm, col_back, col_close = st.columns(3)
 
     with col_confirm:
-        if st.button("✅ Confirmar", type="primary", use_container_width=True):
+        if st.button(
+            t("components.advance_installments.confirm"),
+            type="primary",
+            use_container_width=True,
+        ):
             TransactionsRepository.advance_installments(
                 user_id=user_id,
                 installment_group=group["installment_group"],
                 count=int(count),
             )
             st.success(
-                f"✅ {int(count)} parcela(s) de **{desc}** adiantada(s) para o mês atual."
+                t(
+                    "components.advance_installments.confirmed",
+                    count=int(count),
+                    desc=desc,
+                )
             )
             _close_dialog()
 
     with col_back:
-        if st.button("← Voltar", use_container_width=True):
+        if st.button(
+            t("components.advance_installments.back"), use_container_width=True
+        ):
             st.session_state["advance_step"] = 1
             st.session_state.pop("advance_selected_group", None)
             st.session_state.pop("advance_count", None)
             st.rerun(scope="fragment")
 
     with col_close:
-        if st.button("Fechar", use_container_width=True):
+        if st.button(
+            t("components.advance_installments.close"), use_container_width=True
+        ):
             _close_dialog()
 
 

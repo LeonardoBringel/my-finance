@@ -12,9 +12,10 @@ from utils.category_types import (
     selectable_type,
 )
 from utils.data_format_utils import format_currency, parse_value_text
+from utils.i18n import t
 
 
-@st.dialog("➕ Novo Registro")
+@st.dialog(t("components.new_transaction.dialog_title"))
 def new_transaction_dialog(user_id: int, txn: dict = None):
     """Dialog unificado para criar ou editar uma transação financeira.
 
@@ -33,7 +34,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     col1, col2 = st.columns(2)
     with col1:
         tipo = st.selectbox(
-            "Tipo *",
+            t("components.new_transaction.type"),
             TRANSACTION_TYPES,
             format_func=lambda x: TYPE_LABELS[x],
             index=TRANSACTION_TYPES.index(selectable_type(default_tipo)),
@@ -51,7 +52,10 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
             cat_list.index(current_cat) if current_cat in cat_list else 0
         )
         categoria_nome = st.selectbox(
-            "Categoria *", cat_list, index=cat_index, key=f"cat_{reset_key}"
+            t("components.new_transaction.category"),
+            cat_list,
+            index=cat_index,
+            key=f"cat_{reset_key}",
         )
 
     # ── Descrição ─────────────────────────────────────────────────────────────
@@ -75,14 +79,16 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     )
     descricao_final = (
         st.selectbox(
-            "Descrição",
+            t("components.new_transaction.description"),
             options=desc_options,
             index=desc_index,
             accept_new_options=True,
             placeholder=(
-                "Selecione uma categoria primeiro..."
+                t(
+                    "components.new_transaction.description_placeholder_no_category"
+                )
                 if not categoria_nome
-                else "Digite ou selecione uma descrição..."
+                else t("components.new_transaction.description_placeholder")
             ),
             key=f"desc_{reset_key}",
             disabled=not categoria_nome,
@@ -94,7 +100,11 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     default_date = (
         date.fromisoformat(txn["date"]) if is_edit else datetime.today()
     )
-    data = st.date_input("Data *", value=default_date, format="DD/MM/YYYY")
+    data = st.date_input(
+        t("components.new_transaction.date"),
+        value=default_date,
+        format="DD/MM/YYYY",
+    )
 
     # ── Valor ─────────────────────────────────────────────────────────────────
     default_valor = (
@@ -118,10 +128,10 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
             st.session_state[f"valor_{reset_key}"] = formatted
 
     valor_str = st.text_input(
-        "Valor Total (R$) *",
+        t("components.new_transaction.value"),
         value=default_valor,
         key=f"valor_{reset_key}",
-        placeholder="ex: 1.250,00",
+        placeholder=t("components.new_transaction.value_placeholder"),
         on_change=_format_valor,
     )
 
@@ -129,18 +139,18 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     parcelas = 1
     if not is_edit:
         parcelado = st.checkbox(
-            "Parcelado?",
+            t("components.new_transaction.installment_check"),
             key=f"parcelado_{reset_key}",
             disabled=not is_expense(tipo),
             help=(
                 None
                 if is_expense(tipo)
-                else "Parcelamento disponível apenas para saídas"
+                else t("components.new_transaction.installment_help")
             ),
         )
         if parcelado and is_expense(tipo):
             parcelas = st.number_input(
-                "Número de parcelas",
+                t("components.new_transaction.installment_count"),
                 min_value=2,
                 max_value=60,
                 value=2,
@@ -150,12 +160,20 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
         valor_parsed = parse_value_text(valor_str) if valor_str else None
         if parcelado and valor_parsed and parcelas > 1:
             st.info(
-                f"💡 Valor por parcela: **{format_currency(valor_parsed / parcelas)}** × {int(parcelas)}x"
+                t(
+                    "components.new_transaction.installment_hint",
+                    value=format_currency(valor_parsed / parcelas),
+                    count=int(parcelas),
+                )
             )
     else:
         if txn.get("installment_total"):
             st.info(
-                f"⚠️ Parcela {txn['installment_number']}/{txn['installment_total']} — editar só esta parcela"
+                t(
+                    "components.new_transaction.editing_installment",
+                    number=txn["installment_number"],
+                    total=txn["installment_total"],
+                )
             )
 
     # ── Ações ──────────────────────────────────────────────────────────────────
@@ -164,12 +182,16 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     valor_parsed = parse_value_text(valor_str) if valor_str else None
 
     with col_save:
-        label = "💾 Salvar alterações" if is_edit else "💾 Salvar"
+        label = (
+            t("components.new_transaction.save_edit")
+            if is_edit
+            else t("components.new_transaction.save")
+        )
         if st.button(label, type="primary", use_container_width=True):
             if not categoria_nome:
-                st.error("Selecione uma categoria.")
+                st.error(t("components.new_transaction.empty_category"))
             elif not valor_parsed or valor_parsed <= 0:
-                st.error("Informe um valor válido (ex: 1.250,00).")
+                st.error(t("components.new_transaction.invalid_value"))
             else:
                 if is_edit:
                     TransactionsRepository.update_transaction(
@@ -180,7 +202,7 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                         description=descricao_final,
                         value=valor_parsed,
                     )
-                    st.success("✅ Lançamento atualizado!")
+                    st.success(t("components.new_transaction.updated"))
                     st.session_state.pop("edit_txn", None)
                     st.rerun()
                 else:
@@ -192,15 +214,15 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
                         value=valor_parsed,
                         installments=int(parcelas),
                     )
-                    st.success(
-                        "✅ Registro salvo! Preencha o próximo ou feche."
-                    )
+                    st.success(t("components.new_transaction.saved"))
                     st.session_state["last_tipo"] = tipo
                     st.session_state["form_reset_counter"] = reset_key + 1
                     st.rerun(scope="fragment")
 
     with col_cancel:
-        if st.button("Fechar", use_container_width=True):
+        if st.button(
+            t("components.new_transaction.close"), use_container_width=True
+        ):
             st.session_state.pop("show_form", None)
             st.session_state.pop("form_reset_counter", None)
             st.session_state.pop("edit_txn", None)
