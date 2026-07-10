@@ -23,6 +23,13 @@ from components.styles import (
 )
 from repositories import CategoriesRepository, TransactionsRepository
 from utils.auth import require_login
+from utils.category_types import (
+    TRANSACTION_TYPES,
+    TYPE_LABELS,
+    is_expense,
+    is_income,
+    is_investment,
+)
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
@@ -128,12 +135,8 @@ with st.expander("🔍 Filtros", expanded=True):
     with col2:
         f_type = st.selectbox(
             "Tipo",
-            ["Todos", "entrada", "saida"],
-            format_func=lambda x: (
-                "Todos"
-                if x == "Todos"
-                else ("💰 Entrada" if x == "entrada" else "💸 Saída")
-            ),
+            ["Todos", *TRANSACTION_TYPES],
+            format_func=lambda x: "Todos" if x == "Todos" else TYPE_LABELS[x],
             key=f"f_type_{v}",
         )
 
@@ -200,15 +203,15 @@ if f_desc != "Todas":
     transactions = [t for t in transactions if t["description"] == f_desc]
 
 # ── Métricas de resumo ─────────────────────────────────────────────────────────
-total_in = sum(t["value"] for t in transactions if t["type"] == "entrada")
-total_out = sum(
-    t["value"] for t in transactions if t["type"] in ("saida", "ambos")
-)
+total_in = sum(t["value"] for t in transactions if is_income(t["type"]))
+total_out = sum(t["value"] for t in transactions if is_expense(t["type"]))
+total_invest = sum(t["value"] for t in transactions if is_investment(t["type"]))
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("💰 Total Entradas", format_currency(total_in))
 col2.metric("💸 Total Saídas", format_currency(total_out))
-col3.metric("📈 Saldo", format_currency(total_in - total_out))
+col3.metric("📈 Total Investido", format_currency(total_invest))
+col4.metric("⚖️ Saldo", format_currency(total_in - total_out))
 
 st.divider()
 
@@ -240,15 +243,16 @@ def render_txn_table(txns: list[dict]) -> None:
     for txn in txns:
         cols = st.columns([1.2, 1.5, 1.8, 2.5, 1.5, 1.2, 0.8, 0.8])
         tipo = txn["type"]
-        tipo_icon = "💰" if tipo == "entrada" else "💸"
-        tipo_label = "Entrada" if tipo == "entrada" else "Saída"
-
-        cols[0].markdown(f"{tipo_icon} {tipo_label}")
+        cols[0].markdown(TYPE_LABELS.get(tipo, tipo))
         cols[1].markdown(format_date(txn["date"]))
         cols[2].markdown(txn["category"])
         cols[3].markdown(txn["description"] or "—")
 
-        val_color = "green" if tipo == "entrada" else "red"
+        val_color = (
+            "green"
+            if is_income(tipo)
+            else "blue" if is_investment(tipo) else "red"
+        )
         cols[4].markdown(f":{val_color}[{format_currency(txn['value'])}]")
         cols[5].markdown(
             f"{txn['installment_number']}/{txn['installment_total']}"
