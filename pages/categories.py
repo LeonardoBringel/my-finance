@@ -13,12 +13,17 @@ from components.styles import (
 )
 from repositories import CategoriesRepository, TransactionsRepository
 from utils.auth import require_login
-from utils.category_types import ALL_TYPES, TYPE_LABELS
-from utils.filters import ALL_FILTER, migration_targets
+from utils.category_types import ALL_TYPES, TYPE_LABELS, migration_targets
+from utils.filters import ALL_FILTER
+from utils.i18n import t
 
 inject_global_css()
 
-st.set_page_config(page_title="Categorias", page_icon="🏷️", layout="wide")
+st.set_page_config(
+    page_title=t("pages.categories.page_title"),
+    page_icon="🏷️",
+    layout="wide",
+)
 
 inject_subpage_css()
 
@@ -27,40 +32,15 @@ user_id = st.session_state["current_user"]["id"]
 
 
 # ── Onboarding ─────────────────────────────────────────────────────────────────
-@st.dialog("🏷️ Bem-vindo às Categorias", width="large")
+@st.dialog(t("pages.categories.onboarding_title"), width="large")
 def onboarding_dialog():
     """Dialog de boas-vindas com instruções sobre o gerenciamento de categorias."""
-    st.markdown("""
-### O que são Categorias?
-
-As **Categorias** organizam seus lançamentos financeiros, permitindo visualizar para onde
-seu dinheiro está indo e de onde ele vem.
-
----
-
-### Tipos de categoria
-
-| Tipo | Uso |
-|---|---|
-| 💸 **Saída** | Despesas, contas, compras |
-| 💰 **Entrada** | Salário, renda, recebimentos |
-| 📈 **Investimento** | Aportes, aplicações — não contam como despesa |
-| 🔄 **Ambos** | Categorias que servem para entradas e saídas |
-
----
-
-### Como começar?
-
-1. Use o formulário **➕ Nova Categoria** para criar sua primeira categoria.
-2. Dê um nome claro, como *Alimentação*, *Salário* ou *Aluguel*.
-3. Escolha o tipo adequado e clique em **💾 Adicionar**.
-
-Depois de criar as categorias, você poderá registrar lançamentos e visualizá-los
-organizados no Dashboard.
-    """)
+    st.markdown(t("pages.categories.onboarding_body"))
     st.divider()
     if st.button(
-        "✅ Entendido, vamos começar!", type="primary", use_container_width=True
+        t("pages.categories.onboarding_confirm"),
+        type="primary",
+        use_container_width=True,
     ):
         st.rerun()
 
@@ -70,7 +50,8 @@ if st.session_state.pop("cat_show_onboarding", False):
     onboarding_dialog()
 
 page_header(
-    "🏷️ Gerenciar Categorias", cleanup_keys=["show_form", "form_reset_counter"]
+    t("pages.categories.header"),
+    cleanup_keys=["show_form", "form_reset_counter"],
 )
 
 st.divider()
@@ -84,20 +65,26 @@ if "new_cat_v" not in st.session_state:
 
 _v = st.session_state["new_cat_v"]
 
-with st.expander("➕ Nova Categoria", expanded=False):
+with st.expander(t("pages.categories.new_category"), expanded=False):
     col1, col2, col3 = st.columns([2, 1.5, 1])
     with col1:
-        new_name = st.text_input("Nome da categoria", key=f"new_cat_name_{_v}")
+        new_name = st.text_input(
+            t("pages.categories.name"), key=f"new_cat_name_{_v}"
+        )
     with col2:
         new_type = st.selectbox(
-            "Tipo",
+            t("pages.categories.type"),
             ALL_TYPES,
             format_func=lambda x: TYPE_LABELS[x],
             key=f"new_cat_type_{_v}",
         )
     with col3:
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("💾 Adicionar", type="primary", use_container_width=True):
+        if st.button(
+            t("pages.categories.add"),
+            type="primary",
+            use_container_width=True,
+        ):
             if new_name.strip():
                 ok, msg = CategoriesRepository.create_category(
                     user_id, new_name.strip(), new_type
@@ -109,14 +96,14 @@ with st.expander("➕ Nova Categoria", expanded=False):
                 else:
                     st.error(msg)
             else:
-                st.error("Digite um nome para a categoria.")
+                st.error(t("pages.categories.empty_name"))
 
 # ── Lista de Categorias ────────────────────────────────────────────────────────
 all_categories = CategoriesRepository.list_categories(user_id)
 txn_counts = CategoriesRepository.get_transaction_counts_by_category(user_id)
 
 f_type = st.selectbox(
-    "Filtrar por tipo",
+    t("pages.categories.filter_by_type"),
     [ALL_FILTER, *ALL_TYPES],
     format_func=lambda x: "Todos" if x == ALL_FILTER else TYPE_LABELS[x],
 )
@@ -125,14 +112,23 @@ categories = all_categories
 if f_type != ALL_FILTER:
     categories = [c for c in all_categories if c["type"] == f_type]
 
-st.markdown(f"**{len(categories)} categoria(s)**")
+st.markdown(t("pages.categories.count", count=len(categories)))
 st.divider()
 
 if not categories:
-    st.info("Nenhuma categoria encontrada.")
+    st.info(t("pages.categories.none_found"))
 else:
     header = st.columns([2.5, 1.5, 1.5, 0.8, 0.8])
-    for h, label in zip(header, ["Nome", "Tipo", "Lançamentos", "✏️", "🗑️"]):
+    for h, label in zip(
+        header,
+        [
+            t("pages.categories.col_name"),
+            t("pages.categories.col_type"),
+            t("pages.categories.col_transactions"),
+            "✏️",
+            "🗑️",
+        ],
+    ):
         h.markdown(f"**{label}**")
     st.divider()
 
@@ -156,16 +152,19 @@ else:
             user_id, cat["id"]
         )
         is_expanded = st.session_state.get(active_key) is not None
-        with st.expander(f"📋 Descrições ({len(descs)})", expanded=is_expanded):
+        with st.expander(
+            t("pages.categories.descriptions", count=len(descs)),
+            expanded=is_expanded,
+        ):
             if not descs:
-                st.info("Nenhuma descrição cadastrada para esta categoria.")
+                st.info(t("pages.categories.no_descriptions"))
             else:
                 dh = st.columns([3.5, 0.8, 0.7, 0.7, 0.7])
-                dh[0].markdown("**Descrição**")
-                dh[1].markdown("**Qtd**")
-                dh[2].markdown("**✏️**")
-                dh[3].markdown("**↗️**")
-                dh[4].markdown("**🗑️**")
+                dh[0].markdown(t("pages.categories.desc_col_description"))
+                dh[1].markdown(t("pages.categories.desc_col_count"))
+                dh[2].markdown(t("pages.categories.desc_col_edit"))
+                dh[3].markdown(t("pages.categories.desc_col_migrate"))
+                dh[4].markdown(t("pages.categories.desc_col_delete"))
 
                 for idx, di in enumerate(descs):
                     dc = st.columns([3.5, 0.8, 0.7, 0.7, 0.7])
@@ -198,7 +197,7 @@ else:
                         if active["action"] == "rename":
                             rf1, rf2, rf3 = st.columns([3.5, 0.7, 0.7])
                             new_desc_val = rf1.text_input(
-                                "Nova descrição",
+                                t("pages.categories.new_description"),
                                 value=di["description"],
                                 key=f"rnew_{cat['id']}_{idx}",
                             )
@@ -210,9 +209,13 @@ else:
                             ):
                                 trimmed = new_desc_val.strip()
                                 if not trimmed:
-                                    st.error("Digite um nome.")
+                                    st.error(
+                                        t("pages.categories.empty_description")
+                                    )
                                 elif trimmed == di["description"]:
-                                    st.error("Digite um nome diferente.")
+                                    st.error(
+                                        t("pages.categories.same_description")
+                                    )
                                 else:
                                     updated = TransactionsRepository.rename_description(
                                         user_id,
@@ -221,8 +224,9 @@ else:
                                         trimmed,
                                     )
                                     st.session_state.pop(active_key, None)
-                                    st.session_state["cat_success_msg"] = (
-                                        f"{updated} transação(ões) renomeada(s)."
+                                    st.session_state["cat_success_msg"] = t(
+                                        "pages.categories.renamed",
+                                        count=updated,
                                     )
                                     st.rerun()
                             rf3.markdown("<br>", unsafe_allow_html=True)
@@ -243,9 +247,13 @@ else:
                                 if c["type"] in allowed
                             ]
                             tgt_cat = mf1.selectbox(
-                                "Categoria destino",
+                                t("pages.categories.target_category"),
                                 tgt_cats,
-                                format_func=lambda c: f"{c['name']} · {TYPE_LABELS[c['type']]}",
+                                format_func=lambda c: t(
+                                    "pages.categories.target_category_label",
+                                    name=c["name"],
+                                    type=TYPE_LABELS[c["type"]],
+                                ),
                                 key=f"mtgtcat_{cat['id']}_{idx}",
                             )
                             tgt_descs = TransactionsRepository.get_descriptions_with_counts(
@@ -269,7 +277,7 @@ else:
                                 ]
                             if tgt_desc_list:
                                 tgt_desc = mf2.selectbox(
-                                    "Descrição destino",
+                                    t("pages.categories.target_description"),
                                     tgt_desc_list,
                                     index=0,
                                     accept_new_options=True,
@@ -277,7 +285,9 @@ else:
                                 )
                             else:
                                 tgt_desc = None
-                                mf2.info("Categoria sem descrições.")
+                                mf2.info(
+                                    t("pages.categories.target_category_empty")
+                                )
                             mf3.markdown("<br>", unsafe_allow_html=True)
                             if mf3.button(
                                 "💾",
@@ -286,12 +296,16 @@ else:
                             ):
                                 tgt_desc = (tgt_desc or "").strip()
                                 if not tgt_desc:
-                                    st.error("Informe uma descrição destino.")
+                                    st.error(
+                                        t(
+                                            "pages.categories.empty_target_description"
+                                        )
+                                    )
                                 elif (
                                     tgt_cat["id"] == cat["id"]
                                     and tgt_desc == di["description"]
                                 ):
-                                    st.error("Selecione um destino diferente.")
+                                    st.error(t("pages.categories.same_target"))
                                 else:
                                     updated = TransactionsRepository.migrate_description(
                                         user_id,
@@ -301,8 +315,9 @@ else:
                                         tgt_desc,
                                     )
                                     st.session_state.pop(active_key, None)
-                                    st.session_state["cat_success_msg"] = (
-                                        f"{updated} transação(ões) migrada(s)."
+                                    st.session_state["cat_success_msg"] = t(
+                                        "pages.categories.migrated",
+                                        count=updated,
                                     )
                                     st.rerun()
                             mf4.markdown("<br>", unsafe_allow_html=True)
@@ -315,7 +330,10 @@ else:
                         elif active["action"] == "delete":
                             df1, df2, df3 = st.columns([3.5, 0.7, 0.7])
                             df1.markdown(
-                                f"Remover descrição de {di['count']} transações?"
+                                t(
+                                    "pages.categories.confirm_remove_description",
+                                    count=di["count"],
+                                )
                             )
                             df2.markdown("<br>", unsafe_allow_html=True)
                             if df2.button(
@@ -329,8 +347,9 @@ else:
                                     )
                                 )
                                 st.session_state.pop(active_key, None)
-                                st.session_state["cat_success_msg"] = (
-                                    f"{updated} transação(ões) atualizada(s)."
+                                st.session_state["cat_success_msg"] = t(
+                                    "pages.categories.description_updated",
+                                    count=updated,
                                 )
                                 st.rerun()
                             df3.markdown("<br>", unsafe_allow_html=True)
@@ -345,11 +364,13 @@ else:
                 ec1, ec2, ec3, ec4 = st.columns([3, 2, 1, 1])
                 with ec1:
                     edit_name = st.text_input(
-                        "Nome", value=cat["name"], key=f"ename_{cat['id']}"
+                        t("pages.categories.edit_name"),
+                        value=cat["name"],
+                        key=f"ename_{cat['id']}",
                     )
                 with ec2:
                     edit_type = st.selectbox(
-                        "Tipo",
+                        t("pages.categories.type"),
                         ALL_TYPES,
                         index=(
                             ALL_TYPES.index(cat["type"])
@@ -382,16 +403,20 @@ else:
                         st.rerun()
 
         if st.session_state.get("confirm_del_cat_id") == cat["id"]:
-            st.warning(f"⚠️ Excluir categoria **{cat['name']}**?")
+            st.warning(t("pages.categories.confirm_delete", name=cat["name"]))
             cc1, cc2, _ = st.columns([1, 1, 4])
             if cc1.button(
-                "✅ Confirmar", key=f"conf_cat_{cat['id']}", type="primary"
+                t("pages.categories.confirm"),
+                key=f"conf_cat_{cat['id']}",
+                type="primary",
             ):
                 CategoriesRepository.delete_category(user_id, cat["id"])
                 st.session_state.pop("confirm_del_cat_id", None)
                 st.session_state.pop("confirm_del_cat_name", None)
                 st.rerun()
-            if cc2.button("❌ Cancelar", key=f"canc_cat_{cat['id']}"):
+            if cc2.button(
+                t("pages.categories.cancel"), key=f"canc_cat_{cat['id']}"
+            ):
                 st.session_state.pop("confirm_del_cat_id", None)
                 st.session_state.pop("confirm_del_cat_name", None)
                 st.rerun()
