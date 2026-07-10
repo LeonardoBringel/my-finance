@@ -13,6 +13,7 @@ from components.styles import (
 )
 from repositories import CategoriesRepository, TransactionsRepository
 from utils.auth import require_login
+from utils.category_types import ALL_TYPES, TYPE_LABELS
 
 inject_global_css()
 
@@ -42,6 +43,7 @@ seu dinheiro está indo e de onde ele vem.
 |---|---|
 | 💸 **Saída** | Despesas, contas, compras |
 | 💰 **Entrada** | Salário, renda, recebimentos |
+| 📈 **Investimento** | Aportes, aplicações — não contam como despesa |
 | 🔄 **Ambos** | Categorias que servem para entradas e saídas |
 
 ---
@@ -88,12 +90,8 @@ with st.expander("➕ Nova Categoria", expanded=False):
     with col2:
         new_type = st.selectbox(
             "Tipo",
-            ["saida", "entrada", "ambos"],
-            format_func=lambda x: {
-                "saida": "💸 Saída",
-                "entrada": "💰 Entrada",
-                "ambos": "🔄 Ambos",
-            }[x],
+            ALL_TYPES,
+            format_func=lambda x: TYPE_LABELS[x],
             key=f"new_cat_type_{_v}",
         )
     with col3:
@@ -116,16 +114,10 @@ with st.expander("➕ Nova Categoria", expanded=False):
 all_categories = CategoriesRepository.list_categories(user_id)
 txn_counts = CategoriesRepository.get_transaction_counts_by_category(user_id)
 
-type_labels = {
-    "entrada": "💰 Entrada",
-    "saida": "💸 Saída",
-    "ambos": "🔄 Ambos",
-}
-
 f_type = st.selectbox(
     "Filtrar por tipo",
-    ["Todos", "entrada", "saida", "ambos"],
-    format_func=lambda x: "Todos" if x == "Todos" else type_labels[x],
+    ["Todos", *ALL_TYPES],
+    format_func=lambda x: "Todos" if x == "Todos" else TYPE_LABELS[x],
 )
 
 categories = all_categories
@@ -146,7 +138,7 @@ else:
     for cat in categories:
         cols = st.columns([2.5, 1.5, 1.5, 0.8, 0.8])
         cols[0].markdown(cat["name"])
-        cols[1].markdown(type_labels.get(cat["type"], cat["type"]))
+        cols[1].markdown(TYPE_LABELS.get(cat["type"], cat["type"]))
         count = txn_counts.get(cat["id"], 0)
         cols[2].markdown(f"{count}")
 
@@ -343,9 +335,13 @@ else:
                 with ec2:
                     edit_type = st.selectbox(
                         "Tipo",
-                        ["saida", "entrada", "ambos"],
-                        index=["saida", "entrada", "ambos"].index(cat["type"]),
-                        format_func=lambda x: type_labels[x],
+                        ALL_TYPES,
+                        index=(
+                            ALL_TYPES.index(cat["type"])
+                            if cat["type"] in ALL_TYPES
+                            else 0
+                        ),
+                        format_func=lambda x: TYPE_LABELS[x],
                         key=f"etype_{cat['id']}",
                     )
                 with ec3:

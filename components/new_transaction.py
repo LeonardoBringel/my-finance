@@ -3,6 +3,14 @@ from datetime import date, datetime
 import streamlit as st
 
 from repositories import CategoriesRepository, TransactionsRepository
+from utils.category_types import (
+    EXPENSE,
+    TRANSACTION_TYPES,
+    TYPE_LABELS,
+    categories_for,
+    is_expense,
+    selectable_type,
+)
 from utils.data_format_utils import format_currency, parse_value_text
 
 
@@ -20,20 +28,22 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
 
     # ── Tipo ──────────────────────────────────────────────────────────────────
     default_tipo = (
-        txn["type"] if is_edit else st.session_state.get("last_tipo", "saida")
+        txn["type"] if is_edit else st.session_state.get("last_tipo", EXPENSE)
     )
     col1, col2 = st.columns(2)
     with col1:
         tipo = st.selectbox(
             "Tipo *",
-            ["saida", "entrada"],
-            format_func=lambda x: "💸 Saída" if x == "saida" else "💰 Entrada",
-            index=0 if default_tipo == "saida" else 1,
+            TRANSACTION_TYPES,
+            format_func=lambda x: TYPE_LABELS[x],
+            index=TRANSACTION_TYPES.index(selectable_type(default_tipo)),
             key=f"tipo_{reset_key}",
         )
     with col2:
         cats_filtered = {
-            c["name"]: c["id"] for c in all_cats if c["type"] in (tipo, "ambos")
+            c["name"]: c["id"]
+            for c in all_cats
+            if c["type"] in categories_for(tipo)
         }
         current_cat = txn["category"] if is_edit else ""
         cat_list = [""] + list(cats_filtered.keys())
@@ -121,14 +131,14 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
         parcelado = st.checkbox(
             "Parcelado?",
             key=f"parcelado_{reset_key}",
-            disabled=tipo == "entrada",
+            disabled=not is_expense(tipo),
             help=(
-                "Parcelamento disponível apenas para saídas"
-                if tipo == "entrada"
-                else None
+                None
+                if is_expense(tipo)
+                else "Parcelamento disponível apenas para saídas"
             ),
         )
-        if parcelado and tipo == "saida":
+        if parcelado and is_expense(tipo):
             parcelas = st.number_input(
                 "Número de parcelas",
                 min_value=2,
