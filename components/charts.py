@@ -8,6 +8,7 @@ GREEN_MAIN = "#4CAF50"
 GREEN_LIGHT = "#81C784"
 GREEN_DARK = "#388E3C"
 RED_MAIN = "#EF5350"
+INVEST_MAIN = "#42A5F5"
 BG_COLOR = "rgba(0,0,0,0)"
 TEXT_COLOR = "#FAFAFA"
 GRID_COLOR = "rgba(255,255,255,0.08)"
@@ -69,9 +70,30 @@ def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
 
 
 def bar_chart_expenses(
-    categories, planned, actual, title="Detalhamento Despesas"
+    categories,
+    values,
+    title="Detalhamento Despesas",
+    investment_label: str | None = None,
 ):
-    if not categories:
+    """Barras de detalhamento de despesas (+ barra agregada de investimento).
+
+    Args:
+        categories: Rótulos das barras (categorias de despesa e, opcionalmente,
+            a barra agregada de investimento).
+        values: Valores de cada barra, na mesma ordem de ``categories``. O
+            denominador dos percentuais é ``sum(values)``, de modo que anexar a
+            barra de investimento a ``values`` já produz o denominador
+            "despesas + investimentos".
+        title: Título do gráfico.
+        investment_label: Rótulo da barra de investimento; essa barra recebe a
+            cor ``INVEST_MAIN`` e as demais ``GREEN_MAIN``. ``None`` pinta tudo
+            de verde.
+
+    Returns:
+        go.Figure com uma barra por categoria.
+    """
+    total = sum(values) if values else 0
+    if not categories or total == 0:
         fig = go.Figure()
         fig.add_annotation(
             text="Sem dados",
@@ -83,21 +105,23 @@ def bar_chart_expenses(
         fig.update_layout(**_base_layout(title))
         return fig
 
-    total = sum(actual) if actual else 1
-    pct = [v / total * 100 for v in actual]
+    pct = [v / total * 100 for v in values]
+    colors = [
+        INVEST_MAIN if c == investment_label else GREEN_MAIN for c in categories
+    ]
 
     fig = go.Figure()
     fig.add_trace(
         go.Bar(
             name="Total",
             x=categories,
-            y=actual,
-            marker_color=GREEN_MAIN,
+            y=values,
+            marker_color=colors,
             text=[f"{p:.1f}%" for p in pct],
             textposition="outside",
             textfont=dict(color=TEXT_COLOR, size=11),
             customdata=pct,
-            hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<br>%{customdata:.1f}% das despesas<extra></extra>",
+            hovertemplate="<b>%{x}</b><br>R$ %{y:,.2f}<br>%{customdata:.1f}% do mês<extra></extra>",
         )
     )
     fig.update_layout(
@@ -123,9 +147,18 @@ def annual_evolution_chart(
 ):
     """
     Combo chart: bars for entrada/saida, line for cumulative saldo.
-    data: list of { month_label, entrada, saida, saldo_acumulado }
+
+    A barra de entrada é dividida em duas partes empilhadas no mesmo
+    ``offsetgroup`` ("in"): a parte pintada ``max(entrada - investimento, 0)`` e
+    a parte pontilhada ``investimento`` (sobreposta acima). A barra de saídas
+    fica em ``offsetgroup`` próprio ("out"), agrupada ao lado — não empilhada.
+
+    data: list of { month_label, entrada, saida, investimento, saldo_acumulado }
     """
-    if not data or all(d["entrada"] == 0 and d["saida"] == 0 for d in data):
+    if not data or all(
+        d["entrada"] == 0 and d["saida"] == 0 and d["investimento"] == 0
+        for d in data
+    ):
         fig = go.Figure()
         fig.add_annotation(
             text="Sem dados",
@@ -140,7 +173,16 @@ def annual_evolution_chart(
     labels = [d["month_label"] for d in data]
     entradas = [d["entrada"] for d in data]
     saidas = [d["saida"] for d in data]
+    investimentos = [d["investimento"] for d in data]
     saldos = [d["saldo_acumulado"] for d in data]
+
+    # D-04: pintada estoura para 0 quando investimento > entrada; a pontilhada
+    # desenha o valor cheio do investimento (sem min()).
+    pintada = [max(e - i, 0) for e, i in zip(entradas, investimentos)]
+    # % do investimento sobre a entrada do mês, com guarda para entrada == 0.
+    invest_pct = [
+        (i / e * 100) if e > 0 else 0.0 for e, i in zip(entradas, investimentos)
+    ]
 
     fig = go.Figure()
 
@@ -148,10 +190,33 @@ def annual_evolution_chart(
         go.Bar(
             name="Entradas",
             x=labels,
-            y=entradas,
+            y=pintada,
+            offsetgroup="in",
             marker_color=GREEN_LIGHT,
             opacity=0.85,
-            hovertemplate="<b>%{x}</b><br>Entradas: R$ %{y:,.2f}<extra></extra>",
+            customdata=entradas,
+            hovertemplate="<b>%{x}</b><br>Entradas: R$ %{customdata:,.2f}<extra></extra>",
+        )
+    )
+    fig.add_trace(
+        go.Bar(
+            name="Investido",
+            x=labels,
+            y=investimentos,
+            offsetgroup="in",
+            marker=dict(
+                color="rgba(0,0,0,0)",
+                line=dict(color=GREEN_LIGHT, width=1.5),
+                pattern=dict(
+                    shape=".",
+                    fgcolor=GREEN_LIGHT,
+                    bgcolor="rgba(0,0,0,0)",
+                    size=3,
+                    solidity=0.3,
+                ),
+            ),
+            customdata=invest_pct,
+            hovertemplate="<b>%{x}</b><br>Investido: R$ %{y:,.2f}<br>%{customdata:.1f}% da entrada<extra></extra>",
         )
     )
     fig.add_trace(
@@ -159,6 +224,7 @@ def annual_evolution_chart(
             name="Saídas",
             x=labels,
             y=saidas,
+            offsetgroup="out",
             marker_color=RED_MAIN,
             opacity=0.85,
             hovertemplate="<b>%{x}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
@@ -179,7 +245,7 @@ def annual_evolution_chart(
 
     fig.update_layout(
         **_base_layout(title, showlegend=True),
-        barmode="group",
+        barmode="stack",
         legend=dict(
             font=dict(color=TEXT_COLOR),
             bgcolor=BG_COLOR,
