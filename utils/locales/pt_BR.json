@@ -1,0 +1,24 @@
+{
+  "common": {
+    "all": "Todos",
+    "no_data": "Sem dados",
+    "no_description": "(sem descrição)",
+    "empty_cell": "—"
+  },
+  "months": {
+    "full": [
+      "Janeiro",
+      "Fevereiro",
+      "Março",
+      "Abril",
+      "Maio",
+      "Junho",
+      "Julho",
+      "Agosto",
+      "Setembro",
+      "Outubro",
+      "Novembro",
+      "Dezembro"
+    ]
+  }
+}
