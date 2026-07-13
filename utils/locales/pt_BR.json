@@ -56,8 +56,7 @@
     "hover": {
       "donut": "<b>%{label}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
       "expenses_bar": "<b>%{x}</b><br>R$ %{y:,.2f}<br>%{customdata:.1f}% do mês<extra></extra>",
-      "income": "<b>%{customdata[0]}</b><br>Entradas: R$ %{customdata[1]:,.2f}<extra></extra>",
-      "invested": "<b>%{customdata[0]}</b><br>Investido: R$ %{y:,.2f}<br>%{customdata[1]:.1f}% da entrada<extra></extra>",
+      "income_invested": "<b>%{customdata[0]}</b><br>Total de Entradas: R$ %{customdata[1]:,.2f}<br>Valor investido: R$ %{customdata[2]:,.2f} (%{customdata[3]:.1f}%)<extra></extra>",
       "expenses": "<b>%{customdata}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
       "cumulative_balance": "<b>%{customdata}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
       "by_day": "<b>{category}</b><br>Dia %{{x}}<br>R$ %{{y:,.2f}}<extra></extra>"

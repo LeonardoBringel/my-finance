@@ -178,6 +178,10 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
     invest_pct = [
         (i / e * 100) if e > 0 else 0.0 for e, i in zip(entradas, investimentos)
     ]
+    # Hover unificado: a barra pintada e a barra invisível do investimento
+    # compartilham o MESMO customdata e template, de modo que o tooltip é idêntico
+    # ao passar sobre a parte pintada ou sobre o contorno tracejado.
+    hover_data = list(zip(labels, entradas, investimentos, invest_pct))
 
     # Eixo X numérico com offset/width explícitos: o contorno tracejado da parte
     # investida é desenhado como shape, e shape precisa das coordenadas exatas
@@ -196,8 +200,8 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
             width=_BAR_WIDTH,
             marker_color=GREEN_LIGHT,
             opacity=0.85,
-            customdata=list(zip(labels, entradas)),
-            hovertemplate=t("charts.hover.income"),
+            customdata=hover_data,
+            hovertemplate=t("charts.hover.income_invested"),
         )
     )
     # Barra invisível: empilha sobre a pintada e serve o tooltip. O visual dela
@@ -212,8 +216,8 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
             width=_BAR_WIDTH,
             marker=dict(color="rgba(0,0,0,0)"),
             showlegend=False,
-            customdata=list(zip(labels, invest_pct)),
-            hovertemplate=t("charts.hover.invested"),
+            customdata=hover_data,
+            hovertemplate=t("charts.hover.income_invested"),
         )
     )
     # Trace fantasma: rende apenas o item tracejado na legenda.
