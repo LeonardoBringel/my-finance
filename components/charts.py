@@ -19,7 +19,11 @@ GRID_COLOR = "rgba(255,255,255,0.08)"
 _BAR_WIDTH = 0.4
 
 # Raio (px) dos cantos das barras preenchidas dos gráficos de barra. Fonte única.
-BAR_CORNER_RADIUS = 6
+# Mantido pequeno de propósito: o plotly.js do frontend arredonda também os cantos
+# inferiores da barra, o que "levanta" a base do eixo. O deslocamento cresce com o
+# raio e com barras estreitas — um raio pequeno mantém o arredondamento sutil e a
+# base rente ao eixo. Não aumentar sem reconferir a base no app rodando.
+BAR_CORNER_RADIUS = 3
 EXPENSE_COLORS = [
     "#1B5E20",
     "#2E7D32",
@@ -270,8 +274,8 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
     y_max = max(
         [p + inv for p, inv in zip(pintada, investimentos)] + saidas + [1]
     )
-    corner_rx = _BAR_WIDTH * 0.12
-    corner_ry = y_max * 0.013
+    corner_rx = _BAR_WIDTH * 0.06
+    corner_ry = y_max * 0.007
 
     # Contorno tracejado, interior vazado. Cantos superiores arredondados (arcos
     # quadráticos); a base fica aberta porque se apoia no topo da barra pintada.
