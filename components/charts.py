@@ -220,17 +220,6 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
             hovertemplate=t("charts.hover.income_invested"),
         )
     )
-    # Trace fantasma: rende apenas o item tracejado na legenda.
-    fig.add_trace(
-        go.Scatter(
-            name=t("charts.series.invested"),
-            x=[None],
-            y=[None],
-            mode="lines",
-            line=dict(color=GREEN_LIGHT, width=1.5, dash="dash"),
-            hoverinfo="skip",
-        )
-    )
     fig.add_trace(
         go.Bar(
             name=t("charts.series.expenses"),
@@ -277,16 +266,8 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
         )
 
     fig.update_layout(
-        **_base_layout(title, showlegend=True),
+        **_base_layout(title),
         barmode="stack",
-        legend=dict(
-            font=dict(color=TEXT_COLOR),
-            bgcolor=BG_COLOR,
-            orientation="h",
-            y=-0.15,
-            # barmode="stack" inverte a ordem da legenda por padrão.
-            traceorder="normal",
-        ),
         xaxis=dict(
             showgrid=False,
             tickfont=dict(color=TEXT_COLOR),
