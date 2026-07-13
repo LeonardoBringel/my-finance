@@ -106,6 +106,14 @@ def bar_chart_expenses(categories, values, title: str | None = None):
         fig.update_layout(**_base_layout(title))
         return fig
 
+    # Ordena as barras por valor decrescente. A barra agregada de investimento é
+    # anexada por último pelo chamador; ordenar aqui garante que ela respeite o
+    # ranking em vez de ficar fixa à direita. `sorted` é estável (empate preserva
+    # a ordem de entrada) e `sum(values)` do percentual é order-independent.
+    order = sorted(range(len(values)), key=lambda i: values[i], reverse=True)
+    categories = [categories[i] for i in order]
+    values = [values[i] for i in order]
+
     pct = [v / total * 100 for v in values]
 
     fig = go.Figure()
