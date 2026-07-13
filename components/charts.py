@@ -17,6 +17,9 @@ GRID_COLOR = "rgba(255,255,255,0.08)"
 # Largura de cada barra do gráfico anual, em unidades do eixo X numérico.
 # Dois grupos (entrada/saída) por mês → cada um ocupa metade do slot útil.
 _BAR_WIDTH = 0.4
+
+# Raio (px) dos cantos das barras preenchidas dos gráficos de barra. Fonte única.
+BAR_CORNER_RADIUS = 6
 EXPENSE_COLORS = [
     "#1B5E20",
     "#2E7D32",
@@ -112,6 +115,7 @@ def bar_chart_expenses(categories, values, title: str | None = None):
             x=categories,
             y=values,
             marker_color=GREEN_MAIN,
+            marker_cornerradius=BAR_CORNER_RADIUS,
             text=[f"{p:.1f}%" for p in pct],
             textposition="outside",
             textfont=dict(color=TEXT_COLOR, size=11),
@@ -199,6 +203,7 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
             offset=-_BAR_WIDTH,
             width=_BAR_WIDTH,
             marker_color=GREEN_LIGHT,
+            marker_cornerradius=BAR_CORNER_RADIUS,
             opacity=0.85,
             customdata=hover_data,
             hovertemplate=t("charts.hover.income_invested"),
@@ -229,6 +234,7 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
             offset=0,
             width=_BAR_WIDTH,
             marker_color=RED_MAIN,
+            marker_cornerradius=BAR_CORNER_RADIUS,
             opacity=0.85,
             customdata=labels,
             hovertemplate=t("charts.hover.expenses"),
@@ -248,16 +254,32 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
         )
     )
 
-    # Contorno tracejado, interior vazado. Três lados (sobe, atravessa, desce):
-    # a base fica aberta porque se apoia no topo da barra de entrada pintada.
+    # Raio dos cantos superiores do contorno tracejado, para casar com o
+    # cornerradius (px) das barras. O path usa unidades de dados (não px) e não há
+    # a escala do eixo em tempo de montagem, então rx/ry são aproximados: rx é uma
+    # fração da largura da barra; ry, uma fração da altura útil do eixo esquerdo.
+    # Ajustar por inspeção visual se destoar das barras.
+    y_max = max(
+        [p + inv for p, inv in zip(pintada, investimentos)] + saidas + [1]
+    )
+    corner_rx = _BAR_WIDTH * 0.12
+    corner_ry = y_max * 0.013
+
+    # Contorno tracejado, interior vazado. Cantos superiores arredondados (arcos
+    # quadráticos); a base fica aberta porque se apoia no topo da barra pintada.
     for i, (base, invest) in enumerate(zip(pintada, investimentos)):
         if invest <= 0:
             continue
         x0, x1 = i - _BAR_WIDTH, i
         y0, y1 = base, base + invest
+        rx = min(corner_rx, _BAR_WIDTH / 2)
+        ry = min(corner_ry, invest)
         fig.add_shape(
             type="path",
-            path=f"M {x0},{y0} L {x0},{y1} L {x1},{y1} L {x1},{y0}",
+            path=(
+                f"M {x0},{y0} L {x0},{y1 - ry} Q {x0},{y1} {x0 + rx},{y1} "
+                f"L {x1 - rx},{y1} Q {x1},{y1} {x1},{y1 - ry} L {x1},{y0}"
+            ),
             line=dict(color=GREEN_LIGHT, width=1.5, dash="dash"),
             fillcolor="rgba(0,0,0,0)",
             xref="x",
@@ -331,6 +353,7 @@ def expenses_by_day_chart(
                 x=days,
                 y=values,
                 marker_color=color,
+                marker_cornerradius=BAR_CORNER_RADIUS,
                 hovertemplate=t("charts.hover.by_day", category=cat),
             )
         )
