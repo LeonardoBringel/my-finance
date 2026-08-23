@@ -289,13 +289,14 @@ def edit_month_dialog(month_data: dict):
         step=1,
         key=f"new_entry_day_{add_key}",
     )
-    new_value = ec3.number_input(
+    new_value_key = f"new_entry_value_{add_key}"
+    new_value_text = ec3.text_input(
         t("pages.cash_flow.value_required"),
-        min_value=0.0,
-        format="%.2f",
-        step=0.01,
-        key=f"new_entry_value_{add_key}",
+        key=new_value_key,
+        placeholder=t("pages.cash_flow.value_placeholder"),
+        on_change=partial(_mask_value_field, new_value_key),
     )
+    new_value = parse_value_text(new_value_text) or 0.0
     new_type = ec4.selectbox(
         t("pages.cash_flow.type_required"),
         ["saida", "entrada"],
@@ -364,15 +365,16 @@ def edit_month_dialog(month_data: dict):
                     max_value=31,
                     step=1,
                 )
-                e_value = ec[2].number_input(
+                ee_val_key = f"ee_val_{e['id']}"
+                e_value_text = ec[2].text_input(
                     t("pages.cash_flow.entry_col_value"),
-                    value=e["value"],
-                    key=f"ee_val_{e['id']}",
+                    value=format_value_brl(e["value"]),
+                    key=ee_val_key,
                     label_visibility="collapsed",
-                    min_value=0.0,
-                    format="%.2f",
-                    step=0.01,
+                    placeholder=t("pages.cash_flow.value_placeholder"),
+                    on_change=partial(_mask_value_field, ee_val_key),
                 )
+                e_value = parse_value_text(e_value_text) or 0.0
                 e_type = ec[3].selectbox(
                     t("pages.cash_flow.col_type"),
                     ["saida", "entrada"],
