@@ -3,6 +3,7 @@
 from components.charts import (
     EXPENSE_COLORS,
     _interleaved_order,
+    day_hover_texts,
     expense_palette,
     expenses_by_day_chart,
 )
@@ -43,3 +44,45 @@ def test_expenses_by_day_chart_no_repeated_colors_above_len_expense_colors():
     colors = [trace.marker.color for trace in fig.data]
     assert len(colors) == len(data)
     assert len(set(colors)) == len(data)
+
+
+def test_day_hover_texts_orders_segments_descending_with_total():
+    data = {
+        "Farmácia": {12: 50.0},
+        "Viagem": {12: 100.0},
+        "Mercado": {12: 0.0},
+    }
+    blocks = day_hover_texts(data, [12])
+    assert len(blocks) == 1
+    block = blocks[0]
+    assert "Dia 12" in block
+    assert "R$ 150,00 total" in block
+    viagem_pos = block.index("Viagem")
+    farmacia_pos = block.index("Farmácia")
+    assert viagem_pos < farmacia_pos
+    assert "Mercado" not in block
+
+
+def test_day_hover_texts_single_category():
+    data = {"Mercado": {5: 42.0}}
+    blocks = day_hover_texts(data, [5])
+    assert "Dia 5" in blocks[0]
+    assert "R$ 42,00 total" in blocks[0]
+    assert "R$ 42,00 — Mercado" in blocks[0]
+
+
+def test_day_hover_texts_zeroed_day_has_no_segments():
+    data = {"Mercado": {1: 0.0}, "Farmácia": {}}
+    blocks = day_hover_texts(data, [1])
+    assert "Dia 1" in blocks[0]
+    assert "R$ 0,00 total" in blocks[0]
+    assert "Mercado" not in blocks[0]
+    assert "Farmácia" not in blocks[0]
+
+
+def test_expenses_by_day_chart_shares_hover_block_across_traces():
+    data = {"Viagem": {12: 100.0}, "Farmácia": {12: 50.0}}
+    fig = expenses_by_day_chart(data, "Teste", 2026, 1)
+    customdatas = [trace.customdata for trace in fig.data]
+    assert all(cd == customdatas[0] for cd in customdatas)
+    assert "R$ 150,00 total" in customdatas[0][11]

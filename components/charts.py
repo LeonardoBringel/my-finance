@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.colors import sample_colorscale
 
+from utils.data_format_utils import format_currency
 from utils.i18n import t
 
 # ── Color palette ──────────────────────────────────────────────────────────────
@@ -357,6 +358,47 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
     return fig
 
 
+def day_hover_texts(
+    data: dict[str, dict[int, float]], days: list[int]
+) -> list[str]:
+    """Monta, para cada dia, o bloco de hover com o total e a quebra por categoria.
+
+    Args:
+        data: { categoria: { dia: valor } }.
+        days: Dias do mês, na ordem em que aparecem no eixo X.
+
+    Returns:
+        Lista de blocos HTML (`<br>` entre linhas), um por dia, na mesma ordem
+        de `days`. Só lista categorias com valor > 0 no dia, em ordem decrescente.
+    """
+    blocks = []
+    for day in days:
+        segments = sorted(
+            (
+                (cat, day_totals.get(day, 0.0))
+                for cat, day_totals in data.items()
+            ),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+        segments = [(cat, v) for cat, v in segments if v > 0]
+        total = sum(v for _, v in segments)
+        lines = [
+            t("charts.hover.day_header", day=day),
+            t("charts.hover.day_total", value=format_currency(total)),
+        ]
+        lines += [
+            t(
+                "charts.hover.day_segment",
+                value=format_currency(v),
+                category=cat,
+            )
+            for cat, v in segments
+        ]
+        blocks.append("<br>".join(lines))
+    return blocks
+
+
 def expenses_by_day_chart(
     data: dict[str, dict[int, float]], title: str, year: int, month: int
 ):
@@ -387,6 +429,10 @@ def expenses_by_day_chart(
     days = list(range(1, days_in_month + 1))
 
     palette = expense_palette(len(data))
+    # Hover unificado: todos os traces do dia D compartilham o mesmo bloco de
+    # texto (total + quebra por categoria), então passar de um segmento a outro
+    # da mesma barra mostra o mesmo tooltip — mesmo padrão de CHART-02.
+    hover_blocks = day_hover_texts(data, days)
     fig = go.Figure()
     for i, (cat, day_totals) in enumerate(data.items()):
         values = [day_totals.get(d, 0.0) for d in days]
@@ -398,7 +444,8 @@ def expenses_by_day_chart(
                 y=values,
                 marker_color=color,
                 marker_cornerradius=BAR_CORNER_RADIUS,
-                hovertemplate=t("charts.hover.by_day", category=cat),
+                customdata=hover_blocks,
+                hovertemplate=t("charts.hover.day_block"),
             )
         )
 

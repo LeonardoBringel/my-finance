@@ -59,7 +59,10 @@
       "income_invested": "<b>%{customdata[0]}</b><br>Total de Entradas: R$ %{customdata[1]:,.2f}<br>Valor investido: R$ %{customdata[2]:,.2f} (%{customdata[3]:.1f}%)<extra></extra>",
       "expenses": "<b>%{customdata}</b><br>Saídas: R$ %{y:,.2f}<extra></extra>",
       "cumulative_balance": "<b>%{customdata}</b><br>Saldo acumulado: R$ %{y:,.2f}<extra></extra>",
-      "by_day": "<b>{category}</b><br>Dia %{{x}}<br>R$ %{{y:,.2f}}<extra></extra>"
+      "day_header": "<b>Dia {day}</b>",
+      "day_total": "{value} total",
+      "day_segment": "{value} — {category}",
+      "day_block": "%{customdata}<extra></extra>"
     }
   },
   "components": {
