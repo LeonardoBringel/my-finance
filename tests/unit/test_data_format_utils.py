@@ -1,7 +1,10 @@
 """Testes unitários para utils/data_format_utils.py (moeda, data, parsing de valores)."""
 
+from datetime import date
+
 from utils.data_format_utils import (
     MONTH_NAMES,
+    days_in_period,
     format_currency,
     format_date,
     format_value_brl,
@@ -109,3 +112,33 @@ def test_mask_value_input_idempotent_on_own_output():
     """Reaplicar a máscara sobre a própria saída não muda o valor."""
     once = mask_value_input("137163")
     assert mask_value_input(once) == once
+
+
+def test_days_in_period_current_month_first_day():
+    """Mês corrente no dia 1: denominador é 1, nunca 0."""
+    assert days_in_period(2025, 1, today=date(2025, 1, 1)) == 1
+
+
+def test_days_in_period_current_month_mid_month():
+    """Mês corrente: dias decorridos até hoje, inclusive."""
+    assert days_in_period(2025, 1, today=date(2025, 1, 9)) == 9
+
+
+def test_days_in_period_closed_month():
+    """Mês fechado: total de dias do mês."""
+    assert days_in_period(2025, 1, today=date(2025, 2, 15)) == 31
+
+
+def test_days_in_period_future_month():
+    """Mês futuro: total de dias do mês, não dias decorridos."""
+    assert days_in_period(2026, 12, today=date(2026, 8, 23)) == 31
+
+
+def test_days_in_period_leap_february():
+    """Fevereiro de ano bissexto: 29 dias quando o mês já fechou."""
+    assert days_in_period(2024, 2, today=date(2024, 3, 1)) == 29
+
+
+def test_days_in_period_non_leap_february():
+    """Fevereiro de ano não-bissexto: 28 dias quando o mês já fechou."""
+    assert days_in_period(2025, 2, today=date(2025, 3, 1)) == 28

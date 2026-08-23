@@ -1,4 +1,5 @@
-from datetime import datetime
+import calendar
+from datetime import date, datetime
 
 from utils.i18n import t
 
@@ -42,6 +43,27 @@ def format_date(date: str) -> str:
         return datetime.strptime(date, "%Y-%m-%d").strftime("%d/%m/%Y")
     except Exception:
         return date
+
+
+def days_in_period(year: int, month: int, today: date | None = None) -> int:
+    """Dias a considerar como denominador de uma média diária do mês.
+
+    Se `(year, month)` é o mês corrente, retorna os dias já decorridos (dia de
+    hoje, inclusive). Caso contrário (mês passado ou futuro), retorna o total
+    de dias do mês.
+
+    Args:
+        year: Ano do mês em questão.
+        month: Mês em questão (1–12).
+        today: Data de referência para "hoje" (default: `date.today()`).
+
+    Returns:
+        Quantidade de dias, sempre >= 1.
+    """
+    today = today or date.today()
+    if year == today.year and month == today.month:
+        return today.day
+    return calendar.monthrange(year, month)[1]
 
 
 def parse_value_text(value: str) -> float | None:
