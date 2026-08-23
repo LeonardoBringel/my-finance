@@ -17,15 +17,23 @@ def format_currency(value: float) -> str:
 
 
 def mask_value_input(raw: str) -> str:
-    """Aplica máscara monetária progressiva sobre texto digitado.
+    """Reformata texto digitado como um valor monetário no padrão brasileiro.
 
-    Extrai apenas os dígitos de `raw` e os interpreta como centavos, formatando
-    o resultado no padrão brasileiro. Retorna string vazia se não houver dígitos.
+    A vírgula é o separador decimal: dígitos antes dela formam a parte inteira
+    (reais) e até dois dígitos depois dela formam os centavos (completados com
+    zero à direita se faltar um dígito, truncados se sobrar). Sem vírgula, todo
+    o texto é interpretado como reais inteiros (`"100"` → `"100,00"`). Qualquer
+    caractere que não seja dígito é ignorado. Retorna string vazia se não houver
+    nenhum dígito.
     """
-    digits = "".join(filter(str.isdigit, raw))
-    if not digits:
+    integer_part, _, decimal_part = raw.partition(",")
+    integer_digits = "".join(filter(str.isdigit, integer_part))
+    decimal_digits = "".join(filter(str.isdigit, decimal_part))
+    if not integer_digits and not decimal_digits:
         return ""
-    return format_value_brl(int(digits) / 100)
+    cents = decimal_digits[:2].ljust(2, "0")
+    value = int(integer_digits or "0") + int(cents) / 100
+    return format_value_brl(value)
 
 
 def format_date(date: str) -> str:

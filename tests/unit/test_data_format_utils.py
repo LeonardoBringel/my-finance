@@ -79,10 +79,24 @@ def test_format_currency_uses_format_value_brl():
     assert format_currency(89.0) == "R$ 89,00"
 
 
-def test_mask_value_input_progressive():
-    """Dígitos entram pela direita e formam centavos, depois reais."""
-    assert mask_value_input("1") == "0,01"
-    assert mask_value_input("137163") == "1.371,63"
+def test_mask_value_input_plain_digits_are_whole_reais():
+    """Sem vírgula, o texto digitado é a parte inteira em reais, não centavos."""
+    assert mask_value_input("1") == "1,00"
+    assert mask_value_input("10") == "10,00"
+    assert mask_value_input("100") == "100,00"
+    assert mask_value_input("137163") == "137.163,00"
+
+
+def test_mask_value_input_comma_is_decimal_separator():
+    """A vírgula separa reais de centavos; um dígito decimal completa com zero."""
+    assert mask_value_input("0,5") == "0,50"
+    assert mask_value_input("12,3") == "12,30"
+    assert mask_value_input("1.371,63") == "1.371,63"
+
+
+def test_mask_value_input_truncates_extra_decimal_digits():
+    """Mais de dois dígitos decimais são truncados, não arredondados."""
+    assert mask_value_input("12,345") == "12,34"
 
 
 def test_mask_value_input_empty_without_digits():
