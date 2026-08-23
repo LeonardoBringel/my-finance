@@ -4,6 +4,8 @@ from utils.data_format_utils import (
     MONTH_NAMES,
     format_currency,
     format_date,
+    format_value_brl,
+    mask_value_input,
     parse_value_text,
 )
 
@@ -55,3 +57,41 @@ def test_parse_value_text_plain_format():
 def test_parse_value_text_invalid_returns_none():
     """Entrada não numérica retorna None."""
     assert parse_value_text("abc") is None
+
+
+def test_format_value_brl_thousands():
+    """Formata sem prefixo R$, com ponto de milhar e vírgula decimal."""
+    assert format_value_brl(13716.36) == "13.716,36"
+
+
+def test_format_value_brl_zero():
+    """Zero formata como '0,00'."""
+    assert format_value_brl(0.0) == "0,00"
+
+
+def test_format_value_brl_below_one():
+    """Valores abaixo de um real mantêm as duas casas decimais."""
+    assert format_value_brl(0.5) == "0,50"
+
+
+def test_format_currency_uses_format_value_brl():
+    """format_currency permanece idêntica após a extração do helper."""
+    assert format_currency(89.0) == "R$ 89,00"
+
+
+def test_mask_value_input_progressive():
+    """Dígitos entram pela direita e formam centavos, depois reais."""
+    assert mask_value_input("1") == "0,01"
+    assert mask_value_input("137163") == "1.371,63"
+
+
+def test_mask_value_input_empty_without_digits():
+    """String sem nenhum dígito vira vazia."""
+    assert mask_value_input("abc") == ""
+    assert mask_value_input("") == ""
+
+
+def test_mask_value_input_idempotent_on_own_output():
+    """Reaplicar a máscara sobre a própria saída não muda o valor."""
+    once = mask_value_input("137163")
+    assert mask_value_input(once) == once

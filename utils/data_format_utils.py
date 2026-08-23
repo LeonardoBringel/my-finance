@@ -6,11 +6,26 @@ from utils.i18n import t
 MONTH_NAMES = t("months.full")
 
 
+def format_value_brl(value: float) -> str:
+    """Formata um valor numérico no padrão brasileiro, sem prefixo de moeda (1.234,56)."""
+    return f"{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
 def format_currency(value: float) -> str:
     """Formata um valor numérico como moeda brasileira (R$ 1.234,56)."""
-    return (
-        f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    )
+    return f"R$ {format_value_brl(value)}"
+
+
+def mask_value_input(raw: str) -> str:
+    """Aplica máscara monetária progressiva sobre texto digitado.
+
+    Extrai apenas os dígitos de `raw` e os interpreta como centavos, formatando
+    o resultado no padrão brasileiro. Retorna string vazia se não houver dígitos.
+    """
+    digits = "".join(filter(str.isdigit, raw))
+    if not digits:
+        return ""
+    return format_value_brl(int(digits) / 100)
 
 
 def format_date(date: str) -> str:
