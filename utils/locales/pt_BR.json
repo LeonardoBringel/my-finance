@@ -250,6 +250,8 @@
       "header": "### 📊 Dashboard — {month} / {year}",
       "kpi_income": "💰 Entradas do Mês",
       "kpi_expenses": "💸 Despesas do Mês",
+      "kpi_daily_average": "📅 Média Diária",
+      "kpi_daily_average_help": "Despesas do mês ÷ dias decorridos (mês corrente) ou dias totais do mês (meses fechados)",
       "kpi_invested": "📈 Investido no Mês",
       "kpi_invested_help": "Aportes do mês. Não contam como despesa e não afetam o saldo",
       "kpi_balance": "⚖️ Saldo do Mês",

@@ -177,7 +177,7 @@ st.markdown(
 st.divider()
 
 # ── KPI Cards ──────────────────────────────────────────────────────────────────
-col1, col2, col3, col4, col5, col6 = st.columns(6)
+col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 with col1:
     st.metric(
         t("pages.dashboard.kpi_income"), format_currency(summary["entradas"])
@@ -187,12 +187,39 @@ with col2:
         t("pages.dashboard.kpi_expenses"), format_currency(summary["saidas"])
     )
 with col3:
+    avg_daily = summary["avg_daily_expense"]
+    avg_daily_delta_pct = summary["avg_daily_delta_pct"]
+    if avg_daily_delta_pct is not None:
+        st.metric(
+            t("pages.dashboard.kpi_daily_average"),
+            format_currency(avg_daily),
+            delta=t(
+                "pages.dashboard.delta_vs_previous", pct=avg_daily_delta_pct
+            ),
+            delta_color="inverse",
+            help=t("pages.dashboard.kpi_daily_average_help"),
+        )
+    elif avg_daily > 0:
+        st.metric(
+            t("pages.dashboard.kpi_daily_average"),
+            format_currency(avg_daily),
+            delta=t("pages.dashboard.delta_new_this_month"),
+            delta_color="off",
+            help=t("pages.dashboard.kpi_daily_average_help"),
+        )
+    else:
+        st.metric(
+            t("pages.dashboard.kpi_daily_average"),
+            format_currency(avg_daily),
+            help=t("pages.dashboard.kpi_daily_average_help"),
+        )
+with col4:
     st.metric(
         t("pages.dashboard.kpi_invested"),
         format_currency(summary["investimentos"]),
         help=t("pages.dashboard.kpi_invested_help"),
     )
-with col4:
+with col5:
     saldo = summary["saldo"]
     st.metric(
         t("pages.dashboard.kpi_balance"),
@@ -201,7 +228,7 @@ with col4:
         delta_color="normal" if saldo >= 0 else "inverse",
         help=t("pages.dashboard.kpi_balance_help"),
     )
-with col5:
+with col6:
     sacc = summary["saldo_acumulado"]
     st.metric(
         t("pages.dashboard.kpi_cumulative_balance"),
@@ -209,7 +236,7 @@ with col5:
         delta=format_currency(sacc),
         delta_color="normal" if sacc >= 0 else "inverse",
     )
-with col6:
+with col7:
     pct_inst = summary["pct_installments"]
     st.metric(
         t("pages.dashboard.kpi_installments"),
