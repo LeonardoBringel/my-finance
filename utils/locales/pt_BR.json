@@ -275,7 +275,10 @@
       "none_found": "Nenhuma categoria de saída ou investimento cadastrada.",
       "section_expenses": "#### 💸 Despesas",
       "section_investments": "#### 📈 Investimentos",
-      "expenses_by_day": "📅 Gastos por Categoria por Dia — {month} / {year}"
+      "expenses_by_day": "📅 Gastos por Categoria por Dia — {month} / {year}",
+      "history_button": "📈 Histórico 12 meses",
+      "history_dialog_title": "Histórico da Categoria",
+      "history_close": "Fechar"
     },
     "admin": {
       "page_title": "Administração",

@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from components.charts import (
     annual_evolution_chart,
     bar_chart_expenses,
+    category_history_chart,
     donut_chart,
     expenses_by_day_chart,
 )
@@ -142,6 +143,35 @@ def onboarding_dialog():
             use_container_width=True,
         ):
             st.rerun()
+
+
+# ── Histórico de 12 meses por categoria ─────────────────────────────────────────
+@st.dialog(t("pages.dashboard.history_dialog_title"), width="large")
+def category_history_dialog(
+    user_id: int, category: str, year: int, month: int
+) -> None:
+    """Dialog com o histórico de 12 meses de uma categoria.
+
+    Carga lazy e memorizada em `session_state` por (categoria, ano, mês) — não
+    refaz a busca a cada rerun enquanto o dialog está aberto (AD-022).
+    """
+    st.markdown(f"### {category}")
+    cache_key = f"cat_hist_{category}_{year}_{month}"
+    if cache_key not in st.session_state:
+        st.session_state[cache_key] = (
+            TransactionsRepository.get_category_history(
+                user_id, category, year, month
+            )
+        )
+    history = st.session_state[cache_key]
+    st.plotly_chart(
+        category_history_chart(history),
+        width="stretch",
+        key="cat_history_chart",
+    )
+    if st.button(t("pages.dashboard.history_close"), use_container_width=True):
+        st.session_state.pop("cat_history_open", None)
+        st.rerun()
 
 
 init_onboarding(
@@ -359,6 +389,12 @@ def render_cat_donuts(names: list[str]) -> None:
                 st.plotly_chart(
                     fig, width="stretch", key=f"donut_cat_{cat_name}"
                 )
+                if st.button(
+                    t("pages.dashboard.history_button"),
+                    key=f"hist_btn_{cat_name}",
+                    use_container_width=True,
+                ):
+                    st.session_state["cat_history_open"] = cat_name
 
 
 if not cat_names:
@@ -387,3 +423,12 @@ st.plotly_chart(
     width="stretch",
     key="expenses_by_day",
 )
+
+# ── Disparar dialogs ────────────────────────────────────────────────────────────
+if "cat_history_open" in st.session_state:
+    category_history_dialog(
+        user_id,
+        st.session_state["cat_history_open"],
+        selected_year,
+        selected_month,
+    )
