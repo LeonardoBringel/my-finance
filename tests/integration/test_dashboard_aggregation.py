@@ -253,3 +253,85 @@ def test_pct_of_month_no_expenses_no_investments(db_session):
 
     assert detail["Mercado"]["pct_of_month"] == pytest.approx(0.0)
     assert detail["Tesouro"]["pct_of_month"] == pytest.approx(0.0)
+
+
+def test_category_history_positions_values_across_year_boundary(db_session):
+    """Janela de 12 meses cruzando o ano: valores nas posições certas, resto zerado."""
+    uid, cats = _seed()
+    # Janela terminando em 2026-02: Mar/25..Fev/26. Lançamentos em 3 meses distintos.
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2025-09-10", "Set/25", 100.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2025-12-20", "Dez/25", 50.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2026-02-05", "Fev/26", 30.0
+    )
+    # Fora da janela (ano anterior a mar/25) — não deve contar.
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2025-01-01", "Fora da janela", 999.0
+    )
+
+    history = TransactionsRepository.get_category_history(
+        uid, "Mercado", 2026, 2
+    )
+
+    assert len(history["series"]) == 12
+    by_key = {(p["year"], p["month"]): p["total"] for p in history["series"]}
+    assert by_key[(2025, 9)] == pytest.approx(100.0)
+    assert by_key[(2025, 12)] == pytest.approx(50.0)
+    assert by_key[(2026, 2)] == pytest.approx(30.0)
+    # Os demais 9 pontos ficam zerados.
+    zeroed = [
+        v
+        for k, v in by_key.items()
+        if k not in {(2025, 9), (2025, 12), (2026, 2)}
+    ]
+    assert len(zeroed) == 9
+    assert all(v == 0.0 for v in zeroed)
+    assert history["total"] == pytest.approx(180.0)
+    assert history["average"] == pytest.approx(180.0 / 12)
+    assert history["category"] == "Mercado"
+    assert history["type"] == "saida"
+    # Janela começa em mar/25 e termina em fev/26.
+    assert history["series"][0] == {"year": 2025, "month": 3, "total": 0.0}
+    assert history["series"][-1]["year"] == 2026
+    assert history["series"][-1]["month"] == 2
+
+
+def test_category_history_december_window_is_calendar_year(db_session):
+    """Mês final = dezembro: a janela é o ano-calendário, só precisa de 1 ano."""
+    uid, cats = _seed()
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2026-01-15", "Jan/26", 40.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2026-12-15", "Dez/26", 60.0
+    )
+
+    history = TransactionsRepository.get_category_history(
+        uid, "Mercado", 2026, 12
+    )
+
+    assert [p["year"] for p in history["series"]] == [2026] * 12
+    assert [p["month"] for p in history["series"]] == list(range(1, 13))
+    by_key = {(p["year"], p["month"]): p["total"] for p in history["series"]}
+    assert by_key[(2026, 1)] == pytest.approx(40.0)
+    assert by_key[(2026, 12)] == pytest.approx(60.0)
+    assert history["total"] == pytest.approx(100.0)
+
+
+def test_category_history_empty_category_returns_zeroed_series(db_session):
+    """Categoria sem lançamentos na janela: 12 pontos zerados, average 0.0 (não None/[])."""
+    uid, cats = _seed()
+
+    history = TransactionsRepository.get_category_history(
+        uid, "Mercado", 2026, 6
+    )
+
+    assert len(history["series"]) == 12
+    assert all(p["total"] == 0.0 for p in history["series"])
+    assert history["average"] == 0.0
+    assert history["total"] == 0.0
+    assert history["type"] == "saida"

@@ -699,3 +699,69 @@ class TransactionsRepository:
             "annual": annual,
             "expenses_by_day_cat": exp_by_day,
         }
+
+    @staticmethod
+    def get_category_history(
+        user_id: int, category: str, year: int, month: int, months: int = 12
+    ) -> dict:
+        """Série mensal de uma categoria numa janela móvel terminando em (year, month).
+
+        Carga lazy: só deve ser chamada quando o histórico é solicitado (AD-022),
+        nunca a cada render do dashboard.
+
+        Args:
+            user_id: ID do usuário autenticado.
+            category: Nome (decriptado) da categoria a agregar.
+            year: Ano do mês final da janela.
+            month: Mês final da janela (1-12).
+            months: Tamanho da janela, em meses (default 12).
+
+        Returns:
+            Dict com `category`, `type`, `series` (lista de `months` pontos
+            ordenados do mais antigo ao mais recente, cada um com `year`,
+            `month`, `total`), `average` e `total` da janela.
+        """
+        window = []
+        y, m = year, month
+        for _ in range(months):
+            window.append((y, m))
+            m -= 1
+            if m == 0:
+                m, y = 12, y - 1
+        window.reverse()
+
+        years_needed = sorted({wy for wy, _ in window})
+        txns = []
+        for wy in years_needed:
+            txns.extend(
+                TransactionsRepository.list_transactions(user_id, year=wy)
+            )
+
+        totals = {key: 0.0 for key in window}
+        for txn in txns:
+            if txn["category"] != category:
+                continue
+            txn_date = datetime.strptime(txn["date"], "%Y-%m-%d")
+            key = (txn_date.year, txn_date.month)
+            if key in totals:
+                totals[key] += txn["value"]
+
+        all_cats = CategoriesRepository.list_categories(user_id)
+        cat_type = next(
+            (c["type"] for c in all_cats if c["name"] == category), EXPENSE
+        )
+
+        series = [
+            {"year": wy, "month": wm, "total": totals[(wy, wm)]}
+            for wy, wm in window
+        ]
+        total = sum(totals.values())
+        average = total / months if months else 0.0
+
+        return {
+            "category": category,
+            "type": cat_type,
+            "series": series,
+            "average": average,
+            "total": total,
+        }
