@@ -11,7 +11,12 @@ from utils.category_types import (
     is_expense,
     selectable_type,
 )
-from utils.data_format_utils import format_currency, parse_value_text
+from utils.data_format_utils import (
+    format_currency,
+    format_value_brl,
+    mask_value_input,
+    parse_value_text,
+)
 from utils.i18n import t
 
 
@@ -107,25 +112,12 @@ def new_transaction_dialog(user_id: int, txn: dict = None):
     )
 
     # ── Valor ─────────────────────────────────────────────────────────────────
-    default_valor = (
-        f"{txn['value']:,.2f}".replace(",", "X")
-        .replace(".", ",")
-        .replace("X", ".")
-        if is_edit
-        else ""
-    )
+    default_valor = format_value_brl(txn["value"]) if is_edit else ""
 
     def _format_valor():
         """Formata o campo de valor no padrão brasileiro ao digitar."""
-        raw = st.session_state.get(f"valor_{reset_key}", "")
-        digits = "".join(filter(str.isdigit, raw))
-        if digits:
-            formatted = (
-                f"{int(digits) / 100:,.2f}".replace(",", "X")
-                .replace(".", ",")
-                .replace("X", ".")
-            )
-            st.session_state[f"valor_{reset_key}"] = formatted
+        key = f"valor_{reset_key}"
+        st.session_state[key] = mask_value_input(st.session_state.get(key, ""))
 
     valor_str = st.text_input(
         t("components.new_transaction.value"),
