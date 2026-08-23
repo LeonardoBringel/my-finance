@@ -181,6 +181,7 @@
       "col_value_brl": "Valor (R$)",
       "col_value": "Valor",
       "col_type": "Tipo",
+      "value_placeholder": "ex: 1.250,00",
       "add_item": "➕ Adicionar Item",
       "save_template": "💾 Salvar Template",
       "template_needs_item": "Adicione ao menos um item válido (nome e valor obrigatórios).",

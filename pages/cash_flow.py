@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import datetime
+from functools import partial
 from uuid import uuid4
 
 import streamlit as st
@@ -22,8 +23,17 @@ from utils.auth import require_login
 from utils.data_format_utils import (
     MONTH_NAMES,
     format_currency,
+    format_value_brl,
+    mask_value_input,
+    parse_value_text,
 )
 from utils.i18n import t
+
+
+def _mask_value_field(key: str) -> None:
+    """Reformata um campo de valor monetário no session_state ao digitar."""
+    st.session_state[key] = mask_value_input(st.session_state[key])
+
 
 inject_global_css()
 
@@ -123,15 +133,16 @@ def template_dialog():
             max_value=31,
             step=1,
         )
-        item["value"] = c[2].number_input(
+        val_key = f"ti_val_{uid}"
+        value_text = c[2].text_input(
             t("pages.cash_flow.col_value"),
-            value=item["value"],
-            key=f"ti_val_{uid}",
+            value=format_value_brl(item["value"]),
+            key=val_key,
             label_visibility="collapsed",
-            min_value=0.0,
-            format="%.2f",
-            step=0.01,
+            placeholder=t("pages.cash_flow.value_placeholder"),
+            on_change=partial(_mask_value_field, val_key),
         )
+        item["value"] = parse_value_text(value_text) or 0.0
         item["type"] = c[3].selectbox(
             t("pages.cash_flow.col_type"),
             ["saida", "entrada"],
