@@ -1,6 +1,7 @@
 import os
 import sys
 from datetime import datetime
+from uuid import uuid4
 
 import streamlit as st
 
@@ -77,7 +78,9 @@ def template_dialog():
     tmpl_sorted_key = f"tmpl_items_sorted_{user_id}"
 
     if tmpl_items_key not in st.session_state:
-        st.session_state[tmpl_items_key] = [dict(i) for i in items]
+        st.session_state[tmpl_items_key] = [
+            {**i, "_uid": uuid4().hex} for i in items
+        ]
 
     if tmpl_sorted_key not in st.session_state:
         st.session_state[tmpl_items_key] = sorted(
@@ -102,18 +105,19 @@ def template_dialog():
             col.markdown(f"**{label}**")
 
     to_remove = None
-    for idx, item in enumerate(tmpl_items):
+    for item in tmpl_items:
+        uid = item["_uid"]
         c = st.columns([3, 1, 2, 1.5, 0.7])
         item["name"] = c[0].text_input(
             t("pages.cash_flow.col_name"),
             value=item["name"],
-            key=f"ti_name_{idx}",
+            key=f"ti_name_{uid}",
             label_visibility="collapsed",
         )
         item["day"] = c[1].number_input(
             t("pages.cash_flow.col_day"),
             value=item["day"],
-            key=f"ti_day_{idx}",
+            key=f"ti_day_{uid}",
             label_visibility="collapsed",
             min_value=1,
             max_value=31,
@@ -122,7 +126,7 @@ def template_dialog():
         item["value"] = c[2].number_input(
             t("pages.cash_flow.col_value"),
             value=item["value"],
-            key=f"ti_val_{idx}",
+            key=f"ti_val_{uid}",
             label_visibility="collapsed",
             min_value=0.0,
             format="%.2f",
@@ -137,19 +141,34 @@ def template_dialog():
                 if x == "saida"
                 else t("domain.category_type.entrada")
             ),
-            key=f"ti_type_{idx}",
+            key=f"ti_type_{uid}",
             label_visibility="collapsed",
         )
-        if c[4].button("🗑️", key=f"ti_del_{idx}"):
-            to_remove = idx
+        if c[4].button("🗑️", key=f"ti_del_{uid}"):
+            to_remove = uid
 
     if to_remove is not None:
-        st.session_state[tmpl_items_key].pop(to_remove)
+        st.session_state[tmpl_items_key] = [
+            i
+            for i in st.session_state[tmpl_items_key]
+            if i["_uid"] != to_remove
+        ]
+        st.session_state.pop(f"ti_name_{to_remove}", None)
+        st.session_state.pop(f"ti_day_{to_remove}", None)
+        st.session_state.pop(f"ti_val_{to_remove}", None)
+        st.session_state.pop(f"ti_type_{to_remove}", None)
+        st.session_state.pop(f"ti_del_{to_remove}", None)
         st.rerun(scope="fragment")
 
     if st.button(t("pages.cash_flow.add_item"), use_container_width=True):
         st.session_state[tmpl_items_key].append(
-            {"name": "", "day": 1, "value": 0.0, "type": "saida"}
+            {
+                "name": "",
+                "day": 1,
+                "value": 0.0,
+                "type": "saida",
+                "_uid": uuid4().hex,
+            }
         )
         st.rerun(scope="fragment")
 
@@ -162,7 +181,7 @@ def template_dialog():
             use_container_width=True,
         ):
             valid = [
-                i
+                {k: v for k, v in i.items() if k != "_uid"}
                 for i in st.session_state[tmpl_items_key]
                 if i["name"].strip() and i["value"] > 0
             ]
