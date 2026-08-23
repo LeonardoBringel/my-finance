@@ -477,3 +477,86 @@ def expenses_by_day_chart(
         bargap=0.15,
     )
     return fig
+
+
+def category_history_chart(history: dict, title: str | None = None):
+    """Barras do total mensal de uma categoria + linha tracejada da média do período.
+
+    Args:
+        history: Envelope de `TransactionsRepository.get_category_history`
+            (usa as chaves `series` e `average`).
+        title: Título do gráfico; usa o padrão do mapping quando omitido.
+
+    Returns:
+        go.Figure com uma barra por mês e uma linha horizontal na média.
+    """
+    title = t("charts.category_history_title") if title is None else title
+    series = history["series"]
+
+    if not series or all(p["total"] == 0 for p in series):
+        fig = go.Figure()
+        fig.add_annotation(
+            text=t("common.no_data"),
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(color=TEXT_COLOR, size=16),
+        )
+        fig.update_layout(**_base_layout(title))
+        return fig
+
+    average = history["average"]
+    month_abbr = t("months.abbr")
+    labels = [
+        f"{month_abbr[p['month'] - 1]}/{p['year'] % 100:02d}" for p in series
+    ]
+    values = [p["total"] for p in series]
+    bar_hover = [
+        t(
+            "charts.hover.category_history_bar_label",
+            month=label,
+            value=format_currency(value),
+        )
+        for label, value in zip(labels, values)
+    ]
+    avg_hover = t(
+        "charts.hover.category_history_average_label",
+        value=format_currency(average),
+    )
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Bar(
+            x=labels,
+            y=values,
+            marker_color=GREEN_MAIN,
+            marker_cornerradius=BAR_CORNER_RADIUS,
+            customdata=bar_hover,
+            hovertemplate=t("charts.hover.category_history_block"),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=labels,
+            y=[average] * len(labels),
+            mode="lines",
+            line=dict(color=GREEN_DARK, width=2, dash="dash"),
+            customdata=[avg_hover] * len(labels),
+            hovertemplate=t("charts.hover.category_history_block"),
+        )
+    )
+    fig.update_layout(
+        **_base_layout(title),
+        xaxis=dict(
+            showgrid=False,
+            tickfont=dict(color=TEXT_COLOR),
+        ),
+        yaxis=dict(
+            showgrid=True,
+            gridcolor=GRID_COLOR,
+            tickprefix="R$",
+            tickfont=dict(color=TEXT_COLOR),
+        ),
+        bargap=0.3,
+    )
+    return fig

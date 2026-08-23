@@ -43,6 +43,7 @@
   "charts": {
     "expenses_bar_title": "Detalhamento Despesas",
     "annual_evolution_title": "📈 Evolução Anual do Saldo",
+    "category_history_title": "Histórico — Últimos 12 Meses",
     "series": {
       "total": "Total",
       "income": "Entradas",
@@ -62,7 +63,10 @@
       "day_header": "<b>Dia {day}</b>",
       "day_total": "{value} total",
       "day_segment": "{value} — {category}",
-      "day_block": "%{customdata}<extra></extra>"
+      "day_block": "%{customdata}<extra></extra>",
+      "category_history_bar_label": "<b>{month}</b><br>{value}",
+      "category_history_average_label": "Média do período: {value}",
+      "category_history_block": "%{customdata}<extra></extra>"
     }
   },
   "components": {
@@ -355,6 +359,20 @@
       "Outubro",
       "Novembro",
       "Dezembro"
+    ],
+    "abbr": [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez"
     ]
   }
 }

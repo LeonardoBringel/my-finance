@@ -3,6 +3,7 @@
 from components.charts import (
     EXPENSE_COLORS,
     _interleaved_order,
+    category_history_chart,
     day_hover_texts,
     expense_palette,
     expenses_by_day_chart,
@@ -86,3 +87,42 @@ def test_expenses_by_day_chart_shares_hover_block_across_traces():
     customdatas = [trace.customdata for trace in fig.data]
     assert all(cd == customdatas[0] for cd in customdatas)
     assert "R$ 150,00 total" in customdatas[0][11]
+
+
+def _fake_history(values):
+    """Monta um envelope minimal no formato de get_category_history."""
+    series = [
+        {"year": 2025, "month": 3 + i, "total": v} for i, v in enumerate(values)
+    ]
+    total = sum(values)
+    return {
+        "category": "Mercado",
+        "type": "saida",
+        "series": series,
+        "average": total / len(values) if values else 0.0,
+        "total": total,
+    }
+
+
+def test_category_history_chart_bar_values_and_labels():
+    history = _fake_history([10.0, 20.0, 0.0, 30.0])
+    fig = category_history_chart(history)
+    bar = fig.data[0]
+    assert list(bar.y) == [10.0, 20.0, 0.0, 30.0]
+    assert bar.x[0] == "Mar/25"
+    assert bar.x[1] == "Abr/25"
+
+
+def test_category_history_chart_average_line_is_constant():
+    history = _fake_history([10.0, 20.0, 30.0])
+    fig = category_history_chart(history)
+    avg_trace = fig.data[1]
+    assert set(avg_trace.y) == {20.0}
+    assert avg_trace.mode == "lines"
+
+
+def test_category_history_chart_all_zeroed_shows_placeholder():
+    history = _fake_history([0.0, 0.0, 0.0])
+    fig = category_history_chart(history)
+    assert len(fig.data) == 0
+    assert fig.layout.annotations[0].text == "Sem dados"
