@@ -335,3 +335,58 @@ def test_category_history_empty_category_returns_zeroed_series(db_session):
     assert history["average"] == 0.0
     assert history["total"] == 0.0
     assert history["type"] == "saida"
+
+
+def test_avg_daily_expense_closed_month_with_empty_previous(db_session):
+    """Mês fechado: média = total / dias do mês; mês anterior sem despesas → delta None."""
+    uid, cats = _seed()
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2020-06-10", "Compra 1", 200.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2020-06-20", "Compra 2", 100.0
+    )
+
+    summary = TransactionsRepository.get_dashboard_data(uid, 2020, 6)["summary"]
+
+    assert summary["avg_daily_expense"] == pytest.approx(300.0 / 30)
+    assert summary["avg_daily_expense_prev"] == pytest.approx(0.0)
+    assert summary["avg_daily_delta_pct"] is None
+
+
+def test_avg_daily_delta_pct_between_two_closed_months(db_session):
+    """Variação % calculada pelo mesmo critério (dias do mês) nos dois meses."""
+    uid, cats = _seed()
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2020-04-05", "Abril", 200.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2020-05-05", "Maio", 300.0
+    )
+
+    summary = TransactionsRepository.get_dashboard_data(uid, 2020, 5)["summary"]
+
+    avg_may = 300.0 / 31
+    avg_apr = 200.0 / 30
+    expected_delta = (avg_may - avg_apr) / avg_apr * 100
+
+    assert summary["avg_daily_expense"] == pytest.approx(avg_may)
+    assert summary["avg_daily_expense_prev"] == pytest.approx(avg_apr)
+    assert summary["avg_daily_delta_pct"] == pytest.approx(expected_delta)
+
+
+def test_avg_daily_january_compares_with_previous_december(db_session):
+    """Janeiro reaproveita o caminho de comparação com dezembro do ano anterior."""
+    uid, cats = _seed()
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2025-12-15", "Dezembro", 310.0
+    )
+    TransactionsRepository.create_transaction(
+        uid, cats["Mercado"], "2026-01-15", "Janeiro", 62.0
+    )
+
+    summary = TransactionsRepository.get_dashboard_data(uid, 2026, 1)["summary"]
+
+    assert summary["avg_daily_expense"] == pytest.approx(62.0 / 31)
+    assert summary["avg_daily_expense_prev"] == pytest.approx(310.0 / 31)
+    assert summary["avg_daily_delta_pct"] == pytest.approx(-80.0)

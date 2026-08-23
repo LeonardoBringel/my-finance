@@ -15,6 +15,7 @@ from utils.category_types import (
     is_investment,
 )
 from utils.crypto import decrypt, encrypt, hash_for_lookup
+from utils.data_format_utils import days_in_period
 
 from .base_repository import get_session
 
@@ -520,12 +521,14 @@ class TransactionsRepository:
 
         # Fetch 2: mês anterior — evitado quando o mês anterior é do mesmo ano
         if month > 1:
+            prev_year, prev_month = year, month - 1
             prev_month_txns = [
                 t
                 for t in all_year
                 if datetime.strptime(t["date"], "%Y-%m-%d").month == month - 1
             ]
         else:
+            prev_year, prev_month = year - 1, 12
             prev_month_txns = TransactionsRepository.list_transactions(
                 user_id, year=year - 1, month=12
             )
@@ -559,6 +562,22 @@ class TransactionsRepository:
             if is_expense(t["type"])
             and datetime.strptime(t["date"], "%Y-%m-%d").month <= month
         )
+        # Média de gasto diário: dias decorridos no mês corrente, dias totais em
+        # meses fechados/futuros (days_in_period). Só despesas, coerente com D-01.
+        saidas_prev = sum(
+            t["value"] for t in prev_month_txns if is_expense(t["type"])
+        )
+        avg_daily_expense = saidas / days_in_period(year, month)
+        avg_daily_expense_prev = saidas_prev / days_in_period(
+            prev_year, prev_month
+        )
+        avg_daily_delta_pct = (
+            None
+            if avg_daily_expense_prev == 0
+            else (avg_daily_expense - avg_daily_expense_prev)
+            / avg_daily_expense_prev
+            * 100
+        )
         summary = {
             "entradas": entradas,
             "saidas": saidas,
@@ -566,6 +585,9 @@ class TransactionsRepository:
             "saldo": entradas - saidas,
             "saldo_acumulado": acc_in - acc_out,
             "pct_installments": pct_installments,
+            "avg_daily_expense": avg_daily_expense,
+            "avg_daily_expense_prev": avg_daily_expense_prev,
+            "avg_daily_delta_pct": avg_daily_delta_pct,
         }
 
         # ── Totais por categoria ───────────────────────────────────────────────
