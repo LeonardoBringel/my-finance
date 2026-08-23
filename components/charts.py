@@ -2,6 +2,7 @@ import calendar
 
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.colors import sample_colorscale
 
 from utils.i18n import t
 
@@ -24,23 +25,53 @@ _BAR_WIDTH = 0.4
 # raio e com barras estreitas — um raio pequeno mantém o arredondamento sutil e a
 # base rente ao eixo. Não aumentar sem reconferir a base no app rodando.
 BAR_CORNER_RADIUS = 3
+
+# Paleta de despesas: rampa verde/teal do tema, aparada a 10 tons que atendem o
+# critério de contraste WCAG — >= 2.5:1 contra o fundo (#0E1117) e >= 1.7:1 contra
+# o texto (#FAFAFA). Descarta tons que liam como cinza/branco (#A5D6A7, #C8E6C9,
+# #E8F5E9) e tons que somem no fundo escuro (#1B5E20, #004D40). Ordenada do mais
+# escuro ao mais claro para que expense_palette() interpole de forma monotônica.
 EXPENSE_COLORS = [
-    "#1B5E20",
+    "#00695C",
     "#2E7D32",
+    "#00897B",
     "#388E3C",
     "#43A047",
+    "#26A69A",
     "#4CAF50",
     "#66BB6A",
     "#81C784",
-    "#A5D6A7",
-    "#C8E6C9",
-    "#E8F5E9",
-    "#00695C",
-    "#00897B",
-    "#26A69A",
     "#80CBC4",
-    "#004D40",
 ]
+
+
+def _interleaved_order(n: int) -> list[int]:
+    """Índices 0..n-1 intercalados (ímpares, depois pares).
+
+    Maximiza a distância entre posições consecutivas: dentro de cada grupo de
+    paridade o passo é sempre 2, e a transição entre os grupos nunca cai abaixo
+    disso para n >= 4. Evita que segmentos empilhados adjacentes recebam tons
+    vizinhos da rampa.
+    """
+    return list(range(1, n, 2)) + list(range(0, n, 2))
+
+
+def expense_palette(n: int) -> list[str]:
+    """Gera n cores distintas da rampa `EXPENSE_COLORS`, intercaladas por posição.
+
+    Args:
+        n: Quantidade de cores a gerar.
+
+    Returns:
+        Lista de n strings `rgb(r, g, b)`, sem repetição.
+    """
+    if n <= 0:
+        return []
+    if n == 1:
+        return sample_colorscale(EXPENSE_COLORS, [0.0], colortype="rgb")
+    points = [i / (n - 1) for i in range(n)]
+    ramp = sample_colorscale(EXPENSE_COLORS, points, colortype="rgb")
+    return [ramp[i] for i in _interleaved_order(n)]
 
 
 def _base_layout(title="", showlegend=False):
@@ -355,10 +386,11 @@ def expenses_by_day_chart(
     days_in_month = calendar.monthrange(year, month)[1]
     days = list(range(1, days_in_month + 1))
 
+    palette = expense_palette(len(data))
     fig = go.Figure()
     for i, (cat, day_totals) in enumerate(data.items()):
         values = [day_totals.get(d, 0.0) for d in days]
-        color = EXPENSE_COLORS[i % len(EXPENSE_COLORS)]
+        color = palette[i]
         fig.add_trace(
             go.Bar(
                 name=cat,
