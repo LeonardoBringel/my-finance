@@ -38,9 +38,11 @@ HEX_LITERAL = re.compile(
     r"#(?:[0-9A-Fa-f]{3,4}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})\b"
 )
 FUNC_LITERAL = re.compile(r"\brgba?\(\s*\d")
+# Pega tanto a forma literal `:green[...]` quanto a interpolada `:{color}[...]`
+# — foi a segunda que escapou da primeira auditoria de cor.
 ST_COLOR_MARKUP = re.compile(
-    r":(?:red|orange|yellow|green|blue|violet|gray|grey"
-    r"|primary|rainbow)(?:-background)?\["
+    r":(?:(?:red|orange|yellow|green|blue|violet|gray|grey|primary|rainbow)"
+    r"(?:-background)?|\{[A-Za-z_][A-Za-z0-9_]*\})\["
 )
 # Nome CSS de cor em posição de valor: `color: red`, `background: white`.
 CSS_NAMED = re.compile(

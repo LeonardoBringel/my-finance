@@ -409,8 +409,15 @@ def edit_month_dialog(month_data: dict):
                 row = st.columns([3, 1, 2, 1.5, 0.7, 0.7])
                 row[0].markdown(e["name"])
                 row[1].markdown(str(e["day"]))
-                val_color = "green" if e["type"] == "entrada" else "red"
-                row[2].markdown(f":{val_color}[{format_currency(e['value'])}]")
+                val_color = GREEN_MAIN if e["type"] == "entrada" else RED_MAIN
+                row[2].markdown(
+                    t(
+                        "components.value_colored",
+                        color=val_color,
+                        value=format_currency(e["value"]),
+                    ),
+                    unsafe_allow_html=True,
+                )
                 row[3].markdown(
                     t("domain.category_type.entrada")
                     if e["type"] == "entrada"
@@ -574,9 +581,14 @@ else:
             entries = months_data[m_num]["entries"]
             match = next((e for e in entries if e["name"] == name), None)
             if match:
-                color = "green" if match["type"] == "entrada" else "red"
+                color = GREEN_MAIN if match["type"] == "entrada" else RED_MAIN
                 row_cols[i + 2].markdown(
-                    f":{color}[{format_currency(match['value'])}]"
+                    t(
+                        "components.value_colored",
+                        color=color,
+                        value=format_currency(match["value"]),
+                    ),
+                    unsafe_allow_html=True,
                 )
             else:
                 row_cols[i + 2].markdown(t("common.empty_cell"))
@@ -632,8 +644,15 @@ else:
     for i, m_num in enumerate(sorted_months):
         total_in, total_out = month_totals[m_num]
         saldo = total_in - total_out
-        color = "green" if saldo >= 0 else "red"
-        saldo_cols[i + 2].markdown(f":{color}[**{format_currency(saldo)}**]")
+        color = GREEN_MAIN if saldo >= 0 else RED_MAIN
+        saldo_cols[i + 2].markdown(
+            t(
+                "components.value_colored_bold",
+                color=color,
+                value=format_currency(saldo),
+            ),
+            unsafe_allow_html=True,
+        )
 
     accum_cols = st.columns(col_widths)
     accum_cols[0].markdown("")
@@ -642,8 +661,15 @@ else:
     for i, m_num in enumerate(sorted_months):
         total_in, total_out = month_totals[m_num]
         running += total_in - total_out
-        color = "green" if running >= 0 else "red"
-        accum_cols[i + 2].markdown(f":{color}[{format_currency(running)}]")
+        color = GREEN_MAIN if running >= 0 else RED_MAIN
+        accum_cols[i + 2].markdown(
+            t(
+                "components.value_colored",
+                color=color,
+                value=format_currency(running),
+            ),
+            unsafe_allow_html=True,
+        )
 
 
 # ── Disparar dialogs ────────────────────────────────────────────────────────────
