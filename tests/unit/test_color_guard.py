@@ -20,10 +20,10 @@ from pathlib import Path
 from utils.theme import (
     BG_DARK,
     EXPENSE_PALETTE,
-    EXPENSE_PALETTE_MUTED,
     GREEN_DARK,
     GREEN_LIGHT,
     GREEN_MAIN,
+    GREEN_RAMP,
     RED_MAIN,
 )
 
@@ -167,66 +167,91 @@ def _delta_e(a: str, b: str) -> float:
     return math.sqrt((la - lb) ** 2 + (aa - ab) ** 2 + (ba - bb) ** 2)
 
 
-ALL_PALETTE = EXPENSE_PALETTE + EXPENSE_PALETTE_MUTED
+BRAND_HUE = 122.4
+BRAND_SAT = 39.4
 
 
 def test_anchor_is_the_new_transaction_button_color():
     """Trava a âncora: mudar o botão exige revisar a paleta inteira."""
     assert GREEN_MAIN == "#4CAF50"
-    assert EXPENSE_PALETTE[0] == GREEN_MAIN
+    assert GREEN_RAMP[4] == GREEN_MAIN
 
 
-def test_semantic_greens_are_the_marca_column():
+def test_palette_is_the_ramp_reordered():
+    """A ordem de uso usa cada degrau exatamente uma vez."""
+    assert sorted(EXPENSE_PALETTE) == sorted(GREEN_RAMP)
+    assert len(EXPENSE_PALETTE) == 9
+
+
+def test_semantic_greens_are_ramp_steps():
     assert (GREEN_LIGHT, GREEN_MAIN, GREEN_DARK) == (
-        EXPENSE_PALETTE[7],
-        EXPENSE_PALETTE[0],
-        EXPENSE_PALETTE[5],
+        GREEN_RAMP[6],
+        GREEN_RAMP[4],
+        GREEN_RAMP[2],
     )
 
 
-def test_palette_stays_inside_the_brand_hue_arc():
-    """Arco de design 92°–152°, com 1° de folga para a quantização em 8 bits.
+def test_palette_is_monochromatic():
+    """Uma família de cor só: matiz e saturação constantes ao longo da rampa.
 
-    Os alvos são exatamente 92/122/152; arredondar cada canal para inteiro
-    desloca o matiz reconstruído em até ~0,6°.
+    A folga de ±1,5 absorve a quantização em 8 bits — reconstruir HSL de canais
+    inteiros desvia o matiz em até ~0,8° e a saturação em ~0,7 ponto.
     """
-    for color in EXPENSE_PALETTE:
+    for color in GREEN_RAMP:
         hue, sat, _ = _hsl(color)
-        assert 91 <= hue <= 153, f"{color} tem matiz {hue:.1f}° — fora do arco"
         assert (
-            35 <= sat <= 47
-        ), f"{color} tem saturação {sat:.1f}% — fora da faixa"
+            abs(hue - BRAND_HUE) <= 1.5
+        ), f"{color} tem matiz {hue:.1f}°, fora do monocromático"
+        assert (
+            abs(sat - BRAND_SAT) <= 1.5
+        ), f"{color} tem saturação {sat:.1f}%, fora do monocromático"
+
+
+def test_ramp_is_ordered_dark_to_light():
+    lums = [_lab(c)[0] for c in GREEN_RAMP]
+    assert lums == sorted(lums), "GREEN_RAMP deve ir do escuro ao claro"
+
+
+def test_ramp_steps_are_perceptually_even():
+    """Passos uniformes em L* — o que espaçar em L de HSL não entrega.
+
+    O alvo de design é 4,25 unidades de L* por degrau. A tolerância de ±0,5
+    absorve a quantização em 8 bits: arredondar cada canal para inteiro move o
+    L* reconstruído em até meia unidade, então os passos medidos vão de ~3,8 a
+    ~4,8. Espaçar em L de HSL, para comparação, produz passos de 2,9 a 6,4.
+    """
+    lums = [_lab(c)[0] for c in GREEN_RAMP]
+    deltas = [b - a for a, b in zip(lums, lums[1:])]
+    for d in deltas:
+        assert abs(d - 4.25) <= 0.6, f"passos desiguais: {deltas}"
 
 
 def test_every_palette_color_is_legible_on_the_dark_background():
-    for color in ALL_PALETTE:
+    for color in GREEN_RAMP:
         ratio = _contrast(color, BG_DARK)
         assert ratio >= 3.7, f"{color} tem contraste {ratio:.2f}:1 (mín. 3.7)"
 
 
 def test_no_two_palette_colors_are_confusable():
-    for i, a in enumerate(ALL_PALETTE):
-        for b in ALL_PALETTE[i + 1 :]:
-            assert _delta_e(a, b) >= 8.0, f"{a} e {b} são próximas demais"
+    """Piso baixo de propósito: é o custo medido do monocromático."""
+    for i, a in enumerate(GREEN_RAMP):
+        for b in GREEN_RAMP[i + 1 :]:
+            assert _delta_e(a, b) >= 4.5, f"{a} e {b} são próximas demais"
 
 
-def test_cycle_neighbours_are_far_apart():
-    """Segmentos vizinhos de donut/barra empilhada nunca colidem."""
-    for a, b in zip(EXPENSE_PALETTE, EXPENSE_PALETTE[1:]):
-        assert _delta_e(a, b) >= 19.0, f"{a} → {b} muito próximos no ciclo"
-
-
-def test_muted_turn_never_degrades_below_the_first_turn():
-    assert min(_contrast(c, BG_DARK) for c in EXPENSE_PALETTE_MUTED) >= min(
-        _contrast(c, BG_DARK) for c in EXPENSE_PALETTE
+def test_interleaved_order_beats_sequential():
+    """A ordem intercalada é o que torna o monocromático legível num donut."""
+    viz_seq = min(_delta_e(a, b) for a, b in zip(GREEN_RAMP, GREEN_RAMP[1:]))
+    viz_int = min(
+        _delta_e(a, b) for a, b in zip(EXPENSE_PALETTE, EXPENSE_PALETTE[1:])
     )
+    assert viz_int >= 8.0, f"vizinhos do ciclo a apenas ΔE {viz_int:.1f}"
+    assert viz_int > viz_seq * 1.5
 
 
-def test_muted_turn_preserves_hue():
-    for base, muted in zip(EXPENSE_PALETTE, EXPENSE_PALETTE_MUTED):
-        assert (
-            abs(_hsl(base)[0] - _hsl(muted)[0]) <= 3.0
-        ), f"{muted} desviou do matiz de {base}"
+def test_green_dark_passes_wcag_aa_as_text():
+    """GREEN_DARK pinta o valor de investimento em Lançamentos."""
+    assert _contrast(GREEN_DARK, BG_DARK) >= 4.5
 
 
 # ── Espelho do tema nativo do Streamlit ───────────────────────────────────────

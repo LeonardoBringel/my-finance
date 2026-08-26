@@ -4,10 +4,10 @@ import pytest
 
 from utils.theme import (
     EXPENSE_PALETTE,
-    EXPENSE_PALETTE_MUTED,
     GREEN_DARK,
     GREEN_LIGHT,
     GREEN_MAIN,
+    GREEN_RAMP,
     expense_palette,
     rgba,
 )
@@ -28,33 +28,28 @@ def test_expense_palette_prefix_is_stable(n):
     assert expense_palette(n) == EXPENSE_PALETTE[:n]
 
 
-def test_expense_palette_second_turn_is_the_muted_cycle():
-    assert expense_palette(18)[9:] == EXPENSE_PALETTE_MUTED
-
-
-@pytest.mark.parametrize("n", [1, 9, 10, 18])
-def test_expense_palette_distinct_up_to_eighteen(n):
+@pytest.mark.parametrize("n", [1, 5, 9])
+def test_expense_palette_distinct_up_to_nine(n):
     palette = expense_palette(n)
     assert len(palette) == n
     assert len(set(palette)) == n
 
 
-def test_expense_palette_wraps_after_eighteen():
-    palette = expense_palette(19)
-    assert palette[18] == palette[0]
-    assert len(palette) == 19
+def test_expense_palette_wraps_after_nine():
+    palette = expense_palette(10)
+    assert palette[9] == palette[0]
+    assert len(palette) == 10
 
 
-def test_expense_palette_never_leaves_the_brand_cycle():
-    known = set(EXPENSE_PALETTE) | set(EXPENSE_PALETTE_MUTED)
-    assert set(expense_palette(30)) <= known
+def test_expense_palette_never_leaves_the_ramp():
+    assert set(expense_palette(30)) <= set(GREEN_RAMP)
 
 
-def test_semantic_greens_alias_the_marca_column():
-    """Os verdes semânticos são apelidos da paleta, não hexes independentes."""
-    assert GREEN_MAIN == EXPENSE_PALETTE[0] == "#4CAF50"
-    assert GREEN_DARK == EXPENSE_PALETTE[5]
-    assert GREEN_LIGHT == EXPENSE_PALETTE[7]
+def test_semantic_greens_are_ramp_steps():
+    """Os verdes semânticos são degraus da rampa, não hexes independentes."""
+    assert GREEN_MAIN == GREEN_RAMP[4] == "#4CAF50"
+    assert GREEN_DARK == GREEN_RAMP[2]
+    assert GREEN_LIGHT == GREEN_RAMP[6]
 
 
 def test_rgba_converts_hex_to_css():

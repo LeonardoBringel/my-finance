@@ -3,19 +3,19 @@
 A âncora da identidade visual é `GREEN_MAIN` (`#4CAF50`) — a cor de fundo do
 botão "Novo Registro". Toda cor de marca do sistema é uma derivação dela.
 
-A paleta categórica é uma grade de 3 famílias de matiz × 3 tons, gerada a partir
-da âncora e gravada aqui como hex explícito (sem cálculo de cor em runtime):
+A paleta categórica é **monocromática**: um único verde, o da âncora — matiz
+122° e saturação 39%, os valores exatos do botão — em 9 degraus de luminosidade
+gravados aqui como hex explícito (sem cálculo de cor em runtime).
 
-    matiz ∈ {92°, 122°, 152°} × (S, L) ∈ {(44, 34), (40, 49), (38, 64)}
+Os degraus são espaçados de forma perceptualmente uniforme, em `L*` de Lab e não
+em `L` de HSL: espaçar em HSL agrupa os tons claros e espalha os escuros. O passo
+500 é literalmente `#4CAF50`.
 
-O arco de 92°–152° é o mais largo que ainda lê como a mesma família de verde. A
-ordem de `EXPENSE_PALETTE` alterna família e tom a cada passo, para que
-segmentos vizinhos de donut ou de barra empilhada nunca caiam na mesma família
-nem no mesmo nível de luz — reordenar a lista quebra essa propriedade.
-
-A segunda volta (`EXPENSE_PALETTE_MUTED`) é a mesma grade dessaturada
-(`S × 0.55`, `L` puxada 35% em direção a 46%). Não é opacidade de propósito:
-alpha mescla a cor em direção ao fundo escuro e apaga os tons 700.
+A ordem de uso (`EXPENSE_PALETTE`) **não** percorre a rampa em sequência — ela
+intercala pares e ímpares, de modo que cada cor salta dois degraus em relação à
+anterior. É isso que mantém fatias vizinhas de donut distinguíveis sem recorrer
+a outra matiz: em sequência o ΔE entre vizinhas seria 4,9; intercalado, é 8,7.
+Reordenar a lista quebra essa propriedade.
 
 Referência completa: `.specs/codebase/DESIGN-SYSTEM.md`.
 Contrato automatizado: `tests/unit/test_color_guard.py`.
@@ -48,38 +48,41 @@ TEXT_MUTED = "#8A9A8C"  # delta neutro nos cards ("sem despesas")
 TEXT_FAINT = rgba(WHITE, 0.15)  # rodapé de versão no login
 
 # ── Paleta categórica ──────────────────────────────────────────────────────────
-# Ordem de ciclo: alterna família e tom a cada passo. Não reordenar.
-EXPENSE_PALETTE = [
-    "#4CAF50",  # Marca 500 — âncora, cor do botão Novo Registro
-    "#80C6A6",  # Menta 300
-    "#547D31",  # Lima 700
-    "#4BAF80",  # Menta 500
-    "#A1C680",  # Lima 300
-    "#317D33",  # Marca 700
-    "#7AAF4B",  # Lima 500
-    "#80C683",  # Marca 300
-    "#317D59",  # Menta 700
+# A rampa, do escuro ao claro. Só existe para documentar os degraus e para o
+# guard test; o consumo é sempre via EXPENSE_PALETTE.
+GREEN_RAMP = [
+    "#377E39",  # 900
+    "#3C893F",  # 800
+    "#419745",  # 700
+    "#47A24A",  # 600
+    "#4CAF50",  # 500 — âncora, cor do botão Novo Registro
+    "#5FB963",  # 400
+    "#76C379",  # 300
+    "#8BCD8E",  # 200
+    "#A2D6A4",  # 100
 ]
 
-# Segunda volta (10ª a 18ª categoria): as mesmas 9 cores dessaturadas.
-EXPENSE_PALETTE_MUTED = [
-    "#609562",  # Marca 500 esmaecida
-    "#7CAA95",  # Menta 300 esmaecida
-    "#60794A",  # Lima 700 esmaecida
-    "#5F957C",  # Menta 500 esmaecida
-    "#92AA7C",  # Lima 300 esmaecida
-    "#4A794B",  # Marca 700 esmaecida
-    "#79955F",  # Lima 500 esmaecida
-    "#7CAA7E",  # Marca 300 esmaecida
-    "#4A7963",  # Menta 700 esmaecida
+# Ordem de uso: degraus intercalados (pares, depois ímpares). Não reordenar.
+EXPENSE_PALETTE = [
+    GREEN_RAMP[0],  # 900
+    GREEN_RAMP[2],  # 700
+    GREEN_RAMP[4],  # 500 — âncora
+    GREEN_RAMP[6],  # 300
+    GREEN_RAMP[8],  # 100
+    GREEN_RAMP[1],  # 800
+    GREEN_RAMP[3],  # 600
+    GREEN_RAMP[5],  # 400
+    GREEN_RAMP[7],  # 200
 ]
 
 # ── Tokens semânticos ──────────────────────────────────────────────────────────
-# Os três verdes são apelidos da coluna Marca da grade, não hexes independentes:
-# é o que impede dois "verdes escuros" ligeiramente diferentes no sistema.
-GREEN_LIGHT = EXPENSE_PALETTE[7]  # Marca 300 — #80C683
-GREEN_MAIN = EXPENSE_PALETTE[0]  # Marca 500 — #4CAF50
-GREEN_DARK = EXPENSE_PALETTE[5]  # Marca 700 — #317D33
+# Os três verdes são degraus da rampa, não hexes independentes: é o que impede
+# dois "verdes escuros" ligeiramente diferentes no sistema.
+GREEN_LIGHT = GREEN_RAMP[6]  # 300 — #76C379
+GREEN_MAIN = GREEN_RAMP[4]  # 500 — #4CAF50
+# O 700, e não o 800, porque GREEN_DARK também pinta texto (valor de
+# investimento em Lançamentos): 5,16:1 atende WCAG AA, o 800 (4,36:1) não.
+GREEN_DARK = GREEN_RAMP[2]  # 700 — #419745
 
 # Único token fora do arco verde, e de propósito: vermelho de saída é semântica,
 # não identidade visual.
@@ -92,11 +95,11 @@ CHART_GRID = rgba(WHITE, 0.08)
 
 
 def expense_palette(n: int) -> list[str]:
-    """Retorna n cores do ciclo da marca, esmaecendo a partir da 10ª.
+    """Retorna n cores do ciclo monocromático da marca.
 
-    Da 1ª à 9ª categoria usa `EXPENSE_PALETTE`; da 10ª à 18ª, a segunda volta
-    dessaturada. Acima de 18 o ciclo reinicia com repetição — a legenda do
-    gráfico desambigua.
+    A rampa tem 9 degraus. Acima de 9 o ciclo reinicia com repetição — a legenda
+    do gráfico desambigua. Não há segunda volta esmaecida: dessaturar um verde
+    único produz cinza, não "verde esmaecido", e a marca se perde.
 
     Args:
         n: Quantidade de cores a retornar.
@@ -106,5 +109,4 @@ def expense_palette(n: int) -> list[str]:
     """
     if n <= 0:
         return []
-    ciclo = EXPENSE_PALETTE + EXPENSE_PALETTE_MUTED
-    return [ciclo[i % len(ciclo)] for i in range(n)]
+    return [EXPENSE_PALETTE[i % len(EXPENSE_PALETTE)] for i in range(n)]
