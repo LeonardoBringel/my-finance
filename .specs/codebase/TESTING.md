@@ -21,7 +21,11 @@ tests/
 │   ├── test_crypto.py
 │   ├── test_data_format_utils.py
 │   ├── test_password_utils.py
-│   └── test_session.py
+│   ├── test_session.py
+│   ├── test_theme.py        # tokens de cor + ciclo da paleta
+│   ├── test_charts.py       # helpers puros de components/charts.py
+│   ├── test_i18n_guard.py   # contrato de i18n (AST)
+│   └── test_color_guard.py  # contrato de cor (literais + propriedades da paleta)
 └── integration/         # repositories/ against real Postgres (marked `integration`)
     ├── test_transactions_installments.py
     ├── test_dashboard_aggregation.py
@@ -33,6 +37,12 @@ tests/
 
 ### Unit Tests
 Cover the pure helpers in `utils/`: `crypto` (encrypt/decrypt round-trip, `hash_for_lookup` determinism, `decrypt_float` fallback), `data_format_utils` (BRL currency, ISO↔BR dates, `parse_value_text`), `password_utils` (bcrypt round-trip), `session` (JWT create/decode, expiry, tampering). No database required.
+
+**Guard tests.** Dois contratos estáticos protegem invariantes que nenhum teste funcional pega:
+`test_i18n_guard.py` (nenhum literal de texto na UI; toda chave `t()` existe; sem chave órfã) e
+`test_color_guard.py` (nenhum literal de cor fora de `utils/theme.py`; a paleta permanece dentro
+do arco de matiz, contraste e ΔE documentados em `DESIGN-SYSTEM.md`). São a única cobertura
+automatizada que alcança `pages/` e `components/` — ver `CONCERNS.md` C-02.
 
 ### Integration Tests
 Exercise the `repositories/` layer against a real PostgreSQL provisioned by Testcontainers. Highest-value targets covered: `create_transaction` installment generation, `get_dashboard_data` aggregation (incl. the January → previous-December path), bulk description ops (`rename`/`migrate`/`delete` + `description_hash` consistency), and baselines for users/categories/cash-flow.
@@ -56,7 +66,7 @@ Exercise the `repositories/` layer against a real PostgreSQL provisioned by Test
 
 ## Coverage Targets
 
-**Current:** Risky logic (crypto, HMAC lookups, installment generation, dashboard aggregation, bulk description ops) is covered. Unit suite: 21 tests. Integration suite: 14 tests.
+**Current:** Risky logic (crypto, HMAC lookups, installment generation, dashboard aggregation, bulk description ops) is covered, plus the i18n and color guard contracts. Unit suite: 113 tests. Integration suite: 51 tests.
 **Goals:** Safety net on the encryption/query paths that M1 changes; not a coverage percentage.
 **Enforcement:** A `pytest-unit` pre-commit hook runs the unit suite on every commit.
 

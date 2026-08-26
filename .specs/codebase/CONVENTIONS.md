@@ -22,8 +22,17 @@
 - **All user-facing text lives in `utils/locales/pt_BR.json`**, read via `t("dotted.key", **kwargs)` from `utils/i18n.py`. No text literals in `pages/`, `components/`, `repositories/` or `utils/` (including `st.error`/`st.success` messages returned by repositories).
 - Single locale (pt-BR); no language selector. Adding `en_US.json` later requires no changes to `pages/`/`components/`.
 - `t()` interpolates with `str.format`; missing keys raise `KeyError` (no silent fallback). Dynamic keys are forbidden except `f"domain.category_type.{tipo}"`.
-- **Not i18n'd (kept in code):** `page_icon` emojis, `<style>`/CSS blocks, Streamlit color markup (`:green[...]`), and the domain type values above.
+- **Not i18n'd (kept in code):** `page_icon` emojis, `<style>`/CSS blocks, and the domain type values above. (Streamlit color markup `:green[...]` foi **banido** — ver Cores / Design System.)
 - Enforced by `tests/unit/test_i18n_guard.py` (no literal UI text, every `t()` key exists, no orphan keys).
+
+## Cores / Design System
+
+- **Nenhum literal de cor fora de `utils/theme.py`** — nem hex, nem `rgba()`, nem nome CSS de cor, nem a sintaxe `:cor[...]` do Streamlit. Vale para `pages/`, `components/`, `utils/` e `utils/locales/pt_BR.json`.
+- Âncora da identidade: **`#4CAF50`** (fundo do botão "Novo Registro"). Toda cor de marca é derivação dela.
+- Paleta categórica: 9 cores discretas (3 famílias de matiz × 3 tons) no arco 92°–152°, em ordem de ciclo fixa. Obtida via `expense_palette(n)` — nunca escolhida a dedo.
+- Valor monetário colorido usa `t("components.value_colored", color=<token>, value=...)`; `:cor[...]` do Streamlit não serve (só aceita cores nomeadas, nenhuma delas é da marca).
+- Enforced by `tests/unit/test_color_guard.py` (literais de cor + propriedades medidas da paleta).
+- **Referência completa: [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md)** — paleta, tokens, contraste, e como adicionar uma cor.
 
 ## Code Organization
 

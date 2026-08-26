@@ -53,7 +53,8 @@ my-finance/
     ├── i18n.py                   # Loader e t() — fonte única do texto de UI
     ├── locales/                  # Mappings de texto por locale
     │   └── pt_BR.json            # Textos em pt-BR (único locale hoje)
-    └── password_utils.py         # Hash e verificação de senha bcrypt
+    ├── password_utils.py         # Hash e verificação de senha bcrypt
+    └── theme.py                  # Tokens de cor — fonte única da identidade visual
 ```
 
 ---
@@ -81,6 +82,7 @@ my-finance/
 - **Exceção:** `utils/auth.py` acessa `st.session_state` e `st.switch_page` porque gerencia o estado de sessão da aplicação - isso é necessário e aceitável.
 - `utils/crypto.py` centraliza toda criptografia/descriptografia Fernet.
 - `utils/password_utils.py` centraliza hash e verificação de senha bcrypt.
+- `utils/theme.py` centraliza todos os tokens de cor (ver **Cores / Design System**).
 - `utils/data_format_utils.py` centraliza formatação de exibição (moeda, datas).
 - `utils/i18n.py` centraliza todo o texto de interface (ver seção **i18n**).
 
@@ -92,8 +94,8 @@ my-finance/
   Texto com `{` literal e sem interpolação usa `t_raw()`.
 - **Chave ausente levanta `KeyError`** (sem fallback silencioso). Chaves montadas
   dinamicamente são **proibidas** — exceto `f"domain.category_type.{tipo}"` (domínio fechado).
-- **Não são texto e ficam no código:** `page_icon` (emoji), blocos `<style>`/CSS, sintaxe de
-  cor do Streamlit (`:green[...]`), e as **constantes de domínio** persistidas
+- **Não são texto e ficam no código:** `page_icon` (emoji), blocos `<style>`/CSS, e as
+  **constantes de domínio** persistidas
   (`entrada`/`saida`/`ambos`/`investimento` — são valores criptografados no banco, não copy).
 - `tests/unit/test_i18n_guard.py` é o contrato: falha se um literal de texto aparecer na UI,
   se uma chave de `t()` não existir no JSON, ou se o JSON tiver chave órfã. Rode-o antes de commitar UI.
@@ -109,6 +111,19 @@ my-finance/
 - Não contêm lógica de negócio complexa - delegam para repositories e components.
 - Navegação entre páginas via `st.switch_page("pages/nome.py")`.
 - `app.py` é o ponto de entrada do Streamlit e apenas redireciona para `pages/dashboard.py`.
+
+### Cores / Design System
+- **Nenhum literal de cor fora de `utils/theme.py`** — nem hex, nem `rgba()`, nem nome CSS de
+  cor, nem a sintaxe `:cor[...]` do Streamlit. Vale para `pages/`, `components/`, `utils/` e
+  `utils/locales/pt_BR.json`.
+- A âncora da identidade é `GREEN_MAIN` (`#4CAF50`), a cor do botão "Novo Registro". Toda cor de
+  marca é derivação dela.
+- Cor de categoria em gráfico vem de `expense_palette(n)`, nunca escolhida a dedo.
+- Valor monetário colorido usa `t("components.value_colored", color=<token>, value=...)` com
+  `unsafe_allow_html=True` — `:cor[...]` do Streamlit só aceita cores nomeadas, nenhuma da marca.
+- `tests/unit/test_color_guard.py` é o contrato: falha se um literal de cor aparecer fora do
+  módulo de tokens, ou se a paleta sair do arco de matiz / contraste / ΔE documentados.
+- Referência completa: `.specs/codebase/DESIGN-SYSTEM.md`.
 
 ### Criptografia
 - Campos sensíveis (username, nome de categoria, data, valor, descrição) são criptografados com Fernet antes de persistir.

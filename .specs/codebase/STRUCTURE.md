@@ -37,6 +37,7 @@ my-finance/
 │   └── categories.py  profile.py  admin.py
 └── utils/                      # Pure-ish helpers
     ├── crypto.py  password_utils.py  data_format_utils.py
+    ├── theme.py                 # color tokens; single source of the visual identity
     ├── category_types.py  filters.py
     ├── i18n.py                 # t() loader; text lives in locales/pt_BR.json
     ├── locales/pt_BR.json      # single source of all UI text (pt-BR)
