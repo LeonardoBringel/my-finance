@@ -110,6 +110,33 @@ O hover do botão primário passou de `#43A047` (Material Green 600, órfão) pa
 
 ---
 
+## O espelho em `.streamlit/config.toml`
+
+O Streamlit resolve as cores do **próprio chrome** (o delta do `st.metric`, o foco de widget, o
+`primaryColor`) a partir de `config.toml` — não de Python. Esse é o **único** lugar onde um
+token é duplicado:
+
+```toml
+[theme]
+base = "dark"
+primaryColor = "#4CAF50"   # GREEN_MAIN
+greenColor   = "#4CAF50"   # GREEN_MAIN
+redColor     = "#EF5350"   # RED_MAIN
+```
+
+`test_color_guard.py` verifica que esses valores continuam iguais aos tokens. Ao mudar um token,
+mude os dois lugares.
+
+`base = "dark"` é obrigatório e não é preferência estética: sem ele o tema segue o
+`prefers-color-scheme` do browser, e no modo claro o texto dos gráficos (`TEXT_COLOR`, `#FAFAFA`)
+fica branco sobre branco. É também o que garante que o fundo seja de fato `#0E1117` — a base de
+todo contraste medido neste documento.
+
+O Streamlit **clareia** `redColor`/`greenColor` para desenhar o delta do `st.metric`, então o
+pixel final ali é um tom derivado, não o token literal. É esperado.
+
+---
+
 ## Regras de uso
 
 **Categoria de despesa em gráfico** → `expense_palette(n)`, nunca escolher a dedo.
