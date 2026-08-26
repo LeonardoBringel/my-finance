@@ -24,12 +24,14 @@ from utils.theme import (
     GREEN_DARK,
     GREEN_LIGHT,
     GREEN_MAIN,
+    RED_MAIN,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
 THEME_MODULE = ROOT / "utils" / "theme.py"
 SCANNED_DIRS = [ROOT / "pages", ROOT / "components", ROOT / "utils"]
 LOCALE_FILE = ROOT / "utils" / "locales" / "pt_BR.json"
+STREAMLIT_CONFIG = ROOT / ".streamlit" / "config.toml"
 
 # ── Bloco 1: nenhum literal de cor fora de utils/theme.py ─────────────────────
 HEX_LITERAL = re.compile(
@@ -223,3 +225,25 @@ def test_muted_turn_preserves_hue():
         assert (
             abs(_hsl(base)[0] - _hsl(muted)[0]) <= 3.0
         ), f"{muted} desviou do matiz de {base}"
+
+
+# ── Espelho do tema nativo do Streamlit ───────────────────────────────────────
+# O Streamlit resolve as cores do próprio chrome (delta do st.metric, foco de
+# widget) a partir de config.toml, não de Python. Os 4 valores lá são o único
+# lugar onde um token é duplicado — este teste impede que divirjam.
+def _streamlit_theme() -> dict[str, str]:
+    import tomllib
+
+    return tomllib.loads(STREAMLIT_CONFIG.read_text()).get("theme", {})
+
+
+def test_streamlit_theme_mirrors_the_tokens():
+    theme = _streamlit_theme()
+    assert theme.get("primaryColor") == GREEN_MAIN
+    assert theme.get("greenColor") == GREEN_MAIN
+    assert theme.get("redColor") == RED_MAIN
+
+
+def test_streamlit_theme_is_pinned_to_dark():
+    """Sem `base` pinado o tema segue o browser, e no claro o texto de gráfico some."""
+    assert _streamlit_theme().get("base") == "dark"

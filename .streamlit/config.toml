@@ -15,3 +15,13 @@ runOnSave = false
 [runner]
 magicEnabled = false
 fastReruns = true
+
+[theme]
+# Espelho dos tokens de utils/theme.py — o Streamlit lê cor de config, não de Python.
+# Estes 4 valores são verificados contra os tokens por tests/unit/test_color_guard.py.
+# `base` fica pinado: sem ele o tema segue o prefers-color-scheme do browser, e no claro
+# o texto dos gráficos (#FAFAFA) fica invisível.
+base = "dark"
+primaryColor = "#4CAF50"
+greenColor = "#4CAF50"
+redColor = "#EF5350"
