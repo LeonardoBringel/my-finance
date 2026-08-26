@@ -5,3 +5,6 @@ __pycache__/
 .env
 .version
 .DS_Store
+
+.specs/features/
+.specs/project/
