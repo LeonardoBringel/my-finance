@@ -28,6 +28,7 @@ from utils.data_format_utils import (
     parse_value_text,
 )
 from utils.i18n import t
+from utils.theme import GREEN_MAIN, RED_MAIN
 
 
 def _mask_value_field(key: str) -> None:
@@ -602,14 +603,28 @@ else:
     total_in_cols[1].markdown(t("pages.cash_flow.total_income"))
     for i, m_num in enumerate(sorted_months):
         total_in, _ = month_totals[m_num]
-        total_in_cols[i + 2].markdown(f":green[{format_currency(total_in)}]")
+        total_in_cols[i + 2].markdown(
+            t(
+                "components.value_colored",
+                color=GREEN_MAIN,
+                value=format_currency(total_in),
+            ),
+            unsafe_allow_html=True,
+        )
 
     total_out_cols = st.columns(col_widths)
     total_out_cols[0].markdown("")
     total_out_cols[1].markdown(t("pages.cash_flow.total_expenses"))
     for i, m_num in enumerate(sorted_months):
         _, total_out = month_totals[m_num]
-        total_out_cols[i + 2].markdown(f":red[{format_currency(total_out)}]")
+        total_out_cols[i + 2].markdown(
+            t(
+                "components.value_colored",
+                color=RED_MAIN,
+                value=format_currency(total_out),
+            ),
+            unsafe_allow_html=True,
+        )
 
     saldo_cols = st.columns(col_widths)
     saldo_cols[0].markdown("")
