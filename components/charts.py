@@ -5,16 +5,18 @@ import plotly.graph_objects as go
 
 from utils.data_format_utils import format_currency
 from utils.i18n import t
-from utils.theme import EXPENSE_PALETTE, expense_palette
-
-# ── Color palette ──────────────────────────────────────────────────────────────
-GREEN_MAIN = "#4CAF50"
-GREEN_LIGHT = "#81C784"
-GREEN_DARK = "#388E3C"
-RED_MAIN = "#EF5350"
-BG_COLOR = "rgba(0,0,0,0)"
-TEXT_COLOR = "#FAFAFA"
-GRID_COLOR = "rgba(255,255,255,0.08)"
+from utils.theme import (
+    CHART_BG,
+    CHART_GRID,
+    CHART_TRANSPARENT,
+    EXPENSE_PALETTE,
+    GREEN_DARK,
+    GREEN_LIGHT,
+    GREEN_MAIN,
+    RED_MAIN,
+    TEXT_COLOR,
+    expense_palette,
+)
 
 # Largura de cada barra do gráfico anual, em unidades do eixo X numérico.
 # Dois grupos (entrada/saída) por mês → cada um ocupa metade do slot útil.
@@ -31,8 +33,8 @@ BAR_CORNER_RADIUS = 3
 def _base_layout(title="", showlegend=False):
     return dict(
         title=dict(text=title, font=dict(color=TEXT_COLOR, size=14)),
-        paper_bgcolor=BG_COLOR,
-        plot_bgcolor=BG_COLOR,
+        paper_bgcolor=CHART_BG,
+        plot_bgcolor=CHART_BG,
         font=dict(color=TEXT_COLOR),
         margin=dict(l=10, r=10, t=40, b=10),
         showlegend=showlegend,
@@ -125,11 +127,11 @@ def bar_chart_expenses(categories, values, title: str | None = None):
         xaxis=dict(
             showgrid=False,
             tickfont=dict(color=TEXT_COLOR),
-            linecolor=GRID_COLOR,
+            linecolor=CHART_GRID,
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor=GRID_COLOR,
+            gridcolor=CHART_GRID,
             tickprefix="R$",
             tickfont=dict(color=TEXT_COLOR),
         ),
@@ -216,7 +218,7 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
             offsetgroup="in",
             offset=-_BAR_WIDTH,
             width=_BAR_WIDTH,
-            marker=dict(color="rgba(0,0,0,0)"),
+            marker=dict(color=CHART_TRANSPARENT),
             showlegend=False,
             customdata=hover_data,
             hovertemplate=t("charts.hover.income_invested"),
@@ -278,7 +280,7 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
                 f"L {x1 - rx},{y1} Q {x1},{y1} {x1},{y1 - ry} L {x1},{y0}"
             ),
             line=dict(color=GREEN_LIGHT, width=1.5, dash="dash"),
-            fillcolor="rgba(0,0,0,0)",
+            fillcolor=CHART_TRANSPARENT,
             xref="x",
             yref="y",
             layer="above",
@@ -296,7 +298,7 @@ def annual_evolution_chart(data: list[dict], title: str | None = None):
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor=GRID_COLOR,
+            gridcolor=CHART_GRID,
             tickprefix="R$",
             tickfont=dict(color=TEXT_COLOR),
         ),
@@ -407,7 +409,7 @@ def expenses_by_day_chart(
         barmode="stack",
         legend=dict(
             font=dict(color=TEXT_COLOR),
-            bgcolor=BG_COLOR,
+            bgcolor=CHART_BG,
             orientation="h",
             y=-0.15,
         ),
@@ -423,7 +425,7 @@ def expenses_by_day_chart(
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor=GRID_COLOR,
+            gridcolor=CHART_GRID,
             tickprefix="R$",
             tickfont=dict(color=TEXT_COLOR),
         ),
@@ -506,7 +508,7 @@ def category_history_chart(history: dict, title: str | None = None):
         ),
         yaxis=dict(
             showgrid=True,
-            gridcolor=GRID_COLOR,
+            gridcolor=CHART_GRID,
             tickprefix="R$",
             tickfont=dict(color=TEXT_COLOR),
         ),
