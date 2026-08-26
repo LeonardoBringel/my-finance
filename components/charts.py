@@ -2,10 +2,10 @@ import calendar
 
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.colors import sample_colorscale
 
 from utils.data_format_utils import format_currency
 from utils.i18n import t
+from utils.theme import EXPENSE_PALETTE, expense_palette
 
 # ── Color palette ──────────────────────────────────────────────────────────────
 GREEN_MAIN = "#4CAF50"
@@ -27,53 +27,6 @@ _BAR_WIDTH = 0.4
 # base rente ao eixo. Não aumentar sem reconferir a base no app rodando.
 BAR_CORNER_RADIUS = 3
 
-# Paleta de despesas: rampa verde/teal do tema, aparada a 10 tons que atendem o
-# critério de contraste WCAG — >= 2.5:1 contra o fundo (#0E1117) e >= 1.7:1 contra
-# o texto (#FAFAFA). Descarta tons que liam como cinza/branco (#A5D6A7, #C8E6C9,
-# #E8F5E9) e tons que somem no fundo escuro (#1B5E20, #004D40). Ordenada do mais
-# escuro ao mais claro para que expense_palette() interpole de forma monotônica.
-EXPENSE_COLORS = [
-    "#00695C",
-    "#2E7D32",
-    "#00897B",
-    "#388E3C",
-    "#43A047",
-    "#26A69A",
-    "#4CAF50",
-    "#66BB6A",
-    "#81C784",
-    "#80CBC4",
-]
-
-
-def _interleaved_order(n: int) -> list[int]:
-    """Índices 0..n-1 intercalados (ímpares, depois pares).
-
-    Maximiza a distância entre posições consecutivas: dentro de cada grupo de
-    paridade o passo é sempre 2, e a transição entre os grupos nunca cai abaixo
-    disso para n >= 4. Evita que segmentos empilhados adjacentes recebam tons
-    vizinhos da rampa.
-    """
-    return list(range(1, n, 2)) + list(range(0, n, 2))
-
-
-def expense_palette(n: int) -> list[str]:
-    """Gera n cores distintas da rampa `EXPENSE_COLORS`, intercaladas por posição.
-
-    Args:
-        n: Quantidade de cores a gerar.
-
-    Returns:
-        Lista de n strings `rgb(r, g, b)`, sem repetição.
-    """
-    if n <= 0:
-        return []
-    if n == 1:
-        return sample_colorscale(EXPENSE_COLORS, [0.0], colortype="rgb")
-    points = [i / (n - 1) for i in range(n)]
-    ramp = sample_colorscale(EXPENSE_COLORS, points, colortype="rgb")
-    return [ramp[i] for i in _interleaved_order(n)]
-
 
 def _base_layout(title="", showlegend=False):
     return dict(
@@ -86,7 +39,7 @@ def _base_layout(title="", showlegend=False):
     )
 
 
-def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
+def donut_chart(labels, values, title, colors=EXPENSE_PALETTE):
     if not values or sum(values) == 0:
         fig = go.Figure()
         fig.add_annotation(
@@ -104,7 +57,7 @@ def donut_chart(labels, values, title, colors=EXPENSE_COLORS):
             labels=labels,
             values=values,
             hole=0.6,
-            marker=dict(colors=colors or EXPENSE_COLORS),
+            marker=dict(colors=colors or EXPENSE_PALETTE),
             textinfo="percent",
             hovertemplate=t("charts.hover.donut"),
         )
