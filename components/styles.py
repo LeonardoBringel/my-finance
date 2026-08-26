@@ -1,7 +1,8 @@
 import streamlit as st
 
 from utils.i18n import t
-from utils.theme import GREEN_DARK, GREEN_MAIN, WHITE
+from utils.theme import GREEN_DARK, GREEN_MAIN, TEXT_FAINT, WHITE
+from utils.version import get_app_version
 
 
 def inject_global_css() -> None:
@@ -73,3 +74,12 @@ def init_onboarding(state_key: str, condition: bool) -> None:
         if condition:
             st.session_state[f"{state_key}_show_onboarding"] = True
         st.session_state[done_key] = True
+
+
+def render_app_version() -> None:
+    """Renderiza a versão da aplicação como rodapé discreto e centralizado."""
+    st.markdown(
+        f"<p style='text-align: center; color: {TEXT_FAINT}; "
+        f"font-size: 0.9rem;'>{get_app_version()}</p>",
+        unsafe_allow_html=True,
+    )

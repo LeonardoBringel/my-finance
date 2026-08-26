@@ -14,7 +14,11 @@ from components.charts import (
     expenses_by_day_chart,
 )
 from components.new_transaction import new_transaction_dialog
-from components.styles import init_onboarding, inject_global_css
+from components.styles import (
+    init_onboarding,
+    inject_global_css,
+    render_app_version,
+)
 from repositories import (
     CategoriesRepository,
     TransactionsRepository,
@@ -122,6 +126,8 @@ with st.sidebar:
         logout()
         # Sem st.switch_page() — o CookieController aciona o rerun naturalmente após
         # remover o cookie; require_login() redireciona para login nesse rerun.
+
+    render_app_version()
 
 
 # ── Onboarding ─────────────────────────────────────────────────────────────────

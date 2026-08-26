@@ -5,10 +5,9 @@ import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from components.styles import inject_global_css
+from components.styles import inject_global_css, render_app_version
 from utils.auth import login
 from utils.i18n import t
-from utils.theme import TEXT_FAINT
 
 inject_global_css()
 
@@ -17,16 +16,6 @@ st.set_page_config(
     page_icon="🔐",
     layout="centered",
 )
-
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-version_file = os.path.join(root_dir, ".version")
-app_version = (
-    open(version_file).read().strip()
-    if os.path.exists(version_file)
-    else "latest"
-)
-if "-" in app_version:
-    app_version = app_version.split("-")[0]
 
 st.markdown(
     """
@@ -89,8 +78,4 @@ if logging_in:
     # gravar o cookie no browser; o check de current_user no topo da página
     # redireciona para o dashboard nesse rerun.
 
-st.markdown(
-    f"<p style='text-align: center; color: {TEXT_FAINT}; "
-    f"font-size: 0.9rem;'>{app_version}</p>",
-    unsafe_allow_html=True,
-)
+render_app_version()
