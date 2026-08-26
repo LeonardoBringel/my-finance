@@ -70,6 +70,7 @@
     }
   },
   "components": {
+    "value_colored": "<span style='color:{color}'>{value}</span>",
     "styles": {
       "back_to_dashboard": "🏠 Dashboard"
     },

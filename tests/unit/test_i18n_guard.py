@@ -54,7 +54,6 @@ MAGIC = {
     "%d/%m/%Y",
     "green",
     "red",
-    "blue",
 }
 
 # Argumento posicional de texto destes widgets/funções.

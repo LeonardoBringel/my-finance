@@ -32,6 +32,7 @@ from utils.category_types import (
 )
 from utils.filters import ALL_FILTER
 from utils.i18n import t
+from utils.theme import GREEN_DARK, GREEN_MAIN, RED_MAIN
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
@@ -258,11 +259,18 @@ def render_txn_table(txns: list[dict]) -> None:
         cols[3].markdown(txn["description"] or "—")
 
         val_color = (
-            "green"
+            GREEN_MAIN
             if is_income(tipo)
-            else "blue" if is_investment(tipo) else "red"
+            else GREEN_DARK if is_investment(tipo) else RED_MAIN
         )
-        cols[4].markdown(f":{val_color}[{format_currency(txn['value'])}]")
+        cols[4].markdown(
+            t(
+                "components.value_colored",
+                color=val_color,
+                value=format_currency(txn["value"]),
+            ),
+            unsafe_allow_html=True,
+        )
         cols[5].markdown(
             f"{txn['installment_number']}/{txn['installment_total']}"
             if txn.get("installment_total")
