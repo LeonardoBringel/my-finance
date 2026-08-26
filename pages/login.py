@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from components.styles import inject_global_css
 from utils.auth import login
 from utils.i18n import t
+from utils.theme import TEXT_FAINT
 
 inject_global_css()
 
@@ -89,6 +90,7 @@ if logging_in:
     # redireciona para o dashboard nesse rerun.
 
 st.markdown(
-    f"<p style='text-align: center; color: rgba(255,255,255,0.15); font-size: 0.9rem;'>{app_version}</p>",
+    f"<p style='text-align: center; color: {TEXT_FAINT}; "
+    f"font-size: 0.9rem;'>{app_version}</p>",
     unsafe_allow_html=True,
 )

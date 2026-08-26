@@ -1,22 +1,23 @@
 import streamlit as st
 
 from utils.i18n import t
+from utils.theme import GREEN_DARK, GREEN_MAIN, WHITE
 
 
 def inject_global_css() -> None:
     """Injeta o CSS global da aplicação com o tema de botões primários em verde."""
     st.markdown(
-        """
+        f"""
     <style>
-        [data-testid="stBaseButton-primary"] {
-            background-color: #4CAF50 !important;
-            border-color: #4CAF50 !important;
-            color: white !important;
-        }
-        [data-testid="stBaseButton-primary"]:hover {
-            background-color: #43A047 !important;
-            border-color: #43A047 !important;
-        }
+        [data-testid="stBaseButton-primary"] {{
+            background-color: {GREEN_MAIN} !important;
+            border-color: {GREEN_MAIN} !important;
+            color: {WHITE} !important;
+        }}
+        [data-testid="stBaseButton-primary"]:hover {{
+            background-color: {GREEN_DARK} !important;
+            border-color: {GREEN_DARK} !important;
+        }}
     </style>
     """,
         unsafe_allow_html=True,

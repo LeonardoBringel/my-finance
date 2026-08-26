@@ -32,7 +32,7 @@ from utils.category_types import (
 )
 from utils.filters import ALL_FILTER
 from utils.i18n import t
-from utils.theme import GREEN_DARK, GREEN_MAIN, RED_MAIN
+from utils.theme import GREEN_DARK, GREEN_MAIN, RED_MAIN, WHITE, rgba
 
 inject_global_css()
 from utils.data_format_utils import format_currency, format_date
@@ -45,14 +45,14 @@ st.set_page_config(
 
 inject_subpage_css()
 st.markdown(
-    """
+    f"""
 <style>
-    [data-testid="metric-container"] {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(76,175,80,0.2);
+    [data-testid="metric-container"] {{
+        background: {rgba(WHITE, 0.04)};
+        border: 1px solid {rgba(GREEN_MAIN, 0.2)};
         border-radius: 12px;
         padding: 12px 16px;
-    }
+    }}
 </style>
 """,
     unsafe_allow_html=True,

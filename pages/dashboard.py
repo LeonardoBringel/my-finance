@@ -23,7 +23,7 @@ from utils.auth import logout, require_login
 from utils.category_types import is_investment
 from utils.data_format_utils import MONTH_NAMES, format_currency
 from utils.i18n import t
-from utils.theme import GREEN_MAIN, RED_MAIN, TEXT_MUTED
+from utils.theme import GREEN_MAIN, RED_MAIN, TEXT_MUTED, WHITE, rgba
 
 # Rótulo da barra que agrega todas as categorias de investimento do mês.
 INVESTMENT_BAR_LABEL = t("pages.dashboard.investment_bar_label")
@@ -42,25 +42,25 @@ user_id = current_user["id"]
 
 inject_global_css()
 st.markdown(
-    """
+    f"""
 <style>
-    [data-testid="metric-container"] {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(76,175,80,0.2);
+    [data-testid="metric-container"] {{
+        background: {rgba(WHITE, 0.04)};
+        border: 1px solid {rgba(GREEN_MAIN, 0.2)};
         border-radius: 12px;
         padding: 16px 20px;
-    }
-    [data-testid="stMetricValue"] { font-size: 1.6rem !important; }
-    .stButton > button {
+    }}
+    [data-testid="stMetricValue"] {{ font-size: 1.6rem !important; }}
+    .stButton > button {{
         width: 100%;
         border-radius: 8px;
-        border: 1px solid rgba(76,175,80,0.4);
+        border: 1px solid {rgba(GREEN_MAIN, 0.4)};
         transition: all 0.2s;
-    }
-    .stButton > button:hover { border-color: #4CAF50; color: #4CAF50; }
-    #MainMenu, footer { visibility: hidden; }
-    [data-testid="stHeader"] { background: transparent; }
-    .block-container { padding-top: 1.5rem; }
+    }}
+    .stButton > button:hover {{ border-color: {GREEN_MAIN}; color: {GREEN_MAIN}; }}
+    #MainMenu, footer {{ visibility: hidden; }}
+    [data-testid="stHeader"] {{ background: transparent; }}
+    .block-container {{ padding-top: 1.5rem; }}
 </style>
 """,
     unsafe_allow_html=True,
