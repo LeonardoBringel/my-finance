@@ -23,6 +23,7 @@ from utils.auth import logout, require_login
 from utils.category_types import is_investment
 from utils.data_format_utils import MONTH_NAMES, format_currency
 from utils.i18n import t
+from utils.theme import GREEN_MAIN, RED_MAIN, TEXT_MUTED
 
 # Rótulo da barra que agrega todas as categorias de investimento do mês.
 INVESTMENT_BAR_LABEL = t("pages.dashboard.investment_bar_label")
@@ -355,17 +356,17 @@ def render_cat_donuts(names: list[str]) -> None:
                         "pages.dashboard.delta_vs_previous", pct=delta_pct
                     )
                     grew = delta_pct > 0
-                    delta_color = "green" if grew == investing else "red"
+                    delta_color = GREEN_MAIN if grew == investing else RED_MAIN
                 elif total > 0:
                     delta_str = t("pages.dashboard.delta_new_this_month")
-                    delta_color = "green"
+                    delta_color = GREEN_MAIN
                 else:
                     delta_str = (
                         t("pages.dashboard.delta_no_investments")
                         if investing
                         else t("pages.dashboard.delta_no_expenses")
                     )
-                    delta_color = "gray"
+                    delta_color = TEXT_MUTED
 
                 st.markdown(
                     t(
