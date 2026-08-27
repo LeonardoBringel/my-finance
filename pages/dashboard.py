@@ -8,6 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from components.category_history import (
     category_history_dialog,
+    clear_category_history_states,
 )
 from components.charts import (
     annual_evolution_chart,
@@ -15,7 +16,10 @@ from components.charts import (
     donut_chart,
     expenses_by_day_chart,
 )
-from components.new_transaction import new_transaction_dialog
+from components.new_transaction import (
+    clear_transaction_dialog_states,
+    new_transaction_dialog,
+)
 from components.styles import (
     init_onboarding,
     inject_global_css,
@@ -42,6 +46,10 @@ st.set_page_config(
 )
 
 require_login()
+# Limpa os gatilhos de dialog na entrada da página: fechar pelo X nativo não
+# remove a chave, e sem isto o dialog reabre sozinho no próximo rerun.
+clear_category_history_states()
+clear_transaction_dialog_states()
 
 current_user = st.session_state["current_user"]
 user_id = current_user["id"]
