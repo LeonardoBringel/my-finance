@@ -81,8 +81,8 @@ else:
             t("pages.admin.col_created"),
             t("pages.admin.col_transactions"),
             t("pages.admin.col_last_transaction"),
-            "🔑",
-            "🗑️",
+            t("pages.admin.col_password"),
+            t("pages.admin.col_delete"),
         ],
     ):
         h.markdown(f"**{label}**")

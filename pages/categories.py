@@ -127,8 +127,8 @@ else:
             t("pages.categories.col_name"),
             t("pages.categories.col_type"),
             t("pages.categories.col_transactions"),
-            "✏️",
-            "🗑️",
+            t("pages.categories.col_rename"),
+            t("pages.categories.col_delete"),
         ],
     ):
         h.markdown(f"**{label}**")

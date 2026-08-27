@@ -341,8 +341,8 @@ def edit_month_dialog(month_data: dict):
                 t("pages.cash_flow.col_day"),
                 t("pages.cash_flow.col_value"),
                 t("pages.cash_flow.col_type"),
-                "✏️",
-                "🗑️",
+                t("pages.cash_flow.col_edit"),
+                t("pages.cash_flow.col_delete"),
             ],
         ):
             h.markdown(f"**{label}**")

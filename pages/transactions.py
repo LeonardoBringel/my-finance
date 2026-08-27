@@ -243,8 +243,8 @@ def render_txn_table(txns: list[dict]) -> None:
             t("pages.transactions.col_description"),
             t("pages.transactions.col_value"),
             t("pages.transactions.col_installment"),
-            "✏️",
-            "🗑️",
+            t("pages.transactions.col_edit"),
+            t("pages.transactions.col_delete"),
         ],
     ):
         h.markdown(f"**{label}**")
