@@ -118,11 +118,12 @@ my-finance/
   `utils/locales/pt_BR.json`.
 - A âncora da identidade é `GREEN_MAIN` (`#4CAF50`), a cor do botão "Novo Registro". Toda cor de
   marca é derivação dela.
-- Cor de categoria em gráfico vem de `expense_palette(n)`, nunca escolhida a dedo.
+- A paleta categórica é **monocromática**: um único verde em 9 degraus de luminosidade.
+  Cor de categoria vem de `expense_palette(n)`, nunca escolhida a dedo.
 - Valor monetário colorido usa `t("components.value_colored", color=<token>, value=...)` com
   `unsafe_allow_html=True` — `:cor[...]` do Streamlit só aceita cores nomeadas, nenhuma da marca.
 - `tests/unit/test_color_guard.py` é o contrato: falha se um literal de cor aparecer fora do
-  módulo de tokens, ou se a paleta sair do arco de matiz / contraste / ΔE documentados.
+  módulo de tokens, ou se a rampa deixar de ser monocromática / uniforme em L* / legível.
 - Referência completa: `.specs/codebase/DESIGN-SYSTEM.md`.
 
 ### Criptografia

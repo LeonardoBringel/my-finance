@@ -29,7 +29,7 @@
 
 - **Nenhum literal de cor fora de `utils/theme.py`** — nem hex, nem `rgba()`, nem nome CSS de cor, nem a sintaxe `:cor[...]` do Streamlit. Vale para `pages/`, `components/`, `utils/` e `utils/locales/pt_BR.json`.
 - Âncora da identidade: **`#4CAF50`** (fundo do botão "Novo Registro"). Toda cor de marca é derivação dela.
-- Paleta categórica: 9 cores discretas (3 famílias de matiz × 3 tons) no arco 92°–152°, em ordem de ciclo fixa. Obtida via `expense_palette(n)` — nunca escolhida a dedo.
+- Paleta categórica **monocromática**: um único verde (matiz 122°, saturação 39%) em 9 degraus de luminosidade uniformes em `L*`, consumidos em ordem intercalada. Obtida via `expense_palette(n)` — nunca escolhida a dedo.
 - Valor monetário colorido usa `t("components.value_colored", color=<token>, value=...)`; `:cor[...]` do Streamlit não serve (só aceita cores nomeadas, nenhuma delas é da marca).
 - Enforced by `tests/unit/test_color_guard.py` (literais de cor + propriedades medidas da paleta).
 - **Referência completa: [`DESIGN-SYSTEM.md`](DESIGN-SYSTEM.md)** — paleta, tokens, contraste, e como adicionar uma cor.

@@ -32,57 +32,63 @@ o guard test trava esse valor de propósito, para que a mudança seja consciente
 
 ## A paleta categórica
 
-Estrutura **3 famílias de matiz × 3 tons**. A separação entre categorias vem de **luminosidade +
-um deslocamento curto de matiz** — nunca de trocar de família de cor.
+**Monocromática.** Um único verde — o da âncora, matiz 122° e saturação 39% — em 9 degraus de
+luminosidade. Não há segunda família de cor.
 
-| | 300 · claro | 500 · médio | 700 · escuro |
-| --- | --- | --- | --- |
-| **Lima** (92°) | `#A1C680` | `#7AAF4B` | `#547D31` |
-| **Marca** (122°) | `#80C683` | `#4CAF50` ★ | `#317D33` |
-| **Menta** (152°) | `#80C6A6` | `#4BAF80` | `#317D59` |
+| Degrau | Hex | Contraste | Papel |
+| ------ | --- | --------- | ----- |
+| 900 | `#377E39` | 3,78 | |
+| 800 | `#3C893F` | 4,36 | |
+| 700 | `#419745` | 5,16 | `GREEN_DARK` |
+| 600 | `#47A24A` | 5,88 | |
+| **500** | **`#4CAF50`** ★ | **6,80** | **`GREEN_MAIN`** — a âncora |
+| 400 | `#5FB963` | 7,74 | |
+| 300 | `#76C379` | 8,87 | `GREEN_LIGHT` |
+| 200 | `#8BCD8E` | 10,10 | |
+| 100 | `#A2D6A4` | 11,42 | |
 
-★ = a âncora.
+Os degraus são espaçados de forma **perceptualmente uniforme**, em `L*` de Lab (4,25 unidades
+por passo, ±0,5 de quantização) e não em `L` de HSL. Espaçar em HSL agruparia os tons claros e
+espalharia os escuros — os passos iriam de 2,9 a 6,4.
 
 **Invariantes** (todos afirmados por `test_color_guard.py`):
 
 | Invariante | Valor |
 | ---------- | ----- |
-| Arco de matiz | 92°–152° — o arco mais largo que ainda lê como a mesma família de verde |
-| Saturação | 38%–44% — ancorada nos 39% do botão |
-| Contraste vs. fundo `#0E1117` | 3,70:1 – 9,81:1 |
-| ΔE mínimo entre quaisquer duas | 11,8 |
-| ΔE entre vizinhos do ciclo | ≥ 19,9 |
+| Arco de matiz | 1,1° — quantização apenas; o alvo é 0° |
+| Saturação | 39% ± 1,5 ponto |
+| Contraste vs. fundo `#0E1117` | 3,78:1 – 11,42:1 |
+| ΔE mínimo entre quaisquer duas | 4,9 |
+| ΔE entre vizinhos do ciclo | 8,7 |
 
-### Ordem do ciclo — não reordene
+### A ordem do ciclo — não reordene
+
+`EXPENSE_PALETTE` **não** percorre a rampa em sequência. Ela intercala pares e ímpares:
 
 ```
-1. Marca 500    #4CAF50
-2. Menta 300    #80C6A6
-3. Lima  700    #547D31
-4. Menta 500    #4BAF80
-5. Lima  300    #A1C680
-6. Marca 700    #317D33
-7. Lima  500    #7AAF4B
-8. Marca 300    #80C683
-9. Menta 700    #317D59
+900 → 700 → 500 → 300 → 100 → 800 → 600 → 400 → 200
 ```
 
-A ordem alterna **família e tom a cada passo**. Isso é o que garante que dois segmentos vizinhos
-de um donut — ou duas fatias adjacentes de uma barra empilhada — nunca caiam na mesma família
-nem no mesmo nível de luz. **Reordenar a lista quebra essa propriedade** mesmo mantendo as
-mesmas 9 cores.
+Cada cor salta **dois degraus** em relação à anterior. É isso, e só isso, que torna o
+monocromático legível num donut: percorrendo a rampa em ordem, fatias vizinhas ficariam a ΔE
+4,9; intercaladas, ficam a 8,7 — com exatamente as mesmas 9 cores. Reordenar a lista quebra a
+propriedade sem mudar nenhum hex, e o guard test pega.
 
 ### Acima de 9 categorias
 
-Da 10ª à 18ª, `expense_palette()` usa `EXPENSE_PALETTE_MUTED`: as mesmas 9 cores dessaturadas
-(`S × 0.55`, `L` puxada 35% em direção a 46%). Acima de 18 o ciclo reinicia com repetição — a
-legenda desambigua.
+O ciclo reinicia com repetição; a legenda desambigua.
 
-**Por que dessaturação e não opacidade.** Alpha mescla a cor em direção ao fundo escuro. Medido
-contra `#0E1117`, uma segunda volta com `opacity=0.78` derruba os três tons `700` para ~2,7:1 de
-contraste — eles somem — e o ΔE mínimo global cai de 11,8 para 5,8. A dessaturação preserva o
-matiz, entrega a mesma leitura de "esmaecido" e **nenhuma cor da 2ª volta fica pior que a pior
-cor da 1ª**.
+**Não existe segunda volta esmaecida.** Dessaturar um verde único produz cinza, não "verde
+esmaecido" — a marca se perde. Uma versão anterior desta paleta cobria 18 categorias porque
+tinha 3 famílias de matiz para dessaturar; o monocromático abre mão disso.
+
+### O custo, explicitamente
+
+ΔE mínimo global de **4,9** é baixo. Fatias em pontos opostos de um donut são genuinamente
+difíceis de parear com a legenda. É o preço direto de tirar a matiz da equação: sobra só
+luminosidade para separar 9 categorias, e a faixa utilizável é limitada pelo contraste nas duas
+pontas. Escolha consciente, por coesão visual — a paleta anterior tinha ΔE mínimo 11,8 num arco
+de 60°, e lia como três cores diferentes em vez de um verde.
 
 ---
 
@@ -90,10 +96,10 @@ cor da 1ª**.
 
 | Token | Hex | Vem de | Usar em |
 | ----- | --- | ------ | ------- |
-| `GREEN_LIGHT` | `#80C683` | Marca 300 | Barra de entradas do gráfico anual |
-| `GREEN_MAIN` | `#4CAF50` | Marca 500 ★ | Botão primário, barras de despesa, histórico, valores de entrada |
-| `GREEN_DARK` | `#317D33` | Marca 700 | Linha de saldo acumulado, hover do botão, valores de investimento |
-| `RED_MAIN` | `#EF5350` | — | Saídas. **Único token fora do arco verde**, e de propósito: vermelho ali é semântica, não identidade |
+| `GREEN_LIGHT` | `#76C379` | Degrau 300 | Barra de entradas do gráfico anual |
+| `GREEN_MAIN` | `#4CAF50` | Degrau 500 ★ | Botão primário, barras de despesa, histórico, valores de entrada |
+| `GREEN_DARK` | `#419745` | Degrau 700 | Linha de saldo acumulado, hover do botão, valores de investimento |
+| `RED_MAIN` | `#EF5350` | — | Saídas. **Único token fora do verde**, e de propósito: vermelho ali é semântica, não identidade |
 | `TEXT_COLOR` | `#FAFAFA` | — | Texto de gráfico |
 | `TEXT_MUTED` | `#8A9A8C` | — | Delta neutro nos cards ("sem despesas") |
 | `TEXT_FAINT` | `rgba(255,255,255,.15)` | `WHITE` @ 15% | Rodapé de versão no login |
@@ -102,11 +108,12 @@ cor da 1ª**.
 | `CHART_BG` / `CHART_TRANSPARENT` | `rgba(0,0,0,0)` | — | Fundo de figura; traces e shapes invisíveis |
 | `CHART_GRID` | `rgba(255,255,255,.08)` | `WHITE` @ 8% | Grade e linha de eixo |
 
-Os três verdes semânticos **são** a coluna Marca — apelidos, não hexes independentes. Isso
+Os três verdes semânticos **são** degraus da rampa — apelidos, não hexes independentes. Isso
 existe para que não haja dois "verdes escuros" ligeiramente diferentes no sistema.
 
-O hover do botão primário passou de `#43A047` (Material Green 600, órfão) para `GREEN_DARK`.
-É um escurecimento um pouco mais forte que o anterior, e agora vem da rampa.
+`GREEN_DARK` é o degrau **700** e não o 800 por um motivo específico: ele também pinta *texto*
+(o valor de investimento em Lançamentos). O 700 dá 5,16:1, que atende WCAG AA; o 800 daria
+4,36:1, que não atende.
 
 ---
 
@@ -161,15 +168,11 @@ Todo valor deste documento foi medido contra `#0E1117`, o fundo do tema escuro d
 
 | Uso | Mínimo | Nota |
 | --- | ------ | ---- |
-| Preenchimento de gráfico (não-texto) | 3,0:1 | Toda a paleta passa (mín. 3,70) |
-| Texto normal | 4,5:1 (WCAG AA) | ⚠️ ver abaixo |
+| Preenchimento de gráfico (não-texto) | 3,0:1 | Toda a rampa passa (mín. 3,78) |
+| Texto normal | 4,5:1 (WCAG AA) | atendido por `GREEN_DARK`, o único degrau usado como texto |
 
-⚠️ **`GREEN_DARK` (3,70:1) não atinge AA como texto.** É adequado como preenchimento de barra
-ou linha, mas está abaixo do mínimo no uso de texto (valores de investimento em
-`pages/transactions.py`). Decisão explícita e consciente — ver `CONCERNS.md`. Alternativas já
-medidas, ambas dentro do arco da marca: Marca 600 `#3B973E` (5,11:1, mas só ΔE 9,1 de
-`GREEN_MAIN` — diferenciação fraca a 13px) e Menta 500 `#4BAF80` (6,97:1, ΔE 25,6). Trocar é
-alterar **uma constante** em `utils/theme.py`.
+Toda a rampa atende o mínimo de preenchimento (3,0:1). `GREEN_DARK` atende WCAG AA (5,16:1) —
+foi por isso que ele é o degrau 700 e não o 800. Os degraus 900 e 800 **não** servem para texto.
 
 ---
 
@@ -177,10 +180,12 @@ alterar **uma constante** em `utils/theme.py`.
 
 1. **Precisa mesmo?** 9 categóricas + 8 semânticas cobrem a aplicação hoje. Uma cor nova quase
    sempre significa que um token existente serve.
-2. Se for **categórica**: ela precisa cair no arco 92°–152°, com S 38–44%, contraste ≥ 3,7:1, e
-   ΔE ≥ 11,8 de todas as outras. Encaixe-a no ciclo mantendo a alternância família/tom.
-3. Se for **semântica**: derive-a da coluna Marca se puder. Se não puder (como `RED_MAIN`),
-   documente aqui **por que** ela sai do arco.
+2. Se for **categórica**: a rampa é monocromática e tem 9 degraus espaçados uniformemente em
+   `L*`. Adicionar um 10º comprime todos os outros e derruba o ΔE mínimo abaixo de 4,5 — o guard
+   test recusa. A resposta certa quase sempre é agrupar categorias, não adicionar cor.
+3. Se for **semântica**: derive-a de um degrau da rampa. Se não puder (como `RED_MAIN`),
+   documente aqui **por que** ela sai do verde. Se for para pintar *texto*, o degrau precisa de
+   contraste ≥ 4,5:1 — o que exclui os degraus 900 e 800.
 4. Adicione o token em `utils/theme.py`, atualize esta tabela e rode
    `uv run pytest tests/unit/test_color_guard.py`.
 
@@ -192,3 +197,4 @@ alterar **uma constante** em `utils/theme.py`.
 | ------ | ----- |
 | `df92100` (2026-08-23) | Paleta aparada por contraste medido + interpolação por contagem de categorias (AD-023). Corrigiu legibilidade, **quebrou a identidade**: a rampa cruzava verde 122° e teal 174°, e a interpolação gerava tons intermediários que não pertenciam a nenhuma das duas famílias |
 | `brand-color-palette` (2026-08-25) | Substitui a rampa interpolada por paleta discreta 3×3 derivada da âncora; centraliza todos os tokens em `utils/theme.py`; investimento deixa de ser azul. Substitui AD-023 |
+| `v0.23.0` (2026-08-26) | **Colapsa as 3 famílias de matiz numa só.** As 3×3 liam como três cores diferentes, não como um verde. Rampa monocromática de 9 degraus, ordem intercalada. Custo: ΔE mínimo 11,8 → 4,9; cobertura 18 → 9 categorias. Ganho: `GREEN_DARK` passa a atender WCAG AA como texto (3,70:1 → 5,16:1) |

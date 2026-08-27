@@ -41,8 +41,8 @@ Cover the pure helpers in `utils/`: `crypto` (encrypt/decrypt round-trip, `hash_
 **Guard tests.** Dois contratos estáticos protegem invariantes que nenhum teste funcional pega:
 `test_i18n_guard.py` (nenhum literal de texto na UI; toda chave `t()` existe; sem chave órfã) e
 `test_color_guard.py` (nenhum literal de cor fora de `utils/theme.py`; a paleta permanece dentro
-do arco de matiz, contraste e ΔE documentados em `DESIGN-SYSTEM.md`). São a única cobertura
-automatizada que alcança `pages/` e `components/` — ver `CONCERNS.md` C-02.
+monocromática, uniforme em `L*` e legível, conforme `DESIGN-SYSTEM.md`). São a única
+cobertura automatizada que alcança `pages/` e `components/`, que não têm harness e2e.
 
 ### Integration Tests
 Exercise the `repositories/` layer against a real PostgreSQL provisioned by Testcontainers. Highest-value targets covered: `create_transaction` installment generation, `get_dashboard_data` aggregation (incl. the January → previous-December path), bulk description ops (`rename`/`migrate`/`delete` + `description_hash` consistency), and baselines for users/categories/cash-flow.
