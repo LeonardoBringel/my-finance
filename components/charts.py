@@ -355,7 +355,11 @@ def day_hover_texts(
 
 
 def expenses_by_day_chart(
-    data: dict[str, dict[int, float]], title: str, year: int, month: int
+    data: dict[str, dict[int, float]],
+    title: str,
+    year: int,
+    month: int,
+    visible: list[str] | None = None,
 ):
     """Stacked bar chart de gastos por categoria por dia do mês.
 
@@ -364,11 +368,22 @@ def expenses_by_day_chart(
         title: Título do gráfico.
         year: Ano selecionado (para calcular dias do mês).
         month: Mês selecionado (1–12).
+        visible: Categorias a exibir nos traces e no hover. `None` (padrão)
+            exibe todas as categorias de `data`, idêntico ao comportamento sem
+            este parâmetro. Uma lista vazia produz o mesmo estado vazio usado
+            quando `data` está vazio. Nomes ausentes de `data` são ignorados em
+            silêncio. A cor de cada categoria continua derivada da posição dela
+            no `data` completo, nunca do subconjunto visível — ocultar uma
+            categoria não recolore as demais.
 
     Returns:
         go.Figure com barras empilhadas.
     """
-    if not data:
+    visible_categories = (
+        set(data.keys()) if visible is None else set(visible) & set(data.keys())
+    )
+
+    if not data or not visible_categories:
         fig = go.Figure()
         fig.add_annotation(
             text=t("common.no_data"),
@@ -383,13 +398,25 @@ def expenses_by_day_chart(
     days_in_month = calendar.monthrange(year, month)[1]
     days = list(range(1, days_in_month + 1))
 
+    # A paleta é sempre indexada pelo conjunto COMPLETO de `data` — nunca pelo
+    # subconjunto visível — para que ocultar uma categoria não recoloreie as
+    # demais (DAYF-04).
     palette = expense_palette(len(data))
+    visible_data = {
+        cat: day_totals
+        for cat, day_totals in data.items()
+        if cat in visible_categories
+    }
     # Hover unificado: todos os traces do dia D compartilham o mesmo bloco de
     # texto (total + quebra por categoria), então passar de um segmento a outro
-    # da mesma barra mostra o mesmo tooltip — mesmo padrão de CHART-02.
-    hover_blocks = day_hover_texts(data, days)
+    # da mesma barra mostra o mesmo tooltip — mesmo padrão de CHART-02. O bloco
+    # é calculado só sobre as categorias visíveis, então total e quebra sempre
+    # refletem exatamente o que está desenhado (DAYF-02).
+    hover_blocks = day_hover_texts(visible_data, days)
     fig = go.Figure()
     for i, (cat, day_totals) in enumerate(data.items()):
+        if cat not in visible_categories:
+            continue
         values = [day_totals.get(d, 0.0) for d in days]
         color = palette[i]
         fig.add_trace(
