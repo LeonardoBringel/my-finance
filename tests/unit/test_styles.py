@@ -6,15 +6,34 @@ por `.st-key-{key}`, folha vazia com zero categorias e a regra de atenuação
 do marcador na pill não selecionada.
 """
 
+import re
+
 from components.styles import category_pills_css
 from utils.theme import expense_palette
+
+
+def _color_at_position(css: str, position: int) -> str | None:
+    """Cor declarada na regra base (não a de atenuação) do `nth-of-type(position)`.
+
+    Isola o bloco de regra correto por posição, em vez de checar só presença
+    da cor em algum lugar da folha — uma rotação do mapeamento índice→cor
+    produziria o mesmo conjunto de cores, só que nas posições erradas, e uma
+    checagem de presença não pegaria isso.
+    """
+    pattern = re.compile(
+        r"nth-of-type\("
+        + str(position)
+        + r"\)::before\s*\{[^}]*background-color:\s*(#[0-9A-Fa-f]{3,8})"
+    )
+    match = pattern.search(css)
+    return match.group(1) if match else None
 
 
 def test_category_pills_css_uses_expense_palette_color_by_index():
     css = category_pills_css("daily_cats_2026_8", 4)
     colors = expense_palette(4)
-    assert colors[0] in css
-    assert colors[3] in css
+    for i, color in enumerate(colors):
+        assert _color_at_position(css, i + 1) == color
 
 
 def test_category_pills_css_wraps_the_palette_cycle_above_nine():
