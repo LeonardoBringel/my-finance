@@ -32,6 +32,7 @@ from repositories import (
 from utils.auth import logout, require_login
 from utils.category_types import is_investment
 from utils.data_format_utils import MONTH_NAMES, format_currency
+from utils.filters import ALL_FILTER, sync_all_pill_selection
 from utils.i18n import t
 from utils.theme import GREEN_MAIN, RED_MAIN, TEXT_MUTED, WHITE, rgba
 
@@ -395,19 +396,45 @@ else:
         st.markdown(t("pages.dashboard.section_investments"))
         render_cat_donuts(investment_cats)
 
+
 # ── Gastos por Categoria por Dia ───────────────────────────────────────────────
+def _sync_daily_cats_pill(key: str, real_categories: list[str]) -> None:
+    """Callback do `st.pills`: mantém a pill "Todas" sincronizada com a seleção.
+
+    `st.pills` não distingue "cliquei em Todas" de "cliquei numa categoria" -
+    as duas coisas chegam como a mesma lista marcada. Guardamos a seleção da
+    rodada anterior em `f"{key}_prev"` para que `sync_all_pill_selection`
+    resolva a ambiguidade.
+    """
+    prev_key = f"{key}_prev"
+    selected = st.session_state.get(key, [])
+    previous = st.session_state.get(prev_key, [ALL_FILTER] + real_categories)
+    corrected = sync_all_pill_selection(selected, previous, real_categories)
+    st.session_state[key] = corrected
+    st.session_state[prev_key] = corrected
+
+
 st.divider()
 daily_cats_visible = None
 if expenses_by_day_cat:
     daily_cats_key = f"daily_cats_{selected_year}_{selected_month}"
-    daily_cats_selection = st.pills(
+    daily_cats_categories = list(expenses_by_day_cat.keys())
+    st.pills(
         label=t("pages.dashboard.daily_categories_filter_label"),
-        options=list(expenses_by_day_cat.keys()),
+        options=[ALL_FILTER] + daily_cats_categories,
         selection_mode="multi",
-        default=list(expenses_by_day_cat.keys()),
+        default=[ALL_FILTER] + daily_cats_categories,
+        format_func=lambda x: (
+            t("common.all_feminine") if x == ALL_FILTER else x
+        ),
         key=daily_cats_key,
+        on_change=_sync_daily_cats_pill,
+        args=(daily_cats_key, daily_cats_categories),
     )
-    daily_cats_visible = daily_cats_selection or []
+    daily_cats_selection = st.session_state.get(daily_cats_key, [])
+    daily_cats_visible = [
+        cat for cat in daily_cats_selection if cat != ALL_FILTER
+    ]
 
 st.plotly_chart(
     expenses_by_day_chart(
