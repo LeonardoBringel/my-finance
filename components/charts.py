@@ -432,14 +432,8 @@ def expenses_by_day_chart(
         )
 
     fig.update_layout(
-        **_base_layout(title, showlegend=True),
+        **_base_layout(title),
         barmode="stack",
-        legend=dict(
-            font=dict(color=TEXT_COLOR),
-            bgcolor=CHART_BG,
-            orientation="h",
-            y=-0.15,
-        ),
         xaxis=dict(
             showgrid=False,
             tickfont=dict(color=TEXT_COLOR),

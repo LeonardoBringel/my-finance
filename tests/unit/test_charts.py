@@ -102,6 +102,16 @@ def test_expenses_by_day_chart_visible_ignores_unknown_category_names():
     assert fig.data[0].name == "Categoria 0"
 
 
+def test_expenses_by_day_chart_hides_the_legend():
+    fig = expenses_by_day_chart(_day_data(4), "Teste", 2026, 1)
+    assert fig.layout.showlegend is False
+
+
+def test_expenses_by_day_chart_has_no_custom_legend_orientation():
+    fig = expenses_by_day_chart(_day_data(4), "Teste", 2026, 1)
+    assert fig.layout.legend.orientation is None
+
+
 def test_donut_chart_defaults_to_the_brand_palette():
     fig = donut_chart(["a", "b"], [1.0, 2.0], "Teste")
     assert list(fig.data[0].marker.colors) == EXPENSE_PALETTE
