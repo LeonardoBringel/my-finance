@@ -1,13 +1,7 @@
 import streamlit as st
 
 from utils.i18n import t
-from utils.theme import (
-    GREEN_DARK,
-    GREEN_MAIN,
-    TEXT_FAINT,
-    WHITE,
-    expense_palette,
-)
+from utils.theme import GREEN_DARK, GREEN_MAIN, TEXT_FAINT, WHITE
 from utils.version import get_app_version
 
 
@@ -89,62 +83,3 @@ def render_app_version() -> None:
         f"font-size: 0.9rem;'>{get_app_version()}</p>",
         unsafe_allow_html=True,
     )
-
-
-def category_pills_css(key: str, n: int) -> str:
-    """Monta as regras CSS que pintam o marcador de cor de cada pill de categoria.
-
-    Cada categoria vira uma pill do `st.pills`; como o widget não tem API de
-    cor por opção, o marcador é um `::before` posicional (`nth-of-type`),
-    escopado pela classe `st-key-{key}` que o Streamlit gera para o widget.
-    O índice `i` usado aqui é o mesmo que `expense_palette` usa para colorir o
-    trace correspondente no gráfico — a correspondência pill x barra é
-    estrutural (por posição), não por texto da categoria.
-
-    Quando a pill não está selecionada (`aria-pressed` diferente de `"true"`),
-    o marcador continua visível, só atenuado — ele é a legenda mesmo quando a
-    categoria está oculta do gráfico.
-
-    Args:
-        key: Chave do widget `st.pills` (mesma passada em `st.pills(key=...)`).
-        n: Quantidade de categorias/pills a colorir.
-
-    Returns:
-        String CSS pronta para um bloco `<style>` (sem as tags); string vazia
-        quando `n <= 0`, sem gerar regra órfã.
-    """
-    if n <= 0:
-        return ""
-
-    colors = expense_palette(n)
-    scope = f'.st-key-{key} [data-testid="stButtonGroup"] button'
-    rules = []
-    for i, color in enumerate(colors):
-        position = i + 1
-        rules.append(f"""
-    {scope}:nth-of-type({position})::before {{
-        content: "";
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        margin-right: 6px;
-        border-radius: 2px;
-        vertical-align: middle;
-        background-color: {color};
-    }}
-    {scope}:not([aria-pressed="true"]):nth-of-type({position})::before {{
-        opacity: 0.45;
-    }}""")
-    return "\n".join(rules)
-
-
-def inject_category_pills_css(key: str, n: int) -> None:
-    """Injeta o CSS dos marcadores de cor das pills de categoria, se houver algum.
-
-    Args:
-        key: Chave do widget `st.pills` (mesma passada em `st.pills(key=...)`).
-        n: Quantidade de categorias/pills a colorir.
-    """
-    css = category_pills_css(key, n)
-    if css:
-        st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)

@@ -22,7 +22,6 @@ from components.new_transaction import (
 )
 from components.styles import (
     init_onboarding,
-    inject_category_pills_css,
     inject_global_css,
     render_app_version,
 )
@@ -408,7 +407,6 @@ if expenses_by_day_cat:
         default=list(expenses_by_day_cat.keys()),
         key=daily_cats_key,
     )
-    inject_category_pills_css(key=daily_cats_key, n=len(expenses_by_day_cat))
     daily_cats_visible = daily_cats_selection or []
 
 st.plotly_chart(
