@@ -22,6 +22,7 @@ from components.new_transaction import (
 )
 from components.styles import (
     init_onboarding,
+    inject_category_pills_css,
     inject_global_css,
     render_app_version,
 )
@@ -397,6 +398,19 @@ else:
 
 # ── Gastos por Categoria por Dia ───────────────────────────────────────────────
 st.divider()
+daily_cats_visible = None
+if expenses_by_day_cat:
+    daily_cats_key = f"daily_cats_{selected_year}_{selected_month}"
+    daily_cats_selection = st.pills(
+        label=t("pages.dashboard.daily_categories_filter_label"),
+        options=list(expenses_by_day_cat.keys()),
+        selection_mode="multi",
+        default=list(expenses_by_day_cat.keys()),
+        key=daily_cats_key,
+    )
+    inject_category_pills_css(key=daily_cats_key, n=len(expenses_by_day_cat))
+    daily_cats_visible = daily_cats_selection or []
+
 st.plotly_chart(
     expenses_by_day_chart(
         expenses_by_day_cat,
@@ -407,6 +421,7 @@ st.plotly_chart(
         ),
         selected_year,
         selected_month,
+        visible=daily_cats_visible,
     ),
     width="stretch",
     key="expenses_by_day",

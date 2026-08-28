@@ -286,6 +286,7 @@
       "section_expenses": "#### 💸 Despesas",
       "section_investments": "#### 📈 Investimentos",
       "expenses_by_day": "📅 Gastos por Categoria por Dia — {month} / {year}",
+      "daily_categories_filter_label": "Categorias exibidas",
       "history_button": "📈 Histórico 12 meses"
     },
     "admin": {
