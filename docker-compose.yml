@@ -20,6 +20,7 @@ services:
   app:
     build:
       context: .
+      pull: true
       args:
         APP_VERSION: ${APP_VERSION:-latest}
     container_name: my_finance_app
